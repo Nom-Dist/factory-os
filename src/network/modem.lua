@@ -1,10 +1,29 @@
 local codec=require("core.codec")
+local computer=require("computer")
 local M={MAGIC="FactoryOS/2",VERSION=2}
 local function count(t) local n=0; for _ in pairs(t) do n=n+1 end; return n end
+local function capacity(value)
+  local n=tonumber(value)
+  if n and n>0 and n%1==0 then return n end
+end
+function M.packetLimit(modem)
+  -- OC 1.8.3 advertises capacity as a string in device info; no callback exists.
+  local ok,info=pcall(function() return computer.getDeviceInfo() end)
+  local entry=ok and type(info)=="table" and info[modem.address]
+  local bytes=type(entry)=="table" and capacity(entry.capacity) or nil
+  if not bytes and modem.maxPacketSize~=nil then
+    -- Compatibility with versions that do expose this optional callback.
+    local supported,value=pcall(modem.maxPacketSize)
+    if supported then bytes=capacity(value) end
+  end
+  assert(bytes,"Cannot read modem packet capacity from computer.getDeviceInfo(); run factoryos doctor")
+  local limit=math.min(bytes,4096)
+  assert(limit>=1024,"Modem packet limit below 1024 bytes")
+  return limit
+end
 function M.new(modem,cfg,clock,nonce)
   local self={queue={},assemblies={},sequence=0,nextSend=0,modem=modem}
-  local limit=math.min(modem.maxPacketSize(),4096)
-  assert(limit>=1024,"Modem packet limit below 1024 bytes")
+  local limit=M.packetLimit(modem)
   local chunkSize=math.min(1800,math.floor((limit-600)/2))
   self.opened=not modem.isOpen(cfg.port)
   if self.opened then assert(modem.open(cfg.port),"Cannot open modem port") end

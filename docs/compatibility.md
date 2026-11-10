@@ -43,7 +43,8 @@ OC JAR içindeki `mcmod.info` ayrıca **OpenComputers 1.8.3 / Minecraft 1.12.2**
 | Lua bit işlemleri | Yerel config Lua 5.3 varsayılanı; gerçek Lua 5.2/5.3 testleri | 5.2 bit32; 5.3'te yoksa yerel sabit bit-op fallback. Ağdan derlenen kod yoktur. |
 | Thread yaşam döngüsü | JAR `lib/thread.lua` | create, detach, status ve graceful stop. Oyun içi thread zamanlaması ayrıca test edilmelidir. |
 | GPU | [Orijinal GPU dokümanı](https://ocdoc.cil.li/component:gpu) | bind/maxResolution/setResolution/setDepth/set; 1.8 VRAM/bitblt zorunlu değil. |
-| Modem | [Orijinal modem dokümanı](https://ocdoc.cil.li/component:modem) | Gerçek paket limiti, iki argümanın overhead'i, yerel/uzak adres ve port kontrolü. |
+| Modem paket sınırı | [Kurulu 1.8.3 commit'indeki NetworkCard.scala](https://github.com/MightyPirates/OpenComputers/blob/274990f/src/main/scala/li/cil/oc/server/component/NetworkCard.scala) | `maxPacketSize` callback'i yok; kapasite `computer.getDeviceInfo()[modem.address].capacity` üzerinden okunur. Güncel wiki'deki callback bu sürüme varsayılmadı. |
+| Component callback tipi | Yerel JAR `assets/opencomputers/lua/machine.lua`, `componentCallback.__call` | Proxy metotları çağrılabilir table olabilir. AE2/prob kontrolleri yalnızca `type == function` şartına bağlanmaz. Modem/GPU/AE2 testleri callable table ile yürütülür. |
 
 ## AE2 eski API
 
@@ -71,3 +72,5 @@ Mekanism makineleri için tek tip OC component/metot varlığı varsayılmadı. 
 - [Serialization](https://ocdoc.cil.li/api:serialization) — unserialize kaynakta `load` kullanabildiği için ağ parser'ı olarak seçilmedi.
 
 Web dokümanları zaman içinde güncellenebildiği için kritik OpenOS davranışları ayrıca **yerel JAR kaynaklarıyla** karşılaştırılmıştır. Bu çalışma gerçek Minecraft kabul testlerinin yerine geçmez.
+
+Kullanıcı v0.1.1 sunucu kurulumunun tamamlandığını bildirdi; foreground başlangıcında `maxPacketSize` hatası ekran görüntüsüyle görüldü. v0.1.2 bu hatayı yukarıdaki 1.8.3 kaynaklarına göre düzeltir; boş allowlist ve gerçek proxy callback biçimiyle foreground regresyonu mock'ta sınandı. Yeni sürümün oyunda yeniden açılışı henüz doğrulanmadı.

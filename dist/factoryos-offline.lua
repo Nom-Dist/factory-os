@@ -235,6 +235,13 @@ function M.describe()
     lines[#lines+1]=kind.." "..address
   end
   table.sort(lines)
+  local ok,info=pcall(function() return require("computer").getDeviceInfo() end)
+  if ok and type(info)=="table" then
+    for address in component.list("modem",true) do
+      local entry=info[address]
+      if type(entry)=="table" then lines[#lines+1]="modem packet capacity "..address..": "..tostring(entry.capacity).." bytes" end
+    end
+  end
   return table.concat(lines,"\n")
 end
 return M
@@ -524,7 +531,7 @@ end
 local payload={}
 payload[ [[
 manifest.dat]] ]=[[
-m4:s5:filesm22:n1:1m3:s4:paths8:boot.luas4:sizen4:1254s6:sha256s64:1a2730244d74fca8062048567d3b9d98d3ae2ad062d018fbd0c5af16ece842c6n1:2m3:s4:paths23:client/main_display.luas4:sizen4:1761s6:sha256s64:a0a3b9bf89d495b9d7a1041009f98e915ccc000bb60027fdb0beba77e973c4b5n1:3m3:s4:paths23:client/side_display.luas4:sizen3:159s6:sha256s64:7e94ff8c85f4be8b2c65786376ec1ff19ea17807310b3940a3e5f2aea31ecdc3n1:4m3:s4:paths12:core/cli.luas4:sizen4:3967s6:sha256s64:2ab1f3bc4e5c258ebdf6e58a906c90b9fd0bc2a4e5548bd2c831b9047beacdf6n1:5m3:s4:paths14:core/codec.luas4:sizen4:2990s6:sha256s64:d99f7fcbec5e1419877fba9e17a6bd673047dfbd55d4369890f0b8cbe436614dn1:6m3:s4:paths15:core/config.luas4:sizen4:2606s6:sha256s64:a12366ba1683a19d0884389b404effc15049daea545e29e756982ba2252b0c6en1:7m3:s4:paths15:core/crypto.luas4:sizen4:2958s6:sha256s64:c58b3b3fc70204fdc85ccd9b2c3ffdceba8516376f94110a700f070eb7b6ed95n1:8m3:s4:paths17:core/hardware.luas4:sizen4:1507s6:sha256s64:d0d7014b3bf804f0e9240020375938d650a685cca054e1c05e8899636b6272c3n1:9m3:s4:paths18:core/installer.luas4:sizen4:4054s6:sha256s64:27b5fe92bb39eee1fdaef1d8a97e9033a5774ab527b4f924ce7c58c11a5c2f08n2:10m3:s4:paths15:core/logger.luas4:sizen3:719s6:sha256s64:773349ed6f72655c34f5499b8a2363b4c38a0844c51ffcb8a2bc855e8e98d81cn2:11m3:s4:paths16:core/runtime.luas4:sizen4:2631s6:sha256s64:11db3d9b26c4008d6f84195018350708fd20f2925e6a28520c165e4d867c0f01n2:12m3:s4:paths16:core/storage.luas4:sizen4:1553s6:sha256s64:2cc1a5775cd064c10aebfc1967e24fe3764c09af5d19dfc0c985973d61071f94n2:13m3:s4:paths16:core/updater.luas4:sizen4:6226s6:sha256s64:31c4ee78cd0cc4e9e44896a78d7673d89067ff554437f6d1412015387b9e6f7en2:14m3:s4:paths20:network/messages.luas4:sizen3:457s6:sha256s64:1ca3305de58feef04c86df64c451bfa354735f3c990ce65548ec76561d8766f0n2:15m3:s4:paths17:network/modem.luas4:sizen4:3405s6:sha256s64:a80f4dd96610371b61eff510f2d575d03bf4fe8a9f50ced843fd9c392c91706an2:16m3:s4:paths20:network/protocol.luas4:sizen4:6388s6:sha256s64:be00ca71a2ac6d677af4a826295cfcc93b26f7e9f75d1eaf4966b2a41faf340an2:17m3:s4:paths14:server/ae2.luas4:sizen4:4546s6:sha256s64:0dcf85b416b05674343f1f961db18a6baae77d018a38779fc16c0e3b63093624n2:18m3:s4:paths17:server/energy.luas4:sizen3:156s6:sha256s64:1bcc2fd9ea9f8950d91a63065913fc089ef87750d5ef9e3d206ed044e5aa3ff6n2:19m3:s4:paths19:server/machines.luas4:sizen3:269s6:sha256s64:861aeeec2cb4fd1f7c21cd5529ae724846a15ab4fd3111b07333071ef0ba1e3bn2:20m3:s4:paths15:server/main.luas4:sizen4:1649s6:sha256s64:61016680cc67f60971d329ab36cecbdbf3fc53ccbd2dfc0019c873d7e25fda1dn2:21m3:s4:paths15:ui/renderer.luas4:sizen4:2788s6:sha256s64:0c431ebd0d4c97f14a4f9990a963cc8d531c43a0dfa7449e828fcde4df0e3d6an2:22m3:s4:paths14:ui/screens.luas4:sizen4:5273s6:sha256s64:9f85a53db47eda7231c95a227519b3d1668f8db46e1a3719268946ea618363bas6:scheman1:1s7:releases18:0.1.1-f4b9c71a5899s7:versions5:0.1.1]]
+m4:s5:filesm22:n1:1m3:s4:paths8:boot.luas4:sizen4:1254s6:sha256s64:1a2730244d74fca8062048567d3b9d98d3ae2ad062d018fbd0c5af16ece842c6n1:2m3:s4:paths23:client/main_display.luas4:sizen4:1761s6:sha256s64:a0a3b9bf89d495b9d7a1041009f98e915ccc000bb60027fdb0beba77e973c4b5n1:3m3:s4:paths23:client/side_display.luas4:sizen3:159s6:sha256s64:7e94ff8c85f4be8b2c65786376ec1ff19ea17807310b3940a3e5f2aea31ecdc3n1:4m3:s4:paths12:core/cli.luas4:sizen4:3967s6:sha256s64:2ab1f3bc4e5c258ebdf6e58a906c90b9fd0bc2a4e5548bd2c831b9047beacdf6n1:5m3:s4:paths14:core/codec.luas4:sizen4:2990s6:sha256s64:d99f7fcbec5e1419877fba9e17a6bd673047dfbd55d4369890f0b8cbe436614dn1:6m3:s4:paths15:core/config.luas4:sizen4:2606s6:sha256s64:a12366ba1683a19d0884389b404effc15049daea545e29e756982ba2252b0c6en1:7m3:s4:paths15:core/crypto.luas4:sizen4:2958s6:sha256s64:c58b3b3fc70204fdc85ccd9b2c3ffdceba8516376f94110a700f070eb7b6ed95n1:8m3:s4:paths17:core/hardware.luas4:sizen4:1853s6:sha256s64:f40a399b003f0f137e11c488d79eb6d7f46c4d60dc01d1b3f14a087d7863330an1:9m3:s4:paths18:core/installer.luas4:sizen4:4054s6:sha256s64:27b5fe92bb39eee1fdaef1d8a97e9033a5774ab527b4f924ce7c58c11a5c2f08n2:10m3:s4:paths15:core/logger.luas4:sizen3:719s6:sha256s64:773349ed6f72655c34f5499b8a2363b4c38a0844c51ffcb8a2bc855e8e98d81cn2:11m3:s4:paths16:core/runtime.luas4:sizen4:2631s6:sha256s64:11db3d9b26c4008d6f84195018350708fd20f2925e6a28520c165e4d867c0f01n2:12m3:s4:paths16:core/storage.luas4:sizen4:1553s6:sha256s64:2cc1a5775cd064c10aebfc1967e24fe3764c09af5d19dfc0c985973d61071f94n2:13m3:s4:paths16:core/updater.luas4:sizen4:6226s6:sha256s64:31c4ee78cd0cc4e9e44896a78d7673d89067ff554437f6d1412015387b9e6f7en2:14m3:s4:paths20:network/messages.luas4:sizen3:457s6:sha256s64:1ca3305de58feef04c86df64c451bfa354735f3c990ce65548ec76561d8766f0n2:15m3:s4:paths17:network/modem.luas4:sizen4:4235s6:sha256s64:79d685360eb05d38dc2797f812341df5b898fb0e189565a965ddfb7f5581bc2dn2:16m3:s4:paths20:network/protocol.luas4:sizen4:6388s6:sha256s64:be00ca71a2ac6d677af4a826295cfcc93b26f7e9f75d1eaf4966b2a41faf340an2:17m3:s4:paths14:server/ae2.luas4:sizen4:4609s6:sha256s64:b4281e4758972baa0c0c7381dfa384e437696730ef5cd6f23dde97db87393a5cn2:18m3:s4:paths17:server/energy.luas4:sizen3:156s6:sha256s64:1bcc2fd9ea9f8950d91a63065913fc089ef87750d5ef9e3d206ed044e5aa3ff6n2:19m3:s4:paths19:server/machines.luas4:sizen3:269s6:sha256s64:861aeeec2cb4fd1f7c21cd5529ae724846a15ab4fd3111b07333071ef0ba1e3bn2:20m3:s4:paths15:server/main.luas4:sizen4:1649s6:sha256s64:410095ef1605a3bdf7d11281d7fdded362bcecb1ba85a6be046f2027ce94f639n2:21m3:s4:paths15:ui/renderer.luas4:sizen4:2788s6:sha256s64:0c431ebd0d4c97f14a4f9990a963cc8d531c43a0dfa7449e828fcde4df0e3d6an2:22m3:s4:paths14:ui/screens.luas4:sizen4:5273s6:sha256s64:8af5982a87c8f685b5cc58a86438036e7cc236abb97b166957608daf72bc92ecs6:scheman1:1s7:releases18:0.1.2-1ded13238f61s7:versions5:0.1.2]]
 payload[ [[
 src/boot.lua]] ]=[[
 -- Loaded afresh by /bin/factoryos.lua; active pointer selects an immutable release.
@@ -936,6 +943,13 @@ function M.describe()
     lines[#lines+1]=kind.." "..address
   end
   table.sort(lines)
+  local ok,info=pcall(function() return require("computer").getDeviceInfo() end)
+  if ok and type(info)=="table" then
+    for address in component.list("modem",true) do
+      local entry=info[address]
+      if type(entry)=="table" then lines[#lines+1]="modem packet capacity "..address..": "..tostring(entry.capacity).." bytes" end
+    end
+  end
   return table.concat(lines,"\n")
 end
 return M
@@ -1296,12 +1310,31 @@ return M
 payload[ [[
 src/network/modem.lua]] ]=[[
 local codec=require("core.codec")
+local computer=require("computer")
 local M={MAGIC="FactoryOS/2",VERSION=2}
 local function count(t) local n=0; for _ in pairs(t) do n=n+1 end; return n end
+local function capacity(value)
+  local n=tonumber(value)
+  if n and n>0 and n%1==0 then return n end
+end
+function M.packetLimit(modem)
+  -- OC 1.8.3 advertises capacity as a string in device info; no callback exists.
+  local ok,info=pcall(function() return computer.getDeviceInfo() end)
+  local entry=ok and type(info)=="table" and info[modem.address]
+  local bytes=type(entry)=="table" and capacity(entry.capacity) or nil
+  if not bytes and modem.maxPacketSize~=nil then
+    -- Compatibility with versions that do expose this optional callback.
+    local supported,value=pcall(modem.maxPacketSize)
+    if supported then bytes=capacity(value) end
+  end
+  assert(bytes,"Cannot read modem packet capacity from computer.getDeviceInfo(); run factoryos doctor")
+  local limit=math.min(bytes,4096)
+  assert(limit>=1024,"Modem packet limit below 1024 bytes")
+  return limit
+end
 function M.new(modem,cfg,clock,nonce)
   local self={queue={},assemblies={},sequence=0,nextSend=0,modem=modem}
-  local limit=math.min(modem.maxPacketSize(),4096)
-  assert(limit>=1024,"Modem packet limit below 1024 bytes")
+  local limit=M.packetLimit(modem)
   local chunkSize=math.min(1800,math.floor((limit-600)/2))
   self.opened=not modem.isOpen(cfg.port)
   if self.opened then assert(modem.open(cfg.port),"Cannot open modem port") end
@@ -1508,7 +1541,8 @@ local component=require("component")
 local M={}
 local types={me_controller=true,me_interface=true,me_importbus=true,me_exportbus=true}
 local function safe(p,method,...)
-  if not p or type(p[method])~="function" then return nil,"unsupported: "..method end
+  -- OC proxy callbacks are callable tables, not necessarily Lua functions.
+  if not p or p[method]==nil then return nil,"unsupported: "..method end
   local ok,value=pcall(p[method],...)
   if not ok then return nil,tostring(value) end
   if value==nil then return nil,"no value from "..method end
@@ -1614,7 +1648,7 @@ function M.new(cfg,clock,log)
   function self:status()
     local clients={}
     for address,c in pairs(self.clients) do clients[#clients+1]={address=address,role=c.role,age=math.floor(clock()-c.lastSeen)} end
-    return {version="0.1.1",uptime=math.floor(clock()-self.started),ae2=self.ae2:summary(),clients=clients,
+    return {version="0.1.2",uptime=math.floor(clock()-self.started),ae2=self.ae2:summary(),clients=clients,
       power=energy.status(self.ae2),automation=false,crafting="disabled_pending_ingame_validation",reactors="read_only_unsupported"}
   end
   function self:dispatch(command,args)
@@ -1726,7 +1760,7 @@ function M.draw(r,role,net,state,clock)
   r:fill(1,1,r.w,3,C.panel)
   r:text(3,2,"FACTORY OS / "..(role=="main" and "CONTROL" or role=="side" and "TELEMETRY" or "SERVER"),C.accent,C.panel)
   r:text(math.max(3,r.w-10),2,online and "ONLINE" or "OFFLINE",online and C.good or C.bad,C.panel)
-  r:text(2,r.h,"v0.1.1 | "..(online and "wireless network" or "searching / reconnecting"),C.muted)
+  r:text(2,r.h,"v0.1.2 | "..(online and "wireless network" or "searching / reconnecting"),C.muted)
   if role=="server" then
     r:panel(2,5,r.w-2,r.h-6,"SYSTEM CONSOLE")
     r:text(3,7,"Clients: "..#(status.clients or {}),nil,C.panel)

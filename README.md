@@ -1,4 +1,4 @@
-# FactoryOS v0.1.1
+# FactoryOS v0.1.2
 
 Minecraft **1.12.2 / Enigmatica 2: Expert Skyblock / OpenComputers / OpenOS** için üç bilgisayarlı fabrika kontrol yazılımı. Lua 5.2 ve 5.3 hedeflenir. Oyun dışında çalışan testleri olan ilk altyapı teslimatıdır; **Minecraft içinde henüz doğrulanmamıştır**.
 
@@ -80,9 +80,11 @@ python tools/build.py
 python tests/run.py
 ```
 
-Test çalıştırıcısı Lua 5.2 **ve** 5.3'te kaynakları/üretilen installer'ları derler ve 21 senaryoyu çalıştırır. Testler gerçek Lua yürütür; modem, GPU, filesystem, zaman, HTTP ve OpenOS thread/event çevresi mock'tur. Oyun gecikmesini, Java mod sürücülerini ve gerçek üretimi doğrulamaz. [Oyun içi kabul adımları](docs/testing.md) ve [salt okunur prob](tools/ingame_probe.lua) ayrıca sağlanmıştır.
+Test çalıştırıcısı Lua 5.2 **ve** 5.3'te kaynakları/üretilen installer'ları derler ve 23 senaryoyu çalıştırır. Testler gerçek Lua yürütür; modem, GPU, filesystem, zaman, HTTP ve OpenOS thread/event çevresi mock'tur. OC 1.8.3 gibi modem metotları çağrılabilir tablolardır ve `maxPacketSize` metodu yoktur; paket kapasitesi device info'dan okunur. Oyun gecikmesini, Java mod sürücülerini ve gerçek üretimi doğrulamaz. [Oyun içi kabul adımları](docs/testing.md) ve [salt okunur prob](tools/ingame_probe.lua) ayrıca sağlanmıştır.
 
 v0.1.1 ağ protokolü v2 kullanır. v0.1.0 ile haberleşmez; üç bilgisayarı da güncelleyin. Eski config'teki modem/ekran/rol ayarları korunur, ortak anahtar artık kullanılmaz. SHA256 yalnızca indirilen dosyaların bütünlüğünü kontrol eder.
+
+v0.1.2, OC 1.8.3 üzerinde foreground başlangıcında görülen `maxPacketSize` hatasını düzeltir. v0.1.1 ile aynı ağ protokolünü kullanır. Sunucunun istemci adresleri boşken açılması desteklenir; sadece istemci kaydı izin listesi doldurulana kadar bekler.
 
 ## Dokümanlar
 

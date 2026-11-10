@@ -4,15 +4,17 @@ local component=require("component")
 local computer=require("computer")
 local serialization=require("serialization")
 local report={lua=_VERSION,openos=_OSVERSION or "unknown",uptime=computer.uptime(),components={}}
+local infoOk,deviceInfo=pcall(function() return computer.getDeviceInfo() end)
 local readMethods={"isWireless","maxPacketSize","getScreen","getAspectRatio","getResolution","maxResolution",
   "getItemsInNetwork","getCpus","getStoredPower","getMaxStoredPower","getAvgPowerInjection","getAvgPowerUsage"}
 for address,kind in component.list() do
   local entry={address=address,type=kind,methods={},results={}}
+  if infoOk and type(deviceInfo)=="table" then entry.deviceInfo=deviceInfo[address] end
   local p=component.proxy(address)
   local ok,methods=pcall(component.methods,address)
   if ok then for name in pairs(methods) do entry.methods[#entry.methods+1]=name end; table.sort(entry.methods) end
   for _,method in ipairs(readMethods) do
-    if type(p[method])=="function" then
+    if p[method]~=nil then
       local success,a,b=pcall(p[method])
       if method=="getItemsInNetwork" and success and type(a)=="table" then
         entry.results[method]={count=#a,sample={}}

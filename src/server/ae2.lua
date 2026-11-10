@@ -2,7 +2,8 @@ local component=require("component")
 local M={}
 local types={me_controller=true,me_interface=true,me_importbus=true,me_exportbus=true}
 local function safe(p,method,...)
-  if not p or type(p[method])~="function" then return nil,"unsupported: "..method end
+  -- OC proxy callbacks are callable tables, not necessarily Lua functions.
+  if not p or p[method]==nil then return nil,"unsupported: "..method end
   local ok,value=pcall(p[method],...)
   if not ok then return nil,tostring(value) end
   if value==nil then return nil,"no value from "..method end

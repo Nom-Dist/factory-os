@@ -235,6 +235,13 @@ function M.describe()
     lines[#lines+1]=kind.." "..address
   end
   table.sort(lines)
+  local ok,info=pcall(function() return require("computer").getDeviceInfo() end)
+  if ok and type(info)=="table" then
+    for address in component.list("modem",true) do
+      local entry=info[address]
+      if type(entry)=="table" then lines[#lines+1]="modem packet capacity "..address..": "..tostring(entry.capacity).." bytes" end
+    end
+  end
   return table.concat(lines,"\n")
 end
 return M

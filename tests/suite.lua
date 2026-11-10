@@ -80,6 +80,15 @@ io.open=function(path,mode)
 end
 local now=0
 local components={}
+local deviceInfo={}
+local function callback(fn)
+  -- Mirrors machine.lua componentCallback.__call from OC 1.8.3.
+  return setmetatable({}, {__call=function(_,...) return fn(...) end})
+end
+local function proxyCallbacks(proxy)
+  for name,fn in pairs(proxy) do if type(fn)=="function" then proxy[name]=callback(fn) end end
+  return proxy
+end
 local component={}
 function component.list(kind)
   local list={}; for a,p in pairs(components) do if not kind or p.type==kind then list[#list+1]=a end end
@@ -90,7 +99,7 @@ function component.proxy(address) return assert(components[address],"component r
 function component.isAvailable(kind) for _,p in pairs(components) do if p.type==kind then return true end end; return false end
 package.preload.filesystem=function() return fs end
 package.preload.component=function() return component end
-package.preload.computer=function() return {uptime=function() return now end} end
+package.preload.computer=function() return {uptime=function() return now end,getDeviceInfo=function() return deviceInfo end} end
 local nonceCounter=0
 local function nonce() nonceCounter=nonceCounter+1; return string.format("nonce-%032d",nonceCounter) end
 package.preload.uuid=function() return {next=nonce} end
@@ -126,18 +135,41 @@ local wire=require("network.modem")
 local bus,drop={},false
 local function modem(address,maxPacket)
   local opened=false
-  local m={address=address,type="modem",maxPacketSize=function() return maxPacket or 8192 end,
+  local maxBytes=maxPacket or 8192
+  deviceInfo[address]={capacity=tostring(maxBytes)}
+  local m={address=address,type="modem",
     isWireless=function() return true end,isOpen=function() return opened end,
     open=function() opened=true; return true end,close=function() opened=false end,setStrength=function() end}
   local function push(target,port,magic,raw)
-    assert(#magic+#raw+4<=m.maxPacketSize(),"oversize packet")
+    assert(#magic+#raw+4<=maxBytes,"oversize packet")
     if not drop then bus[#bus+1]={from=address,to=target,port=port,magic=magic,raw=raw} end
     return true
   end
   m.send=push
   m.broadcast=function(port,magic,raw) return push(nil,port,magic,raw) end
-  return m
+  return proxyCallbacks(m)
 end
+test("OC 1.8.3 packet capacity without maxPacketSize and optional callback compatibility",function()
+  local m=modem("capacity-address",2048)
+  eq(m.maxPacketSize,nil); eq(type(m.send),"table")
+  eq(wire.packetLimit(m),2048)
+  -- The real metadata wins even if an optional callback is broken.
+  m.maxPacketSize=callback(function() error("must not call when device info is present") end)
+  eq(wire.packetLimit(m),2048)
+  deviceInfo[m.address]=nil
+  m.maxPacketSize=callback(function() return 8192 end)
+  eq(wire.packetLimit(m),4096)
+  m.maxPacketSize=nil
+  local ok,err=pcall(wire.packetLimit,m)
+  assert(not ok and tostring(err):find("getDeviceInfo",1,true))
+  for _,invalid in ipairs({"garbage","0","-1","nan","inf","2048.5"}) do
+    deviceInfo[m.address]={capacity=invalid}; assert(not pcall(wire.packetLimit,m))
+  end
+  deviceInfo[m.address]={capacity="512"}
+  local small,reason=pcall(wire.packetLimit,m)
+  assert(not small and tostring(reason):find("below 1024",1,true))
+  deviceInfo[m.address]=nil
+end)
 local serverCfg=config.defaults("server")
 serverCfg.allowedClients={["main-address"]="main",["side-address"]="side"}
 local mainCfg=config.defaults("main")
@@ -261,7 +293,7 @@ local function mockGpu(w,h)
   gpu.setBackground=function() end
   gpu.set=function(x,y,s) assert(x>=1 and y>=1 and x+#s-1<=w and y<=h); writes=writes+1 end
   gpu.writes=function() return writes end
-  return gpu
+  return proxyCallbacks(gpu)
 end
 local hardware=require("core.hardware")
 test("Missing GPU/screen/modem and ambiguous local components",function()
@@ -285,11 +317,12 @@ test("AE2 real-shaped stacks preserve metadata/NBT, disconnect clears stale data
   end
   p.getCpus=function() return {{name="CPU A",busy=true,storage=1024,coprocessors=1}} end
   p.getStoredPower=function() return 20 end; p.getMaxStoredPower=function() return 100 end
+  proxyCallbacks(p); eq(type(p.getItemsInNetwork),"table")
   components={me1=p}; ae:poll(); assert(ae.online); eq(#ae.items,3); eq(ae.energy.unit,"AE")
   local stocks=ae:stocks({query="ALLOY",page=1}); eq(stocks.total,3)
   local ambiguous=0; for _,item in ipairs(ae.items) do if not item.identityComplete then ambiguous=ambiguous+1 end end; eq(ambiguous,1)
   eq(ae:jobs().existingJobDetails,"unsupported")
-  p.getItemsInNetwork=function() error("network disconnected") end
+  p.getItemsInNetwork=callback(function() error("network disconnected") end)
   ae:poll(); assert(not ae.online); eq(#ae.items,0); assert(not ae.energy.supported)
   components={}; ae:poll(); assert(not ae.online)
 end)
@@ -443,6 +476,24 @@ test("CLI service lifecycle uses detached thread and graceful stop; busy updates
   cli.main({"stop"},updater.root); assert(not service.running); assert(not service.error,service.error)
   eq(service.thread:status(),"dead")
   os.sleep=originalSleep
+end)
+test("Foreground startup works with an empty allowlist and OC callable-table callbacks",function()
+  local event=require("event")
+  local originalPull=event.pull
+  event.pull=function(timeout) now=now+(timeout or 0); return "interrupted" end
+  local cli=require("core.cli")
+  for _,role in ipairs({"server","main","side"}) do
+    local cfg=config.defaults(role)
+    assert(config.save(cfg)); eq(next(cfg.allowedClients),nil)
+    eq(components["local-modem"].maxPacketSize,nil)
+    local gpu=components["gpu-address"]
+    local before=gpu.writes()
+    cli.main({"start","--foreground"},updater.root)
+    local service=package.loaded["factoryos.service"]
+    eq(service.role,role); eq(service.running,false); eq(service.error,nil)
+    assert(gpu.writes()>before,"Foreground panel was not drawn")
+  end
+  event.pull=originalPull
 end)
 test("Installed launcher recovers active.bak and preserves OpenOS core modules",function()
   local root=updater.root

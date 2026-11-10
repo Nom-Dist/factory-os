@@ -2,11 +2,13 @@
 
 ## Gerçekte çalıştırılanlar
 
-11 Kasım 2026'da Lupa 2.8'in **gerçek Lua 5.2 ve Lua 5.3 yorumlayıcılarında** 21 senaryo çalıştırıldı: her yorumlayıcıda 21/21 geçti. Bütün Lua dosyaları, üretilen online/offline installer ve oyun içi prob dahil sözdizimsel olarak derlendi.
+11 Kasım 2026'da Lupa 2.8'in **gerçek Lua 5.2 ve Lua 5.3 yorumlayıcılarında** 23 senaryo çalıştırıldı: her yorumlayıcıda 23/23 geçti. Bütün Lua dosyaları, üretilen online/offline installer ve oyun içi prob dahil sözdizimsel olarak derlendi.
 
 Modem/GPU/HTTP/filesystem/thread/event/zaman çevresi mock'tur. Bilgisayarlar arası haberleşme uygulaması ve tüm modüller gerçek Lua koduyla yürütüldü. Bu sonuçlar **Minecraft'ta üç bilgisayarlı uçtan uca doğrulama değildir**.
 
 Yerel OC 1.8.3 JAR içindeki OpenOS kaynakları incelenerek mock'lar şu davranışlara uyarlandı: `package.preload` olmaması, mevcut dizinde makeDirectory hatası, close'un boş dönüşü ve term.read cursor/newline seçenekleri. Gerçek Java filesystem, Lua mimarisi/GPU bütçeleri ve OpenOS thread scheduler'ı yine oyun içinde doğrulanmalı.
+
+v0.1.2 testlerinde modemler `maxPacketSize` metodu sunmaz; `getDeviceInfo` içindeki string `capacity` kullanılır. Modem/GPU/AE2 callback'leri OC `machine.lua` gibi `__call` metotlu table olarak taklit edilir. Kullanıcının boş istemci listesiyle server foreground başlatma senaryosu ayrıca çalıştırılır.
 
 ARTEMIS `mobile_diagnose(attempt_fix=true)` çalıştırıldı; ADB'de bağlı Android cihaz/emülatör yoktu. Minecraft Java, Android hedefi değildir; ilişkisiz bir Android emülatörü başlatılmadı ve ARTEMIS ile Minecraft UI testinin geçtiği iddia edilmedi. Kullanıcıdan verilen proje talimatındaki erişilemeyen Minecraft ortamı için manuel kabul adımı yolu izlendi. Kurulu instance'lar okunabildi; oyun ekranı/dünya bileşenleri kontrol edilmedi.
 
@@ -35,6 +37,8 @@ ARTEMIS `mobile_diagnose(attempt_fix=true)` çalıştırıldı; ADB'de bağlı A
 | 19 | CLI detached servis start/stop ve çalışan serviste update/config reddi |
 | 20 | Gerçek üretilen launcher'ın active.bak fallback'i ve OpenOS core cache korunması |
 | 21 | Eski config'teki ortak anahtarın kullanılmadan kaldırılması, modem/ekran/rol ayarlarının korunması |
+| 22 | maxPacketSize olmadan device info kapasitesi; optional callable callback, bozuk/eksik/küçük sınır kontrolü |
+| 23 | Boş istemci listesi ve OC callable-table metotlarıyla server/main/side foreground açılışı, panel çizimi ve temiz kapanış |
 
 Host'ta tekrar çalıştırma:
 
@@ -58,7 +62,7 @@ Probun çıktısında stok satırı bulunması üretim testi değildir. Şu ana 
 
 ## Üç bilgisayarlı kabul sırası
 
-Önce [donanım](hardware.md) ve [kurulum](installation.md) adımlarını tamamlayın. Üç cihazda v0.1.1, doğru modem allowlist, aynı wireless port, yüklü chunk ve yeterli güç kullanın. Şifre gerekmez. Aşağıdaki süreler varsayılan konfigürasyon içindir; oyun lag'i nedeniyle gözlemi birkaç saniye uzatabilirsiniz. Otomatik testte süreler sanal saatle deterministiktir.
+Önce [donanım](hardware.md) ve [kurulum](installation.md) adımlarını tamamlayın. Üç cihazda v0.1.2, doğru modem allowlist, aynı wireless port, yüklü chunk ve yeterli güç kullanın. Şifre gerekmez. Aşağıdaki süreler varsayılan konfigürasyon içindir; oyun lag'i nedeniyle gözlemi birkaç saniye uzatabilirsiniz. Otomatik testte süreler sanal saatle deterministiktir.
 
 | Senaryo | Oyunda yapılacak işlem | Kabul ölçütü |
 |---|---|---|

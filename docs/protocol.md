@@ -18,7 +18,7 @@ frame = {v=2, id, from, to, part, total, data}
 
 Uygulama mesajı `{v=2, kind, id, boot, target, body}` biçimindedir. Wire codec string/finite number/boolean/nil ve döngüsüz table verisi taşır. 12 katman, 16000 düğüm ve 64 KiB sınırı vardır. String/number anahtarlar deterministik sıralanır. **Network/config için `load`, `loadfile` veya `serialization.unserialize` kullanılmaz.** OpenOS `serialization.serialize` yalnızca yerel config görünümü/prob çıktısında kullanılır. Güvenilir, hash'i doğrulanmış yerel program kaynaklarının yüklenmesi ayrı bir işlemdir.
 
-Modem `maxPacketSize()` okunur; taşıma 4096 baytı aşmaz. İki string argümanının 4 bayt ek maliyeti ve magic uzunluğu hesaba katılır. Payload küçük parçalara ayrılır; sıra dışı gelen parçalar indeksle birleştirilir. Çakışan parçalar reddedilir. Alımlar 25 saniyede zaman aşımına uğrar. 64 parça/mesaj ve 8 paralel alım sınırı vardır.
+OC 1.8.3 paket sınırı `computer.getDeviceInfo()[modem.address].capacity` alanından okunur; bu alan string olabilir. Bu sürümde `modem.maxPacketSize()` metodu bulunmaz. Başka sürümlerde metadata yoksa ve bu isteğe bağlı callback gerçekten mevcutsa kullanılabilir. Sayı doğrulanır; bilgi bulunamazsa veya sınır 1024 bayttan küçükse açıklayıcı hata verilir. Taşıma ayrıca 4096 baytla sınırlıdır. İki string argümanının 4 bayt ek maliyeti ve magic uzunluğu hesaba katılır. Payload küçük parçalara ayrılır; sıra dışı gelen parçalar indeksle birleştirilir. Çakışan parçalar reddedilir. Alımlar 25 saniyede zaman aşımına uğrar. 64 parça/mesaj ve 8 paralel alım sınırı vardır.
 
 ## Keşif ve kayıt
 

@@ -97,6 +97,8 @@ Config dosyası veri formatıdır, Lua dosyası değildir; `edit` ile rastgele d
 
 ## Güncelleme
 
+v0.1.1 sunucusu açılışta `maxPacketSize` hatası verdiyse istemci adreslerini doldurmanız gerekmez; v0.1.2'ye geçin. Hata sonrası servis durmuş olduğundan aşağıdaki güncelleme akışı kullanılabilir. Sunucu ayarları korunur. v0.1.1 ve v0.1.2 aynı ağ protokolündedir.
+
 Çalışan servis varken güncelleme/geri dönüş reddedilir. v0.1 üretim/reaktör komutu vermediği için aktif otomasyon işi yoktur. İleri sürümlerde bu kilide kalıcı iş günlüğü ve idle doğrulaması eklenmeden üretim sırasında güncelleme açılmamalıdır.
 
 ```sh
