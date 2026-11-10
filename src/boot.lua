@@ -1,0 +1,19 @@
+-- Loaded afresh by /bin/factoryos.lua; active pointer selects an immutable release.
+local root,args=...
+root=root or "/usr/lib/factoryos"
+local f=io.open(root.."/active","r") or io.open(root.."/active.bak","r")
+assert(f,"FactoryOS active release missing")
+local version=f:read("*l"); f:close()
+assert(version and version:match("^[%w%._%-]+$") and not version:find("..",1,true),"Invalid release pointer")
+local release=root.."/releases/"..version
+-- OpenOS caches modules across commands. Keep running service closures intact.
+if not package.loaded["factoryos.service"] or not package.loaded["factoryos.service"].running then
+  -- OpenOS itself owns many core.* modules. Clear only FactoryOS's exact names.
+  local names={"core.cli","core.codec","core.config","core.crypto","core.hardware","core.installer",
+    "core.logger","core.runtime","core.storage","core.updater","network.modem","network.messages",
+    "network.protocol","server.ae2","server.energy","server.machines","server.main",
+    "client.main_display","client.side_display","ui.renderer","ui.screens"}
+  for _,name in ipairs(names) do package.loaded[name]=nil end
+end
+package.path=release.."/?.lua;"..release.."/?/init.lua;"..package.path
+return require("core.cli").main(args or {},root)
