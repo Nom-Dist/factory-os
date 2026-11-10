@@ -7,11 +7,10 @@ end
 local function eq(a,b) assert(a==b,tostring(a).." ~= "..tostring(b)) end
 local codec=require("core.codec")
 local crypto=require("core.crypto")
-test("SHA256 and RFC4231 HMAC vectors",function()
+test("SHA256 integrity vectors",function()
   eq(crypto.sha256(""),"e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855")
   eq(crypto.sha256("abc"),"ba7816bf8f01cfea414140de5dae2223b00361a396177a9cb410ff61f20015ad")
-  eq(crypto.hmac(string.rep(string.char(11),20),"Hi There"),"b0344c61d8db38535ca8afceaf0bf12b881dc200c9833da726e9376c2e32cff7")
-  eq(crypto.hmac(string.rep("x",100),"message"),"393355db8f0edbf0064ede0eed08a3ee53731f45398569d3c2c33edfebd5b52b")
+  eq(crypto.sha256(string.rep("a",1000)),"41edece42d63e8d9bf515a9ba6932e1c20cbc9f5a5d134645adb5db1b9737ea3")
 end)
 test("Canonical codec and executable data rejection",function()
   local data={a="unicode: \195\167",b={1,true,false},c=-4.25}
@@ -99,7 +98,7 @@ os.sleep=function() end
 local storage=require("core.storage")
 local config=require("core.config")
 test("Atomic config save, backup recovery, invalid intervals",function()
-  local c=config.defaults("server"); c.key=string.rep("k",32)
+  local c=config.defaults("server")
   assert(config.save(c)); c.poll=15; assert(config.save(c))
   files[config.path]="corrupt"
   local recovered,warning=config.load(); assert(recovered and warning); eq(recovered.poll,10)
@@ -111,6 +110,15 @@ test("Atomic config save, backup recovery, invalid intervals",function()
   assert(not storage.atomic("/atomic","new")); eq(files["/atomic"],"old"); failWrite=nil
   failFlush="/atomic.tmp"
   assert(not storage.atomic("/atomic","new")); eq(files["/atomic"],"old"); failFlush=nil
+end)
+test("Legacy configuration migrates without a password and preserves modem pairing",function()
+  local c=config.defaults("server")
+  c.schema=1; c.key="previous-key"; c.allowedClients["legacy-client"]="main"; c.screen="saved-screen"
+  files[config.path]=codec.encode(c)
+  local migrated=assert(config.load())
+  eq(migrated.schema,2); eq(migrated.key,nil); eq(migrated.screen,"saved-screen")
+  eq(migrated.allowedClients["legacy-client"],"main")
+  assert(config.save(migrated)); eq(storage.load(config.path).key,nil)
 end)
 
 local protocol=require("network.protocol")
@@ -130,10 +138,10 @@ local function modem(address,maxPacket)
   m.broadcast=function(port,magic,raw) return push(nil,port,magic,raw) end
   return m
 end
-local serverCfg=config.defaults("server"); serverCfg.key=string.rep("k",32)
+local serverCfg=config.defaults("server")
 serverCfg.allowedClients={["main-address"]="main",["side-address"]="side"}
-local mainCfg=config.defaults("main"); mainCfg.key=serverCfg.key
-local sideCfg=config.defaults("side"); sideCfg.key=serverCfg.key
+local mainCfg=config.defaults("main")
+local sideCfg=config.defaults("side")
 local calls=0
 local dispatchCounts={}
 local function dispatch(command,args)
@@ -191,21 +199,25 @@ test("Duplicate request executes once and mismatched ID reuse rejected",function
   local id=main:request("GET_SERVER_STATUS",{marker="unique"},function(data) eq(data.marker,"unique"); observed=observed+1 end)
   local p=main.pending[id]
   local before=calls
-  main.wire:send(main.server,{v=1,kind="REQUEST",boot=main.boot,target=main.serverBoot,id=id,body=p.data})
+  main.wire:send(main.server,{v=wire.VERSION,kind="REQUEST",boot=main.boot,target=main.serverBoot,id=id,body=p.data})
   step(2); eq(observed,1); eq(dispatchCounts.unique,1)
   -- Inspect cached fingerprint: both deliveries resulted in exactly one cache entry.
   local record=server.seen["main-address:"..id]; assert(record)
   local countBefore=calls
-  main.wire:send(main.server,{v=1,kind="REQUEST",boot=main.boot,target=main.serverBoot,id=id,body={command="GET_SERVER_STATUS",args={marker="changed"}}})
+  main.wire:send(main.server,{v=wire.VERSION,kind="REQUEST",boot=main.boot,target=main.serverBoot,id=id,body={command="GET_SERVER_STATUS",args={marker="changed"}}})
   step(1); assert(calls-countBefore<=1); eq(dispatchCounts.changed,nil)
   eq(record.fingerprint,codec.encode(p.data))
 end)
-test("Bad MAC, unlisted peer, invalid chunks and stale boot ignored",function()
+test("Legacy/malformed frames, wrong source, unlisted peer and stale boot ignored",function()
   local old=calls
   server:receive("server-address","attacker",34100,wire.MAGIC,"not data")
-  local f={v=1,id="bad",from="main-address",to="server-address",part=1,total=1,data="t",mac=string.rep("0",64)}
+  local f={v=1,id="old",from="main-address",to="server-address",part=1,total=1,data="t"}
+  server:receive("server-address","main-address",34100,"FactoryOS/1",codec.encode(f))
+  f.v=wire.VERSION; f.from="wrong-address"
   server:receive("server-address","main-address",34100,wire.MAGIC,codec.encode(f))
-  main.wire:send("server-address",{v=1,kind="REQUEST",boot=main.boot,target="old-server-boot",id="replay",body={command="GET_SERVER_STATUS",args={}}})
+  f.from="main-address"; f.part=0
+  server:receive("server-address","main-address",34100,wire.MAGIC,codec.encode(f))
+  main.wire:send("server-address",{v=wire.VERSION,kind="REQUEST",boot=main.boot,target="old-server-boot",id="replay",body={command="GET_SERVER_STATUS",args={}}})
   step(0.5); eq(calls,old)
 end)
 test("Link loss shows offline and recovers automatically",function()
@@ -220,11 +232,11 @@ test("Client restart registers fresh boot; server restart reconnects",function()
 end)
 test("Reassembly bounds and expiration",function()
   local m=modem("receiver-address",1024)
-  local cfg=config.defaults("main"); cfg.key=mainCfg.key
+  local cfg=config.defaults("main")
   local t=wire.new(m,cfg,function() return now end,nonce())
   local function frame(id)
-    local f={v=1,id=id,from="server-address",to=m.address,part=1,total=64,data="x"}
-    f.mac=crypto.hmac(cfg.key,codec.encode(f)); return codec.encode(f)
+    local f={v=wire.VERSION,id=id,from="server-address",to=m.address,part=1,total=64,data="x"}
+    return codec.encode(f)
   end
   for i=1,20 do t:receive(m.address,"server-address",cfg.port,wire.MAGIC,frame("id"..i)) end
   local n=0; for _ in pairs(t.assemblies) do n=n+1 end; eq(n,8)
@@ -351,9 +363,13 @@ test("HTTP response handling, timeout, length limit and handle closure",function
   end
   components={}
 end)
-test("Generated offline installer installs all three roles and restores module loaders",function()
+test("Generated installer has no password prompt and separates all input lines",function()
   local originalRead,originalWrite,originalPrint=io.read,io.write,print
-  local term={read=function(options) eq(options.pwchar,"*"); return string.rep("k",32).."\n" end}
+  local readAnswer
+  local term={read=function(options)
+    eq(options.pwchar,nil); eq(options.dobreak,false)
+    return readAnswer()
+  end}
   package.preload.term=function() return term end
   local savedPreload=package.preload["core.config"]
   local code=READ_PROJECT_FILE(PROJECT_ROOT.."/dist/factoryos-offline.lua")
@@ -364,9 +380,17 @@ test("Generated offline installer installs all three roles and restores module l
     components["gpu-address"]=mockGpu(160,50)
     components["screen-address"]={address="screen-address",type="screen"}
     local answers=role=="server" and {"1","main-address","side-address"} or {role=="main" and "2" or "3","server-address"}
-    local index=0
-    io.read=function() index=index+1; return assert(answers[index],"Unexpected installer prompt") end
-    io.write=function() end; print=function() end
+    local index,awaitingNewline,newlines=0,false,0
+    readAnswer=function()
+      assert(not awaitingNewline,"Previous input was not followed by a newline")
+      index=index+1; awaitingNewline=true
+      return assert(answers[index],"Unexpected installer prompt (password prompt must not exist)").."\n"
+    end
+    io.read=function() error("Installer must reset the OpenOS cursor on every input") end
+    io.write=function(s)
+      if awaitingNewline then eq(s,"\n"); awaitingNewline=false; newlines=newlines+1 end
+    end
+    print=function() end
     -- OpenOS exposes package.loaded/path but no package.preload or searchers.
     -- Its native require must never be asked for bundled FactoryOS modules.
     local env=setmetatable({package={loaded={}},require=function(name)
@@ -376,7 +400,8 @@ test("Generated offline installer installs all three roles and restores module l
     local ok,err=pcall(assert(load(code,"=offline-installer","t",env)))
     io.read=originalRead; io.write=originalWrite; print=originalPrint
     assert(ok,err)
-    local c=assert(config.load()); eq(c.role,role); eq(c.key,string.rep("k",32))
+    eq(index,#answers); eq(newlines,#answers); eq(awaitingNewline,false)
+    local c=assert(config.load()); eq(c.role,role); eq(c.key,nil); eq(c.schema,2)
     assert(files["/bin/factoryos.lua"])
     local active=files[updater.root.."/active"]:match("([^\n]+)")
     assert(files[updater.root.."/releases/"..active.."/core/runtime.lua"])

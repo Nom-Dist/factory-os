@@ -44,8 +44,7 @@ function M.main(args,root)
     local c,err=config.load()
     if not c then error(err.." Re-run installer to configure.") end
     if not args[2] then
-      local copy={}; for k,v in pairs(c) do copy[k]=k=="key" and "<redacted>" or v end
-      print(serialization.serialize(copy))
+      print(serialization.serialize(c))
       print("Set: factoryos config KEY VALUE | allow ADDRESS main|side | deny ADDRESS")
       return
     end
@@ -55,11 +54,6 @@ function M.main(args,root)
     elseif k=="deny" then c.allowedClients[assert(v,"address required")]=nil
     else
       assert(c[k]~=nil and k~="schema" and k~="allowedClients","Unknown/protected config field")
-      if k=="key" then
-        io.write("Shared key (not echoed): ")
-        local term=require("term"); local entered=term.read({pwchar="*"})
-        assert(entered,"cancelled"); v=entered:gsub("[\r\n]+$","")
-      end
       assert(v~=nil,"value required")
       if type(c[k])=="number" then v=assert(tonumber(v),"number required")
       elseif type(c[k])=="boolean" then assert(v=="true" or v=="false","true|false required"); v=v=="true" end

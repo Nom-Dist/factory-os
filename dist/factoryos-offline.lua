@@ -90,7 +90,7 @@ return M
 ]]
 sources[ [[
 core.crypto]] ]=[[
--- SHA-256 / HMAC-SHA256. No Data Card required. Native 5.3 fallback is local code.
+-- SHA-256 for downloaded file integrity. Native 5.3 fallback is local code.
 local b=bit32
 if not b then
   local chunk=assert(load([=[return {
@@ -143,13 +143,6 @@ function M.sha256(s, raw)
   local out = {}
   for i=1,8 do out[i] = raw and word(h[i]) or string.format("%08x",h[i]) end
   return table.concat(out)
-end
-function M.hmac(key, message)
-  if #key > 64 then key=M.sha256(key,true) end
-  key=key..string.rep("\0",64-#key)
-  local inner,outer={},{}
-  for i=1,64 do inner[i]=string.char(bxor(key:byte(i),0x36)); outer[i]=string.char(bxor(key:byte(i),0x5c)) end
-  return M.sha256(table.concat(outer)..M.sha256(table.concat(inner)..message,true))
 end
 function M.equal(a,c)
   if type(a)~="string" or type(c)~="string" or #a~=#c then return false end
@@ -252,19 +245,24 @@ local storage=require("core.storage")
 local fs=require("filesystem")
 local M={path="/etc/factoryos/config.dat"}
 function M.defaults(role)
-  return {schema=1,role=role or "server",port=34100,strength=64,key="",serverAddress="",
+  return {schema=2,role=role or "server",port=34100,strength=64,serverAddress="",
     modem="",gpu="",screen="",allowedClients={},heartbeat=5,offlineAfter=18,poll=10,
     ae2Address="",ae2Enabled=true,updateBase=""}
 end
+function M.upgrade(c)
+  if type(c)=="table" and (c.schema==1 or c.schema==2) then
+    c.schema=2; c.key=nil
+  end
+  return c
+end
 function M.validate(c)
-  if type(c)~="table" or c.schema~=1 then return nil,"invalid config schema" end
+  if type(c)~="table" or c.schema~=2 then return nil,"invalid config schema" end
   if c.role~="server" and c.role~="main" and c.role~="side" then return nil,"invalid role" end
   for _,key in ipairs({"port","strength","heartbeat","offlineAfter","poll"}) do
     local n=c[key]; if type(n)~="number" or n~=n or n==math.huge then return nil,"invalid "..key end
   end
   if c.port%1~=0 or c.port<1 or c.port>65535 then return nil,"invalid port" end
   if c.strength<1 or c.strength>400 or c.heartbeat<2 or c.heartbeat>60 or c.offlineAfter<c.heartbeat*3 or c.offlineAfter>300 or c.poll<5 or c.poll>300 then return nil,"invalid intervals/strength" end
-  if type(c.key)~="string" or #c.key<32 or #c.key>256 then return nil,"shared key must have 32..256 characters" end
   for _,k in ipairs({"serverAddress","modem","gpu","screen","ae2Address","updateBase"}) do
     if type(c[k])~="string" or #c[k]>512 then return nil,"invalid "..k end
   end
@@ -280,15 +278,17 @@ function M.validate(c)
 end
 function M.load()
   local c,err=storage.load(M.path)
+  c=M.upgrade(c)
   local valid,why=M.validate(c)
   if valid then return c end
-  local backup=storage.load(M.path..".bak")
+  local backup=M.upgrade(storage.load(M.path..".bak"))
   if M.validate(backup) then return backup,"config invalid; using .bak (original preserved)" end
   return nil,"Config unavailable: "..tostring(err or why)..". Run factoryos config or restore config.dat.bak."
 end
 function M.save(c)
+  c=M.upgrade(c)
   local ok,err=M.validate(c); if not ok then return nil,err end
-  if fs.exists(M.path) and not M.validate(storage.load(M.path)) and M.validate(storage.load(M.path..".bak")) then
+  if fs.exists(M.path) and not M.validate(M.upgrade(storage.load(M.path))) and M.validate(M.upgrade(storage.load(M.path..".bak"))) then
     if fs.exists(M.path..".corrupt") then assert(fs.remove(M.path..".corrupt")) end
     assert(fs.rename(M.path,M.path..".corrupt"))
   end
@@ -439,10 +439,13 @@ local config=require("core.config")
 local storage=require("core.storage")
 local updater=require("core.updater")
 local M={}
-local function ask(label,default,secret)
+local function ask(label,default)
   io.write(label..(default and (" ["..default.."]") or "")..": ")
-  local line
-  if secret then line=require("term").read({pwchar="*"}) else line=io.read() end
+  io.stdout:flush()
+  -- OpenOS cursor echo can retain password/newline options between reads.
+  -- Create a fresh unmasked cursor and own the newline for every prompt.
+  local line=require("term").read({dobreak=false})
+  io.write("\n")
   assert(line,"Installation cancelled")
   line=line:gsub("[\r\n]+$","")
   if line=="" then return default or "" end
@@ -471,17 +474,14 @@ function M.main(args,embedded)
   c.gpu=selectHardware("gpu",c.gpu)
   c.screen=selectHardware("screen",c.screen)
   print("Local modem: "..c.modem)
-  if not old then
-    print("Use the SAME strong random key on all three computers (32+ characters).")
-    c.key=ask("Shared key",nil,true)
-  end
+  print("No password required. Displays pair by modem address.")
   if role=="server" then
     if not component.isAvailable("internet") then print("Warning: Internet Card absent. Offline installation works; online updates unavailable.") end
     local main=ask("Main display modem address (blank = configure later)","")
     local side=ask("Side display modem address (blank = configure later)","")
     if main~="" then c.allowedClients[main]="main" end
     if side~="" then c.allowedClients[side]="side" end
-  else c.serverAddress=ask("Server modem address (blank = authenticated discovery)",c.serverAddress) end
+  else c.serverAddress=ask("Server modem address (blank = automatic discovery)",c.serverAddress) end
   assert(config.validate(c))
   local hw,err=hardware.check(c); assert(hw,err)
   print("GPU/screen: "..hw.maxWidth.."x"..hw.maxHeight.." characters")
@@ -524,7 +524,7 @@ end
 local payload={}
 payload[ [[
 manifest.dat]] ]=[[
-m4:s5:filesm22:n1:1m3:s4:paths8:boot.luas4:sizen4:1254s6:sha256s64:1a2730244d74fca8062048567d3b9d98d3ae2ad062d018fbd0c5af16ece842c6n1:2m3:s4:paths23:client/main_display.luas4:sizen4:1761s6:sha256s64:a0a3b9bf89d495b9d7a1041009f98e915ccc000bb60027fdb0beba77e973c4b5n1:3m3:s4:paths23:client/side_display.luas4:sizen3:159s6:sha256s64:7e94ff8c85f4be8b2c65786376ec1ff19ea17807310b3940a3e5f2aea31ecdc3n1:4m3:s4:paths12:core/cli.luas4:sizen4:4277s6:sha256s64:8ca653b47c580c74de61225f05f63baabea83b24732470c7bd5fd1956d174a1cn1:5m3:s4:paths14:core/codec.luas4:sizen4:2990s6:sha256s64:d99f7fcbec5e1419877fba9e17a6bd673047dfbd55d4369890f0b8cbe436614dn1:6m3:s4:paths15:core/config.luas4:sizen4:2533s6:sha256s64:6c3d8e6bbc78e247c26212af22dac7edb7a2a12e1be0247abbd29a9b7a5a0b92n1:7m3:s4:paths15:core/crypto.luas4:sizen4:3303s6:sha256s64:87922cc3393764087b6d971f466882c01ccd749878128e9a79e4ae419d102a31n1:8m3:s4:paths17:core/hardware.luas4:sizen4:1507s6:sha256s64:d0d7014b3bf804f0e9240020375938d650a685cca054e1c05e8899636b6272c3n1:9m3:s4:paths18:core/installer.luas4:sizen4:4003s6:sha256s64:e2b71412495bb5287bcd3c5322fbacec2575195be2693e16e81006b4400c4869n2:10m3:s4:paths15:core/logger.luas4:sizen3:719s6:sha256s64:773349ed6f72655c34f5499b8a2363b4c38a0844c51ffcb8a2bc855e8e98d81cn2:11m3:s4:paths16:core/runtime.luas4:sizen4:2631s6:sha256s64:11db3d9b26c4008d6f84195018350708fd20f2925e6a28520c165e4d867c0f01n2:12m3:s4:paths16:core/storage.luas4:sizen4:1553s6:sha256s64:2cc1a5775cd064c10aebfc1967e24fe3764c09af5d19dfc0c985973d61071f94n2:13m3:s4:paths16:core/updater.luas4:sizen4:6226s6:sha256s64:31c4ee78cd0cc4e9e44896a78d7673d89067ff554437f6d1412015387b9e6f7en2:14m3:s4:paths20:network/messages.luas4:sizen3:457s6:sha256s64:1ca3305de58feef04c86df64c451bfa354735f3c990ce65548ec76561d8766f0n2:15m3:s4:paths17:network/modem.luas4:sizen4:3577s6:sha256s64:badb686f4114bc83ff069ddae3e238e1f3857d1eb9f5dcdb208afe969d4b737fn2:16m3:s4:paths20:network/protocol.luas4:sizen4:6356s6:sha256s64:42fdf1ff8f01dfc8881dc134874f11112de1b466de6cd7264999ee0f0a175943n2:17m3:s4:paths14:server/ae2.luas4:sizen4:4546s6:sha256s64:0dcf85b416b05674343f1f961db18a6baae77d018a38779fc16c0e3b63093624n2:18m3:s4:paths17:server/energy.luas4:sizen3:156s6:sha256s64:1bcc2fd9ea9f8950d91a63065913fc089ef87750d5ef9e3d206ed044e5aa3ff6n2:19m3:s4:paths19:server/machines.luas4:sizen3:269s6:sha256s64:861aeeec2cb4fd1f7c21cd5529ae724846a15ab4fd3111b07333071ef0ba1e3bn2:20m3:s4:paths15:server/main.luas4:sizen4:1649s6:sha256s64:d3770373d12a5c5f8ea8fdf7fb331fcdfca112cef3b624bdcd2cd7500acd5206n2:21m3:s4:paths15:ui/renderer.luas4:sizen4:2788s6:sha256s64:0c431ebd0d4c97f14a4f9990a963cc8d531c43a0dfa7449e828fcde4df0e3d6an2:22m3:s4:paths14:ui/screens.luas4:sizen4:5277s6:sha256s64:5c1afcd0f28e19c53bc65cdd3c3c74c7b062685caa7ae58b98d1f2e0e90453c9s6:scheman1:1s7:releases18:0.1.0-e24add9b8ab3s7:versions5:0.1.0]]
+m4:s5:filesm22:n1:1m3:s4:paths8:boot.luas4:sizen4:1254s6:sha256s64:1a2730244d74fca8062048567d3b9d98d3ae2ad062d018fbd0c5af16ece842c6n1:2m3:s4:paths23:client/main_display.luas4:sizen4:1761s6:sha256s64:a0a3b9bf89d495b9d7a1041009f98e915ccc000bb60027fdb0beba77e973c4b5n1:3m3:s4:paths23:client/side_display.luas4:sizen3:159s6:sha256s64:7e94ff8c85f4be8b2c65786376ec1ff19ea17807310b3940a3e5f2aea31ecdc3n1:4m3:s4:paths12:core/cli.luas4:sizen4:3967s6:sha256s64:2ab1f3bc4e5c258ebdf6e58a906c90b9fd0bc2a4e5548bd2c831b9047beacdf6n1:5m3:s4:paths14:core/codec.luas4:sizen4:2990s6:sha256s64:d99f7fcbec5e1419877fba9e17a6bd673047dfbd55d4369890f0b8cbe436614dn1:6m3:s4:paths15:core/config.luas4:sizen4:2606s6:sha256s64:a12366ba1683a19d0884389b404effc15049daea545e29e756982ba2252b0c6en1:7m3:s4:paths15:core/crypto.luas4:sizen4:2958s6:sha256s64:c58b3b3fc70204fdc85ccd9b2c3ffdceba8516376f94110a700f070eb7b6ed95n1:8m3:s4:paths17:core/hardware.luas4:sizen4:1507s6:sha256s64:d0d7014b3bf804f0e9240020375938d650a685cca054e1c05e8899636b6272c3n1:9m3:s4:paths18:core/installer.luas4:sizen4:4054s6:sha256s64:27b5fe92bb39eee1fdaef1d8a97e9033a5774ab527b4f924ce7c58c11a5c2f08n2:10m3:s4:paths15:core/logger.luas4:sizen3:719s6:sha256s64:773349ed6f72655c34f5499b8a2363b4c38a0844c51ffcb8a2bc855e8e98d81cn2:11m3:s4:paths16:core/runtime.luas4:sizen4:2631s6:sha256s64:11db3d9b26c4008d6f84195018350708fd20f2925e6a28520c165e4d867c0f01n2:12m3:s4:paths16:core/storage.luas4:sizen4:1553s6:sha256s64:2cc1a5775cd064c10aebfc1967e24fe3764c09af5d19dfc0c985973d61071f94n2:13m3:s4:paths16:core/updater.luas4:sizen4:6226s6:sha256s64:31c4ee78cd0cc4e9e44896a78d7673d89067ff554437f6d1412015387b9e6f7en2:14m3:s4:paths20:network/messages.luas4:sizen3:457s6:sha256s64:1ca3305de58feef04c86df64c451bfa354735f3c990ce65548ec76561d8766f0n2:15m3:s4:paths17:network/modem.luas4:sizen4:3405s6:sha256s64:a80f4dd96610371b61eff510f2d575d03bf4fe8a9f50ced843fd9c392c91706an2:16m3:s4:paths20:network/protocol.luas4:sizen4:6388s6:sha256s64:be00ca71a2ac6d677af4a826295cfcc93b26f7e9f75d1eaf4966b2a41faf340an2:17m3:s4:paths14:server/ae2.luas4:sizen4:4546s6:sha256s64:0dcf85b416b05674343f1f961db18a6baae77d018a38779fc16c0e3b63093624n2:18m3:s4:paths17:server/energy.luas4:sizen3:156s6:sha256s64:1bcc2fd9ea9f8950d91a63065913fc089ef87750d5ef9e3d206ed044e5aa3ff6n2:19m3:s4:paths19:server/machines.luas4:sizen3:269s6:sha256s64:861aeeec2cb4fd1f7c21cd5529ae724846a15ab4fd3111b07333071ef0ba1e3bn2:20m3:s4:paths15:server/main.luas4:sizen4:1649s6:sha256s64:61016680cc67f60971d329ab36cecbdbf3fc53ccbd2dfc0019c873d7e25fda1dn2:21m3:s4:paths15:ui/renderer.luas4:sizen4:2788s6:sha256s64:0c431ebd0d4c97f14a4f9990a963cc8d531c43a0dfa7449e828fcde4df0e3d6an2:22m3:s4:paths14:ui/screens.luas4:sizen4:5273s6:sha256s64:9f85a53db47eda7231c95a227519b3d1668f8db46e1a3719268946ea618363bas6:scheman1:1s7:releases18:0.1.1-f4b9c71a5899s7:versions5:0.1.1]]
 payload[ [[
 src/boot.lua]] ]=[[
 -- Loaded afresh by /bin/factoryos.lua; active pointer selects an immutable release.
@@ -643,8 +643,7 @@ function M.main(args,root)
     local c,err=config.load()
     if not c then error(err.." Re-run installer to configure.") end
     if not args[2] then
-      local copy={}; for k,v in pairs(c) do copy[k]=k=="key" and "<redacted>" or v end
-      print(serialization.serialize(copy))
+      print(serialization.serialize(c))
       print("Set: factoryos config KEY VALUE | allow ADDRESS main|side | deny ADDRESS")
       return
     end
@@ -654,11 +653,6 @@ function M.main(args,root)
     elseif k=="deny" then c.allowedClients[assert(v,"address required")]=nil
     else
       assert(c[k]~=nil and k~="schema" and k~="allowedClients","Unknown/protected config field")
-      if k=="key" then
-        io.write("Shared key (not echoed): ")
-        local term=require("term"); local entered=term.read({pwchar="*"})
-        assert(entered,"cancelled"); v=entered:gsub("[\r\n]+$","")
-      end
       assert(v~=nil,"value required")
       if type(c[k])=="number" then v=assert(tonumber(v),"number required")
       elseif type(c[k])=="boolean" then assert(v=="true" or v=="false","true|false required"); v=v=="true" end
@@ -790,19 +784,24 @@ local storage=require("core.storage")
 local fs=require("filesystem")
 local M={path="/etc/factoryos/config.dat"}
 function M.defaults(role)
-  return {schema=1,role=role or "server",port=34100,strength=64,key="",serverAddress="",
+  return {schema=2,role=role or "server",port=34100,strength=64,serverAddress="",
     modem="",gpu="",screen="",allowedClients={},heartbeat=5,offlineAfter=18,poll=10,
     ae2Address="",ae2Enabled=true,updateBase=""}
 end
+function M.upgrade(c)
+  if type(c)=="table" and (c.schema==1 or c.schema==2) then
+    c.schema=2; c.key=nil
+  end
+  return c
+end
 function M.validate(c)
-  if type(c)~="table" or c.schema~=1 then return nil,"invalid config schema" end
+  if type(c)~="table" or c.schema~=2 then return nil,"invalid config schema" end
   if c.role~="server" and c.role~="main" and c.role~="side" then return nil,"invalid role" end
   for _,key in ipairs({"port","strength","heartbeat","offlineAfter","poll"}) do
     local n=c[key]; if type(n)~="number" or n~=n or n==math.huge then return nil,"invalid "..key end
   end
   if c.port%1~=0 or c.port<1 or c.port>65535 then return nil,"invalid port" end
   if c.strength<1 or c.strength>400 or c.heartbeat<2 or c.heartbeat>60 or c.offlineAfter<c.heartbeat*3 or c.offlineAfter>300 or c.poll<5 or c.poll>300 then return nil,"invalid intervals/strength" end
-  if type(c.key)~="string" or #c.key<32 or #c.key>256 then return nil,"shared key must have 32..256 characters" end
   for _,k in ipairs({"serverAddress","modem","gpu","screen","ae2Address","updateBase"}) do
     if type(c[k])~="string" or #c[k]>512 then return nil,"invalid "..k end
   end
@@ -818,15 +817,17 @@ function M.validate(c)
 end
 function M.load()
   local c,err=storage.load(M.path)
+  c=M.upgrade(c)
   local valid,why=M.validate(c)
   if valid then return c end
-  local backup=storage.load(M.path..".bak")
+  local backup=M.upgrade(storage.load(M.path..".bak"))
   if M.validate(backup) then return backup,"config invalid; using .bak (original preserved)" end
   return nil,"Config unavailable: "..tostring(err or why)..". Run factoryos config or restore config.dat.bak."
 end
 function M.save(c)
+  c=M.upgrade(c)
   local ok,err=M.validate(c); if not ok then return nil,err end
-  if fs.exists(M.path) and not M.validate(storage.load(M.path)) and M.validate(storage.load(M.path..".bak")) then
+  if fs.exists(M.path) and not M.validate(M.upgrade(storage.load(M.path))) and M.validate(M.upgrade(storage.load(M.path..".bak"))) then
     if fs.exists(M.path..".corrupt") then assert(fs.remove(M.path..".corrupt")) end
     assert(fs.rename(M.path,M.path..".corrupt"))
   end
@@ -836,7 +837,7 @@ return M
 ]]
 payload[ [[
 src/core/crypto.lua]] ]=[[
--- SHA-256 / HMAC-SHA256. No Data Card required. Native 5.3 fallback is local code.
+-- SHA-256 for downloaded file integrity. Native 5.3 fallback is local code.
 local b=bit32
 if not b then
   local chunk=assert(load([=[return {
@@ -889,13 +890,6 @@ function M.sha256(s, raw)
   local out = {}
   for i=1,8 do out[i] = raw and word(h[i]) or string.format("%08x",h[i]) end
   return table.concat(out)
-end
-function M.hmac(key, message)
-  if #key > 64 then key=M.sha256(key,true) end
-  key=key..string.rep("\0",64-#key)
-  local inner,outer={},{}
-  for i=1,64 do inner[i]=string.char(bxor(key:byte(i),0x36)); outer[i]=string.char(bxor(key:byte(i),0x5c)) end
-  return M.sha256(table.concat(outer)..M.sha256(table.concat(inner)..message,true))
 end
 function M.equal(a,c)
   if type(a)~="string" or type(c)~="string" or #a~=#c then return false end
@@ -955,10 +949,13 @@ local config=require("core.config")
 local storage=require("core.storage")
 local updater=require("core.updater")
 local M={}
-local function ask(label,default,secret)
+local function ask(label,default)
   io.write(label..(default and (" ["..default.."]") or "")..": ")
-  local line
-  if secret then line=require("term").read({pwchar="*"}) else line=io.read() end
+  io.stdout:flush()
+  -- OpenOS cursor echo can retain password/newline options between reads.
+  -- Create a fresh unmasked cursor and own the newline for every prompt.
+  local line=require("term").read({dobreak=false})
+  io.write("\n")
   assert(line,"Installation cancelled")
   line=line:gsub("[\r\n]+$","")
   if line=="" then return default or "" end
@@ -987,17 +984,14 @@ function M.main(args,embedded)
   c.gpu=selectHardware("gpu",c.gpu)
   c.screen=selectHardware("screen",c.screen)
   print("Local modem: "..c.modem)
-  if not old then
-    print("Use the SAME strong random key on all three computers (32+ characters).")
-    c.key=ask("Shared key",nil,true)
-  end
+  print("No password required. Displays pair by modem address.")
   if role=="server" then
     if not component.isAvailable("internet") then print("Warning: Internet Card absent. Offline installation works; online updates unavailable.") end
     local main=ask("Main display modem address (blank = configure later)","")
     local side=ask("Side display modem address (blank = configure later)","")
     if main~="" then c.allowedClients[main]="main" end
     if side~="" then c.allowedClients[side]="side" end
-  else c.serverAddress=ask("Server modem address (blank = authenticated discovery)",c.serverAddress) end
+  else c.serverAddress=ask("Server modem address (blank = automatic discovery)",c.serverAddress) end
   assert(config.validate(c))
   local hw,err=hardware.check(c); assert(hw,err)
   print("GPU/screen: "..hw.maxWidth.."x"..hw.maxHeight.." characters")
@@ -1302,8 +1296,7 @@ return M
 payload[ [[
 src/network/modem.lua]] ]=[[
 local codec=require("core.codec")
-local crypto=require("core.crypto")
-local M={MAGIC="FactoryOS/1"}
+local M={MAGIC="FactoryOS/2",VERSION=2}
 local function count(t) local n=0; for _ in pairs(t) do n=n+1 end; return n end
 function M.new(modem,cfg,clock,nonce)
   local self={queue={},assemblies={},sequence=0,nextSend=0,modem=modem}
@@ -1322,8 +1315,7 @@ function M.new(modem,cfg,clock,nonce)
     local id=nonce..":"..self.sequence
     local frames={}
     for i=1,total do
-      local f={v=1,id=id,from=modem.address,to=address or "*",part=i,total=total,data=data:sub((i-1)*chunkSize+1,i*chunkSize)}
-      f.mac=crypto.hmac(cfg.key,codec.encode(f))
+      local f={v=M.VERSION,id=id,from=modem.address,to=address or "*",part=i,total=total,data=data:sub((i-1)*chunkSize+1,i*chunkSize)}
       local raw=codec.encode(f)
       if #raw+#M.MAGIC+4>limit then return nil,"packet limit" end
       frames[#frames+1]={address=address,raw=raw}
@@ -1346,11 +1338,9 @@ function M.new(modem,cfg,clock,nonce)
     if cfg.role=="server" and not cfg.allowedClients[remote] then return end
     if cfg.role~="server" and cfg.serverAddress~="" and cfg.serverAddress~=remote then return end
     local f=codec.decode(raw)
-    if type(f)~="table" or f.v~=1 or f.from~=remote or (f.to~=modem.address and f.to~="*") then return end
+    if type(f)~="table" or f.v~=M.VERSION or f.from~=remote or (f.to~=modem.address and f.to~="*") then return end
     if type(f.id)~="string" or #f.id>100 or type(f.data)~="string" or #f.data>chunkSize then return end
     if type(f.part)~="number" or type(f.total)~="number" or f.part%1~=0 or f.total%1~=0 or f.part<1 or f.part>f.total or f.total>64 then return end
-    local mac=f.mac; f.mac=nil
-    if not crypto.equal(mac,crypto.hmac(cfg.key,codec.encode(f))) then return end
     local key=remote..":"..f.id
     local a=self.assemblies[key]
     if not a then
@@ -1389,7 +1379,7 @@ function M.new(cfg,modem,clock,nonce,dispatch,log)
   log=log or function() end
   local function send(address,kind,body,target,id)
     self.sequence=self.sequence+1
-    return self.wire:send(address,{v=1,kind=kind,body=body or {},boot=self.boot,target=target or "",id=id or (self.boot..":"..self.sequence)})
+    return self.wire:send(address,{v=transport.VERSION,kind=kind,body=body or {},boot=self.boot,target=target or "",id=id or (self.boot..":"..self.sequence)})
   end
   local function offline(reason)
     if self.online then log("WARN","Server OFFLINE: "..reason) end
@@ -1410,7 +1400,7 @@ function M.new(cfg,modem,clock,nonce,dispatch,log)
   end
   function self:receive(localAddress,remote,port,magic,raw)
     local m=self.wire:receive(localAddress,remote,port,magic,raw)
-    if not m or m.v~=1 or type(m.kind)~="string" or type(m.body)~="table" or type(m.boot)~="string" or #m.boot<8 or #m.boot>64 or type(m.id)~="string" or #m.id>100 then return end
+    if not m or m.v~=transport.VERSION or type(m.kind)~="string" or type(m.body)~="table" or type(m.boot)~="string" or #m.boot<8 or #m.boot>64 or type(m.id)~="string" or #m.id>100 then return end
     local now=clock()
     if cfg.role=="server" then
       local role=cfg.allowedClients[remote]
@@ -1624,7 +1614,7 @@ function M.new(cfg,clock,log)
   function self:status()
     local clients={}
     for address,c in pairs(self.clients) do clients[#clients+1]={address=address,role=c.role,age=math.floor(clock()-c.lastSeen)} end
-    return {version="0.1.0",uptime=math.floor(clock()-self.started),ae2=self.ae2:summary(),clients=clients,
+    return {version="0.1.1",uptime=math.floor(clock()-self.started),ae2=self.ae2:summary(),clients=clients,
       power=energy.status(self.ae2),automation=false,crafting="disabled_pending_ingame_validation",reactors="read_only_unsupported"}
   end
   function self:dispatch(command,args)
@@ -1736,7 +1726,7 @@ function M.draw(r,role,net,state,clock)
   r:fill(1,1,r.w,3,C.panel)
   r:text(3,2,"FACTORY OS / "..(role=="main" and "CONTROL" or role=="side" and "TELEMETRY" or "SERVER"),C.accent,C.panel)
   r:text(math.max(3,r.w-10),2,online and "ONLINE" or "OFFLINE",online and C.good or C.bad,C.panel)
-  r:text(2,r.h,"v0.1.0 | "..(online and "authenticated network" or "searching / reconnecting"),C.muted)
+  r:text(2,r.h,"v0.1.1 | "..(online and "wireless network" or "searching / reconnecting"),C.muted)
   if role=="server" then
     r:panel(2,5,r.w-2,r.h-6,"SYSTEM CONSOLE")
     r:text(3,7,"Clients: "..#(status.clients or {}),nil,C.panel)
@@ -1759,7 +1749,7 @@ function M.draw(r,role,net,state,clock)
   if not online then
     line(2,"SERVER OFFLINE",C.bad)
     line(4,"Automatic reconnect is active.",C.muted)
-    line(6,"Check key, allowlist, range and chunks.",C.muted)
+    line(6,"Check modem addresses, range and chunks.",C.muted)
     if net.status then line(8,"Cached telemetry is stale.",C.bad) end
   elseif role=="side" or tab==4 then
     local power=status.power or {}; local e=power.ae2 or {}

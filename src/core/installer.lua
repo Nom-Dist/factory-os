@@ -5,10 +5,13 @@ local config=require("core.config")
 local storage=require("core.storage")
 local updater=require("core.updater")
 local M={}
-local function ask(label,default,secret)
+local function ask(label,default)
   io.write(label..(default and (" ["..default.."]") or "")..": ")
-  local line
-  if secret then line=require("term").read({pwchar="*"}) else line=io.read() end
+  io.stdout:flush()
+  -- OpenOS cursor echo can retain password/newline options between reads.
+  -- Create a fresh unmasked cursor and own the newline for every prompt.
+  local line=require("term").read({dobreak=false})
+  io.write("\n")
   assert(line,"Installation cancelled")
   line=line:gsub("[\r\n]+$","")
   if line=="" then return default or "" end
@@ -37,17 +40,14 @@ function M.main(args,embedded)
   c.gpu=selectHardware("gpu",c.gpu)
   c.screen=selectHardware("screen",c.screen)
   print("Local modem: "..c.modem)
-  if not old then
-    print("Use the SAME strong random key on all three computers (32+ characters).")
-    c.key=ask("Shared key",nil,true)
-  end
+  print("No password required. Displays pair by modem address.")
   if role=="server" then
     if not component.isAvailable("internet") then print("Warning: Internet Card absent. Offline installation works; online updates unavailable.") end
     local main=ask("Main display modem address (blank = configure later)","")
     local side=ask("Side display modem address (blank = configure later)","")
     if main~="" then c.allowedClients[main]="main" end
     if side~="" then c.allowedClients[side]="side" end
-  else c.serverAddress=ask("Server modem address (blank = authenticated discovery)",c.serverAddress) end
+  else c.serverAddress=ask("Server modem address (blank = automatic discovery)",c.serverAddress) end
   assert(config.validate(c))
   local hw,err=hardware.check(c); assert(hw,err)
   print("GPU/screen: "..hw.maxWidth.."x"..hw.maxHeight.." characters")

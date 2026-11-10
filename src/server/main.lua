@@ -7,7 +7,7 @@ function M.new(cfg,clock,log)
   function self:status()
     local clients={}
     for address,c in pairs(self.clients) do clients[#clients+1]={address=address,role=c.role,age=math.floor(clock()-c.lastSeen)} end
-    return {version="0.1.0",uptime=math.floor(clock()-self.started),ae2=self.ae2:summary(),clients=clients,
+    return {version="0.1.1",uptime=math.floor(clock()-self.started),ae2=self.ae2:summary(),clients=clients,
       power=energy.status(self.ae2),automation=false,crafting="disabled_pending_ingame_validation",reactors="read_only_unsupported"}
   end
   function self:dispatch(command,args)

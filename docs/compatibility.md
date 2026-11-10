@@ -39,7 +39,7 @@ OC JAR içindeki `mcmod.info` ayrıca **OpenComputers 1.8.3 / Minecraft 1.12.2**
 | Dahili core.* modülleri | Aynı package yapısı/JAR lib listesi | Cache temizliği yalnızca FactoryOS'un tam modül adlarıyla yapılır; OpenOS `core.full_filesystem` vb. korunur. |
 | makeDirectory | JAR `lib/core/full_filesystem.lua` | Mevcut dizinde nil+hata verir. Yazma öncesi exists/isDirectory kontrolü eklenmiştir. |
 | Dosya kapama | JAR buffer/filesystem ve resmî FileSystem sürücüsü | `close()` başarıda değer döndürmeyebilir. Yazma ve `flush()` denetlenir; close yalnızca exception için kontrol edilir. |
-| Maskeli anahtar girişi | JAR `lib/term.lua` | `term.read({pwchar="*"})` kullanılır. |
+| Installer satır düzeni | JAR `lib/term.lua` ve oyun ekranı | Her soruda yeni `term.read({dobreak=false})` cursor'u; ardından açık `io.write("\n")`. Şifre adımı kaldırıldı. |
 | Lua bit işlemleri | Yerel config Lua 5.3 varsayılanı; gerçek Lua 5.2/5.3 testleri | 5.2 bit32; 5.3'te yoksa yerel sabit bit-op fallback. Ağdan derlenen kod yoktur. |
 | Thread yaşam döngüsü | JAR `lib/thread.lua` | create, detach, status ve graceful stop. Oyun içi thread zamanlaması ayrıca test edilmelidir. |
 | GPU | [Orijinal GPU dokümanı](https://ocdoc.cil.li/component:gpu) | bind/maxResolution/setResolution/setDepth/set; 1.8 VRAM/bitblt zorunlu değil. |

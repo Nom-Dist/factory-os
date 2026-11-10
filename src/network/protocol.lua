@@ -9,7 +9,7 @@ function M.new(cfg,modem,clock,nonce,dispatch,log)
   log=log or function() end
   local function send(address,kind,body,target,id)
     self.sequence=self.sequence+1
-    return self.wire:send(address,{v=1,kind=kind,body=body or {},boot=self.boot,target=target or "",id=id or (self.boot..":"..self.sequence)})
+    return self.wire:send(address,{v=transport.VERSION,kind=kind,body=body or {},boot=self.boot,target=target or "",id=id or (self.boot..":"..self.sequence)})
   end
   local function offline(reason)
     if self.online then log("WARN","Server OFFLINE: "..reason) end
@@ -30,7 +30,7 @@ function M.new(cfg,modem,clock,nonce,dispatch,log)
   end
   function self:receive(localAddress,remote,port,magic,raw)
     local m=self.wire:receive(localAddress,remote,port,magic,raw)
-    if not m or m.v~=1 or type(m.kind)~="string" or type(m.body)~="table" or type(m.boot)~="string" or #m.boot<8 or #m.boot>64 or type(m.id)~="string" or #m.id>100 then return end
+    if not m or m.v~=transport.VERSION or type(m.kind)~="string" or type(m.body)~="table" or type(m.boot)~="string" or #m.boot<8 or #m.boot>64 or type(m.id)~="string" or #m.id>100 then return end
     local now=clock()
     if cfg.role=="server" then
       local role=cfg.allowedClients[remote]

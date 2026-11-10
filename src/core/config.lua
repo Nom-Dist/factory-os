@@ -2,19 +2,24 @@ local storage=require("core.storage")
 local fs=require("filesystem")
 local M={path="/etc/factoryos/config.dat"}
 function M.defaults(role)
-  return {schema=1,role=role or "server",port=34100,strength=64,key="",serverAddress="",
+  return {schema=2,role=role or "server",port=34100,strength=64,serverAddress="",
     modem="",gpu="",screen="",allowedClients={},heartbeat=5,offlineAfter=18,poll=10,
     ae2Address="",ae2Enabled=true,updateBase=""}
 end
+function M.upgrade(c)
+  if type(c)=="table" and (c.schema==1 or c.schema==2) then
+    c.schema=2; c.key=nil
+  end
+  return c
+end
 function M.validate(c)
-  if type(c)~="table" or c.schema~=1 then return nil,"invalid config schema" end
+  if type(c)~="table" or c.schema~=2 then return nil,"invalid config schema" end
   if c.role~="server" and c.role~="main" and c.role~="side" then return nil,"invalid role" end
   for _,key in ipairs({"port","strength","heartbeat","offlineAfter","poll"}) do
     local n=c[key]; if type(n)~="number" or n~=n or n==math.huge then return nil,"invalid "..key end
   end
   if c.port%1~=0 or c.port<1 or c.port>65535 then return nil,"invalid port" end
   if c.strength<1 or c.strength>400 or c.heartbeat<2 or c.heartbeat>60 or c.offlineAfter<c.heartbeat*3 or c.offlineAfter>300 or c.poll<5 or c.poll>300 then return nil,"invalid intervals/strength" end
-  if type(c.key)~="string" or #c.key<32 or #c.key>256 then return nil,"shared key must have 32..256 characters" end
   for _,k in ipairs({"serverAddress","modem","gpu","screen","ae2Address","updateBase"}) do
     if type(c[k])~="string" or #c[k]>512 then return nil,"invalid "..k end
   end
@@ -30,15 +35,17 @@ function M.validate(c)
 end
 function M.load()
   local c,err=storage.load(M.path)
+  c=M.upgrade(c)
   local valid,why=M.validate(c)
   if valid then return c end
-  local backup=storage.load(M.path..".bak")
+  local backup=M.upgrade(storage.load(M.path..".bak"))
   if M.validate(backup) then return backup,"config invalid; using .bak (original preserved)" end
   return nil,"Config unavailable: "..tostring(err or why)..". Run factoryos config or restore config.dat.bak."
 end
 function M.save(c)
+  c=M.upgrade(c)
   local ok,err=M.validate(c); if not ok then return nil,err end
-  if fs.exists(M.path) and not M.validate(storage.load(M.path)) and M.validate(storage.load(M.path..".bak")) then
+  if fs.exists(M.path) and not M.validate(M.upgrade(storage.load(M.path))) and M.validate(M.upgrade(storage.load(M.path..".bak"))) then
     if fs.exists(M.path..".corrupt") then assert(fs.remove(M.path..".corrupt")) end
     assert(fs.rename(M.path,M.path..".corrupt"))
   end

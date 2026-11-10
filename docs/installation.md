@@ -14,7 +14,7 @@ OpenOS kabuğunda dosyanın bulunduğu klasöre geçin:
 ./factoryos-offline.lua
 ```
 
-Rol seçimi 1=server, 2=main, 3=side. Installer bütün rollerin kaynaklarını kurar ve seçilen rolü config'e kaydeder. Ortak anahtarı üç makinede aynı girin. Bilgisayar başına tek GPU/ekran kullanın veya aday listesinden doğru adresi seçin.
+Rol seçimi 1=server, 2=main, 3=side. Installer bütün rollerin kaynaklarını kurar ve seçilen rolü config'e kaydeder. **Şifre/ortak anahtar gerekmez.** Sorular her girişten sonra yeni satıra geçer. Bilgisayar başına tek GPU/ekran kullanın veya aday listesinden doğru adresi seçin.
 
 Installer donanımı denetler, dosya boyutu/SHA256 doğrular, staging sürümünü hazırlar, config'i yedekli yazar, `factoryos` komutunu kurar ve aktif sürüm pointer'ını en son değiştirir. Ağ keşfinin başarılı olduğunu iddia etmez; sunucu ve istemcileri başlattıktan sonra kabul testini uygulayın.
 
@@ -65,7 +65,7 @@ factoryos config allow YAN_MODEM_ADRESI side
 factoryos config serverAddress SUNUCU_MODEM_ADRESI
 ```
 
-Boş bırakılırsa aynı anahtarla doğrulanan sunucu keşfedilir. Sunucu izin listesi boşsa istemcileri otomatik güvenilir saymaz. Yanlış anahtar/adres ile bağlantı kurulmaz ve ekranda OFFLINE kalır.
+Boş bırakılırsa sunucu otomatik keşfedilir. Sunucu izin listesi boşsa istemciler kaydedilmez. Yanlış modem adresiyle bağlantı kurulmaz ve ekranda OFFLINE kalır. Ortak anahtar veya mesaj imzası kontrolü yoktur.
 
 ## Çalıştırma ve ayarlar
 
@@ -91,10 +91,9 @@ factoryos stop
 factoryos config poll 15
 factoryos config ae2Address AE2_BILESEN_ADRESI
 factoryos config ae2Enabled true
-factoryos config key
 ```
 
-Anahtar `config key` ile maskeli olarak sorulur; komut satırına yazılması gerekmez. Değiştirilirse üç cihazda aynı değeri ayarlayın. Config dosyası veri formatıdır, Lua dosyası değildir; `edit` ile rastgele değiştirmek yerine CLI kullanın. `config` komutu anahtarı gizleyerek ayarları gösterir. Ham config dosyasını paylaşmayın; paylaşılan anahtar içerir.
+Config dosyası veri formatıdır, Lua dosyası değildir; `edit` ile rastgele değiştirmek yerine CLI kullanın. `config` komutu ayarları gösterir. v0.1.0 ayarları okunurken şema v2'ye geçirilir; eski ortak anahtar bellekte kaldırılır ve sonraki kayıtta yeni config'e yazılmaz. Eski yedek dosyalar korunur.
 
 ## Güncelleme
 
@@ -111,7 +110,7 @@ Sabit bir güncelleme için `main` yerine hedef commit SHA'sını kullanın. İl
 
 İndirme/HTTP/SHA256 hatası aktif pointer'ı değiştirmez. Eski sürüm korunur. Config güncelleme tarafından değiştirilmez. Başarısız staging dizinleri inceleme için kalabilir; depolama alanını kontrol edin. SHA256 bozulmayı yakalar; manifest de aynı HTTPS kaynaktan gelir ve bağımsız sürüm imzası değildir. Yalnızca güvendiğiniz depoyu kullanın.
 
-Çevrimdışı yeni sürüme geçmek için yeni `factoryos-offline.lua` dosyasını aktarın, servisi durdurun, aynı rolü tekrar kurun. Var olan config ve anahtar korunur; installer adres alanlarını yeniden sorabilir.
+Çevrimdışı yeni sürüme geçmek için yeni `factoryos-offline.lua` dosyasını aktarın, servisi durdurun, aynı rolü tekrar kurun. Var olan rol/modem/ekran ayarları korunur; installer adres alanlarını yeniden sorabilir. **v0.1.1 protokol v2 kullanır; üç bilgisayarı da aynı sürüme geçirin.** Eski installer dosyası kendiliğinden güncellenmez; yeni dosyayı indirmeniz gerekir.
 
 ## Geri dönüş ve config kurtarma
 
@@ -124,4 +123,4 @@ factoryos start --foreground
 
 Önceki sürümün manifesti ve bütün dosyaları tekrar doğrulanır. Önceki sürüm yoksa açıklayıcı hata verilir. Aktif pointer yenilenirken güç kesilip `active` kaybolursa launcher `active.bak` dosyasını kullanır. Donanım/dosya sistemi atomikliği gerçek ortamda henüz test edilmedi.
 
-Config okunamazsa geçerli `config.dat.bak` belleğe alınır, bozuk özgün dosya korunur ve uyarı loglanır. İkisi de bozuksa servis güvenle durur; installer'ı yeniden çalıştırın veya sağlam yedeği geri koyun. Yeniden kurulumda yeni anahtar tanımlamanız gerekirse tüm düğümlerde eşitleyin.
+Config okunamazsa geçerli `config.dat.bak` belleğe alınır, bozuk özgün dosya korunur ve uyarı loglanır. İkisi de bozuksa servis güvenle durur; installer'ı yeniden çalıştırın veya sağlam yedeği geri koyun.

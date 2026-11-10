@@ -90,7 +90,7 @@ return M
 ]]
 sources[ [[
 core.crypto]] ]=[[
--- SHA-256 / HMAC-SHA256. No Data Card required. Native 5.3 fallback is local code.
+-- SHA-256 for downloaded file integrity. Native 5.3 fallback is local code.
 local b=bit32
 if not b then
   local chunk=assert(load([=[return {
@@ -143,13 +143,6 @@ function M.sha256(s, raw)
   local out = {}
   for i=1,8 do out[i] = raw and word(h[i]) or string.format("%08x",h[i]) end
   return table.concat(out)
-end
-function M.hmac(key, message)
-  if #key > 64 then key=M.sha256(key,true) end
-  key=key..string.rep("\0",64-#key)
-  local inner,outer={},{}
-  for i=1,64 do inner[i]=string.char(bxor(key:byte(i),0x36)); outer[i]=string.char(bxor(key:byte(i),0x5c)) end
-  return M.sha256(table.concat(outer)..M.sha256(table.concat(inner)..message,true))
 end
 function M.equal(a,c)
   if type(a)~="string" or type(c)~="string" or #a~=#c then return false end
@@ -252,19 +245,24 @@ local storage=require("core.storage")
 local fs=require("filesystem")
 local M={path="/etc/factoryos/config.dat"}
 function M.defaults(role)
-  return {schema=1,role=role or "server",port=34100,strength=64,key="",serverAddress="",
+  return {schema=2,role=role or "server",port=34100,strength=64,serverAddress="",
     modem="",gpu="",screen="",allowedClients={},heartbeat=5,offlineAfter=18,poll=10,
     ae2Address="",ae2Enabled=true,updateBase=""}
 end
+function M.upgrade(c)
+  if type(c)=="table" and (c.schema==1 or c.schema==2) then
+    c.schema=2; c.key=nil
+  end
+  return c
+end
 function M.validate(c)
-  if type(c)~="table" or c.schema~=1 then return nil,"invalid config schema" end
+  if type(c)~="table" or c.schema~=2 then return nil,"invalid config schema" end
   if c.role~="server" and c.role~="main" and c.role~="side" then return nil,"invalid role" end
   for _,key in ipairs({"port","strength","heartbeat","offlineAfter","poll"}) do
     local n=c[key]; if type(n)~="number" or n~=n or n==math.huge then return nil,"invalid "..key end
   end
   if c.port%1~=0 or c.port<1 or c.port>65535 then return nil,"invalid port" end
   if c.strength<1 or c.strength>400 or c.heartbeat<2 or c.heartbeat>60 or c.offlineAfter<c.heartbeat*3 or c.offlineAfter>300 or c.poll<5 or c.poll>300 then return nil,"invalid intervals/strength" end
-  if type(c.key)~="string" or #c.key<32 or #c.key>256 then return nil,"shared key must have 32..256 characters" end
   for _,k in ipairs({"serverAddress","modem","gpu","screen","ae2Address","updateBase"}) do
     if type(c[k])~="string" or #c[k]>512 then return nil,"invalid "..k end
   end
@@ -280,15 +278,17 @@ function M.validate(c)
 end
 function M.load()
   local c,err=storage.load(M.path)
+  c=M.upgrade(c)
   local valid,why=M.validate(c)
   if valid then return c end
-  local backup=storage.load(M.path..".bak")
+  local backup=M.upgrade(storage.load(M.path..".bak"))
   if M.validate(backup) then return backup,"config invalid; using .bak (original preserved)" end
   return nil,"Config unavailable: "..tostring(err or why)..". Run factoryos config or restore config.dat.bak."
 end
 function M.save(c)
+  c=M.upgrade(c)
   local ok,err=M.validate(c); if not ok then return nil,err end
-  if fs.exists(M.path) and not M.validate(storage.load(M.path)) and M.validate(storage.load(M.path..".bak")) then
+  if fs.exists(M.path) and not M.validate(M.upgrade(storage.load(M.path))) and M.validate(M.upgrade(storage.load(M.path..".bak"))) then
     if fs.exists(M.path..".corrupt") then assert(fs.remove(M.path..".corrupt")) end
     assert(fs.rename(M.path,M.path..".corrupt"))
   end
@@ -439,10 +439,13 @@ local config=require("core.config")
 local storage=require("core.storage")
 local updater=require("core.updater")
 local M={}
-local function ask(label,default,secret)
+local function ask(label,default)
   io.write(label..(default and (" ["..default.."]") or "")..": ")
-  local line
-  if secret then line=require("term").read({pwchar="*"}) else line=io.read() end
+  io.stdout:flush()
+  -- OpenOS cursor echo can retain password/newline options between reads.
+  -- Create a fresh unmasked cursor and own the newline for every prompt.
+  local line=require("term").read({dobreak=false})
+  io.write("\n")
   assert(line,"Installation cancelled")
   line=line:gsub("[\r\n]+$","")
   if line=="" then return default or "" end
@@ -471,17 +474,14 @@ function M.main(args,embedded)
   c.gpu=selectHardware("gpu",c.gpu)
   c.screen=selectHardware("screen",c.screen)
   print("Local modem: "..c.modem)
-  if not old then
-    print("Use the SAME strong random key on all three computers (32+ characters).")
-    c.key=ask("Shared key",nil,true)
-  end
+  print("No password required. Displays pair by modem address.")
   if role=="server" then
     if not component.isAvailable("internet") then print("Warning: Internet Card absent. Offline installation works; online updates unavailable.") end
     local main=ask("Main display modem address (blank = configure later)","")
     local side=ask("Side display modem address (blank = configure later)","")
     if main~="" then c.allowedClients[main]="main" end
     if side~="" then c.allowedClients[side]="side" end
-  else c.serverAddress=ask("Server modem address (blank = authenticated discovery)",c.serverAddress) end
+  else c.serverAddress=ask("Server modem address (blank = automatic discovery)",c.serverAddress) end
   assert(config.validate(c))
   local hw,err=hardware.check(c); assert(hw,err)
   print("GPU/screen: "..hw.maxWidth.."x"..hw.maxHeight.." characters")

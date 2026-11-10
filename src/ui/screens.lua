@@ -11,7 +11,7 @@ function M.draw(r,role,net,state,clock)
   r:fill(1,1,r.w,3,C.panel)
   r:text(3,2,"FACTORY OS / "..(role=="main" and "CONTROL" or role=="side" and "TELEMETRY" or "SERVER"),C.accent,C.panel)
   r:text(math.max(3,r.w-10),2,online and "ONLINE" or "OFFLINE",online and C.good or C.bad,C.panel)
-  r:text(2,r.h,"v0.1.0 | "..(online and "authenticated network" or "searching / reconnecting"),C.muted)
+  r:text(2,r.h,"v0.1.1 | "..(online and "wireless network" or "searching / reconnecting"),C.muted)
   if role=="server" then
     r:panel(2,5,r.w-2,r.h-6,"SYSTEM CONSOLE")
     r:text(3,7,"Clients: "..#(status.clients or {}),nil,C.panel)
@@ -34,7 +34,7 @@ function M.draw(r,role,net,state,clock)
   if not online then
     line(2,"SERVER OFFLINE",C.bad)
     line(4,"Automatic reconnect is active.",C.muted)
-    line(6,"Check key, allowlist, range and chunks.",C.muted)
+    line(6,"Check modem addresses, range and chunks.",C.muted)
     if net.status then line(8,"Cached telemetry is stale.",C.bad) end
   elseif role=="side" or tab==4 then
     local power=status.power or {}; local e=power.ae2 or {}

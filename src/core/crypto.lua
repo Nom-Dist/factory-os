@@ -1,4 +1,4 @@
--- SHA-256 / HMAC-SHA256. No Data Card required. Native 5.3 fallback is local code.
+-- SHA-256 for downloaded file integrity. Native 5.3 fallback is local code.
 local b=bit32
 if not b then
   local chunk=assert(load([=[return {
@@ -51,13 +51,6 @@ function M.sha256(s, raw)
   local out = {}
   for i=1,8 do out[i] = raw and word(h[i]) or string.format("%08x",h[i]) end
   return table.concat(out)
-end
-function M.hmac(key, message)
-  if #key > 64 then key=M.sha256(key,true) end
-  key=key..string.rep("\0",64-#key)
-  local inner,outer={},{}
-  for i=1,64 do inner[i]=string.char(bxor(key:byte(i),0x36)); outer[i]=string.char(bxor(key:byte(i),0x5c)) end
-  return M.sha256(table.concat(outer)..M.sha256(table.concat(inner)..message,true))
 end
 function M.equal(a,c)
   if type(a)~="string" or type(c)~="string" or #a~=#c then return false end

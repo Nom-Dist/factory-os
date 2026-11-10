@@ -45,7 +45,7 @@ Bir bilgisayarda yalnızca bir FactoryOS servisi başlatılır. Arka plan OpenOS
 - Log yaklaşık 64 KiB'de döner; bir önceki dosya korunur.
 - Güncelleme en fazla 128 dosya, dosya başına 64 KiB, toplam kaynak 512 KiB.
 
-Saf Lua SHA256 maliyeti ve modem/GPU çağrı bütçesi Minecraft üzerinde ölçülmelidir. Tier 3 sunucu ve ana ekran için yüksek RAM önerilir. İnce GPU çözünürlüğü ve büyük ağ snapshot'larıyla gerçek bellek tüketimi henüz ölçülmedi.
+Saf Lua SHA256 yalnızca kurulum/güncelleme dosya bütünlüğünde kullanılır; ağ mesajları şifre veya imza işlemi yapmaz. Modem/GPU çağrı bütçesi Minecraft üzerinde ölçülmelidir. Tier 3 sunucu ve ana ekran için yüksek RAM önerilir. İnce GPU çözünürlüğü ve büyük ağ snapshot'larıyla gerçek bellek tüketimi henüz ölçülmedi.
 
 ## Aşamaların gerçek durumu
 

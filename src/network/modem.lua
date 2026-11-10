@@ -1,6 +1,5 @@
 local codec=require("core.codec")
-local crypto=require("core.crypto")
-local M={MAGIC="FactoryOS/1"}
+local M={MAGIC="FactoryOS/2",VERSION=2}
 local function count(t) local n=0; for _ in pairs(t) do n=n+1 end; return n end
 function M.new(modem,cfg,clock,nonce)
   local self={queue={},assemblies={},sequence=0,nextSend=0,modem=modem}
@@ -19,8 +18,7 @@ function M.new(modem,cfg,clock,nonce)
     local id=nonce..":"..self.sequence
     local frames={}
     for i=1,total do
-      local f={v=1,id=id,from=modem.address,to=address or "*",part=i,total=total,data=data:sub((i-1)*chunkSize+1,i*chunkSize)}
-      f.mac=crypto.hmac(cfg.key,codec.encode(f))
+      local f={v=M.VERSION,id=id,from=modem.address,to=address or "*",part=i,total=total,data=data:sub((i-1)*chunkSize+1,i*chunkSize)}
       local raw=codec.encode(f)
       if #raw+#M.MAGIC+4>limit then return nil,"packet limit" end
       frames[#frames+1]={address=address,raw=raw}
@@ -43,11 +41,9 @@ function M.new(modem,cfg,clock,nonce)
     if cfg.role=="server" and not cfg.allowedClients[remote] then return end
     if cfg.role~="server" and cfg.serverAddress~="" and cfg.serverAddress~=remote then return end
     local f=codec.decode(raw)
-    if type(f)~="table" or f.v~=1 or f.from~=remote or (f.to~=modem.address and f.to~="*") then return end
+    if type(f)~="table" or f.v~=M.VERSION or f.from~=remote or (f.to~=modem.address and f.to~="*") then return end
     if type(f.id)~="string" or #f.id>100 or type(f.data)~="string" or #f.data>chunkSize then return end
     if type(f.part)~="number" or type(f.total)~="number" or f.part%1~=0 or f.total%1~=0 or f.part<1 or f.part>f.total or f.total>64 then return end
-    local mac=f.mac; f.mac=nil
-    if not crypto.equal(mac,crypto.hmac(cfg.key,codec.encode(f))) then return end
     local key=remote..":"..f.id
     local a=self.assemblies[key]
     if not a then

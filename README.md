@@ -1,4 +1,4 @@
-# FactoryOS v0.1.0
+# FactoryOS v0.1.1
 
 Minecraft **1.12.2 / Enigmatica 2: Expert Skyblock / OpenComputers / OpenOS** için üç bilgisayarlı fabrika kontrol yazılımı. Lua 5.2 ve 5.3 hedeflenir. Oyun dışında çalışan testleri olan ilk altyapı teslimatıdır; **Minecraft içinde henüz doğrulanmamıştır**.
 
@@ -8,7 +8,7 @@ Sunucu, 8×5 ana ekran ve 4×5 yan ekran ayrı bilgisayarlardır. Her bilgisayar
 
 - Üç rolü sunan installer; Internet Card olmadan da kullanılabilen tek dosyalı çevrimdışı paket.
 - Donanım keşfi, birden fazla bileşen varsa açık adres seçimi, güvenli çözünürlük sınırları.
-- HMAC-SHA256 imzalı kablosuz mesajlar, izin listesi, keşif, oturum kaydı, heartbeat, OFFLINE ve yeniden bağlanma.
+- Şifresiz kablosuz mesajlar, modem adresi izin listesi, keşif, oturum kaydı, heartbeat, OFFLINE ve yeniden bağlanma.
 - İstek kimlikleri, timeout/yeniden deneme, tekrar yanıt önbelleği, parçalama ve bellek/kuyruk sınırları.
 - Koyu renkli iki ayrı panel, dokunmatik menü, stok sayfalama, değişen hücreleri çizen GPU arayüzü.
 - AE2 Adapter üzerinden **salt okunur** stok, metadata/NBT belirsizlik işareti, crafting CPU doluluğu, AE enerji verileri.
@@ -25,7 +25,7 @@ Sunucu, 8×5 ana ekran ve 4×5 yan ekran ayrı bilgisayarlardır. Her bilgisayar
 ./factoryos-offline.lua
 ```
 
-3. Sırasıyla Server, Main Display ve Side Display rollerini kurun. Üçünde aynı, rastgele oluşturulmuş **en az 32 karakterlik anahtarı** girin. Anahtar ekranda maskelenir.
+3. Sırasıyla Server, Main Display ve Side Display rollerini kurun. **Şifre veya ortak anahtar sorulmaz.** Her girişten sonra soru ayrı satıra geçer.
 4. Sunucuda istemcilerin **modem adreslerini** izin listesine ekleyin. Bilgisayar/ekran adresi kullanmayın:
 
 ```sh
@@ -80,7 +80,9 @@ python tools/build.py
 python tests/run.py
 ```
 
-Test çalıştırıcısı Lua 5.2 **ve** 5.3'te kaynakları/üretilen installer'ları derler ve 20 senaryoyu çalıştırır. Testler gerçek Lua yürütür; modem, GPU, filesystem, zaman, HTTP ve OpenOS thread/event çevresi mock'tur. Oyun gecikmesini, Java mod sürücülerini ve gerçek üretimi doğrulamaz. [Oyun içi kabul adımları](docs/testing.md) ve [salt okunur prob](tools/ingame_probe.lua) ayrıca sağlanmıştır.
+Test çalıştırıcısı Lua 5.2 **ve** 5.3'te kaynakları/üretilen installer'ları derler ve 21 senaryoyu çalıştırır. Testler gerçek Lua yürütür; modem, GPU, filesystem, zaman, HTTP ve OpenOS thread/event çevresi mock'tur. Oyun gecikmesini, Java mod sürücülerini ve gerçek üretimi doğrulamaz. [Oyun içi kabul adımları](docs/testing.md) ve [salt okunur prob](tools/ingame_probe.lua) ayrıca sağlanmıştır.
+
+v0.1.1 ağ protokolü v2 kullanır. v0.1.0 ile haberleşmez; üç bilgisayarı da güncelleyin. Eski config'teki modem/ekran/rol ayarları korunur, ortak anahtar artık kullanılmaz. SHA256 yalnızca indirilen dosyaların bütünlüğünü kontrol eder.
 
 ## Dokümanlar
 
