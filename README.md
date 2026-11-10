@@ -22,7 +22,7 @@ Sunucu, 8×5 ana ekran ve 4×5 yan ekran ayrı bilgisayarlardır. Her bilgisayar
 2. Her bilgisayarda dosyanın bulunduğu konuma geçip çalıştırın:
 
 ```sh
-factoryos-offline.lua
+./factoryos-offline.lua
 ```
 
 3. Sırasıyla Server, Main Display ve Side Display rollerini kurun. Üçünde aynı, rastgele oluşturulmuş **en az 32 karakterlik anahtarı** girin. Anahtar ekranda maskelenir.
@@ -49,10 +49,10 @@ Depo: [Nom-Dist/factory-os](https://github.com/Nom-Dist/factory-os). Internet Ca
 
 ```sh
 wget https://raw.githubusercontent.com/Nom-Dist/factory-os/main/install.lua install.lua
-install.lua https://raw.githubusercontent.com/Nom-Dist/factory-os/main
+./install.lua https://raw.githubusercontent.com/Nom-Dist/factory-os/main
 ```
 
-`main` değişebilir; sabit sürüm kurulumu için iki URL'de de aynı commit SHA'sını kullanın. Çevrimdışı seçenek ve ayrıntılar [kurulum kılavuzunda](docs/installation.md).
+`./` öneki gereklidir: `install.lua` tek başına yazılırsa OpenOS'un kendi installer'ı seçilebilir ve `Nothing to install labeled` hatası alınır. `main` değişebilir; sabit sürüm kurulumu için iki URL'de de aynı commit SHA'sını kullanın. Çevrimdışı seçenek ve ayrıntılar [kurulum kılavuzunda](docs/installation.md).
 
 ## Komutlar
 

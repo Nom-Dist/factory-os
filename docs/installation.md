@@ -11,7 +11,7 @@ En hızlı yol `dist/factoryos-offline.lua` dosyasını OpenOS HDD/disketine koy
 OpenOS kabuğunda dosyanın bulunduğu klasöre geçin:
 
 ```sh
-factoryos-offline.lua
+./factoryos-offline.lua
 ```
 
 Rol seçimi 1=server, 2=main, 3=side. Installer bütün rollerin kaynaklarını kurar ve seçilen rolü config'e kaydeder. Ortak anahtarı üç makinede aynı girin. Bilgisayar başına tek GPU/ekran kullanın veya aday listesinden doğru adresi seçin.
@@ -24,7 +24,7 @@ ZIP'ten açılan `FactoryOS` klasörünü OpenOS tarafından görülen bir diske
 
 ```sh
 cd /mnt/abc/FactoryOS
-install.lua --local /mnt/abc/FactoryOS
+./install.lua --local /mnt/abc/FactoryOS
 ```
 
 `abc` gerçek diskinizin bağlama adıdır. Bütün paket standart küçük diskete sığmayabilir; HDD kullanabilirsiniz.
@@ -35,8 +35,16 @@ Depo kökünde `install.lua`, `manifest.dat` ve `src/` birlikte bulunur. `tools/
 
 ```sh
 wget https://raw.githubusercontent.com/Nom-Dist/factory-os/main/install.lua install.lua
-install.lua https://raw.githubusercontent.com/Nom-Dist/factory-os/main
+./install.lua https://raw.githubusercontent.com/Nom-Dist/factory-os/main
 ```
+
+`./install.lua` biçimini koruyun. OpenOS'un `/bin/install.lua` adında kendi programı vardır; yalnızca `install.lua` yazmak indirdiğiniz dosya yerine onu çalıştırabilir. `Nothing to install labeled: https://...` görürseniz dosya indirilmiştir fakat yanlış program açılmıştır. `/home` içine indirdiyseniz tekrar indirmeden şu komutla devam edin:
+
+```sh
+/home/install.lua https://raw.githubusercontent.com/Nom-Dist/factory-os/main
+```
+
+`wget` tekrarında `file already exists` mesajı, önceki dosyanın hâlâ bulunduğunu gösterir; bu durumda yukarıdaki çalıştırma komutunu kullanın.
 
 Sabit sürüm kurulumu için iki URL'de de `main` yerine aynı gerçek commit SHA'sını kullanın. Varsayılan kaynak gömülü değildir; URL parametresi verilmezse installer HTTPS adresini sorar. Dal adresi kullanılırken eşzamanlı yayımlama sırasında hash kontrolü kurulumu güvenle durdurabilir.
 
