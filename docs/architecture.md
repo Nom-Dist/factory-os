@@ -21,8 +21,8 @@ Hiçbir ekran istemcisi AE2 proxy'si almaz. Sunucu yalnızca veri yanıtlar; ist
 | `src/core` | config, dosya işlemleri, kripto, bounded codec, donanım, yaşam döngüsü, log, installer/updater |
 | `src/network` | modem parçalama/kuyrukları, oturum ve istek yönetimi, komut erişim kuralları |
 | `src/server` | AE2 snapshot, enerji adaptasyonu, doğrulanmamış makine yeteneklerinin açık reddi |
-| `src/client` | ana ekran sayfa durumu/istekleri, yan ekran salt durum tüketimi |
-| `src/ui` | GPU hücre farkı, dokunmatik alanlar, uyarlanan ekran yerleşimleri |
+| `src/client` | ana ekran sayfa/arama/favori durumu, asenkron istek eşleştirme, yerel tercihler, yan ekran salt durum tüketimi |
+| `src/ui` | GPU hücre farkı, çok satırlı dokunmatik alanlar, widgets/format, main_screen yerleşimi ve dokunmatik klavye |
 | `tests` | iki Lua sürümünde hata ve entegrasyon senaryoları |
 | `tools` | yeniden üretilebilir paketleme, oyun içi salt okunur prob |
 
@@ -30,7 +30,7 @@ Hiçbir ekran istemcisi AE2 proxy'si almaz. Sunucu yalnızca veri yanıtlar; ist
 
 `event.pull(0.12)` boş beklemeyle CPU'yu bırakır. Her döngüde en fazla bir modem çerçevesi gönderilir. Ekran en fazla saniyede bir değerlendirilir; GPU'ya yalnızca değişen karakter/renk aralıkları yazılır. OC 1.8 video buffer API'leri kullanılmaz. Her rol tek GPU'yu tek ekrana bir kez bağlar.
 
-Heartbeat varsayılan 5 saniye, bağlantı kaybı 18 saniye, AE2 snapshot aralığı 10 saniyedir. Ana ekran yalnızca stok/CPU sayfaları açıkken ilgili veriyi ister. Yan ekran yalnızca heartbeat telemetrisini kullanır. Push/subscription protokolü bu sürümde uygulanmaz.
+Heartbeat varsayılan 5 saniye, bağlantı kaybı 18 saniye, AE2 snapshot aralığı 10 saniyedir. Ana ekran yalnızca depo sayfası açıkken stok verisini ister; CPU özetini sağ sütun/ana panel için 10 saniyede bir alır. Aynı türdeki periyodik istek sürerken yenisi biriktirilmez. Arama taslağı onaylanana kadar ağ isteği gönderilmez; eski sorguya ait gecikmiş yanıtlar yeni görünümü değiştirmez. Yan ekran yalnızca heartbeat telemetrisini kullanır. Push/subscription protokolü bu sürümde uygulanmaz.
 
 Bir bilgisayarda yalnızca bir FactoryOS servisi başlatılır. Arka plan OpenOS `thread.create(...):detach()` ile çalışır; `stop` döngüye durma bayrağı verir, temizlik için 8 saniyeye kadar bekler. Aktif servis varken config/güncelleme reddedilir. `status`, yerel süreç belleğindeki servis kaydını kontrol eder; eski diskteki PID dosyasına güvenmez. Reboot sonrası eski servis kaydı yoktur; config kalıcıdır.
 
@@ -42,6 +42,7 @@ Bir bilgisayarda yalnızca bir FactoryOS servisi başlatılır. Arka plan OpenOS
 - 16 izinli istemci; sunucu tekrar önbelleği en fazla 128 kayıt / 60 saniye.
 - Envanter snapshot'ı en fazla 2000 varyant; limit ekranda işaretlenir. AE2'nin `getItemsInNetwork()` çağrısı önce tüm Java/Lua tablosunu üretir; çok büyük ağlar hâlâ RAM sınırına takılabilir.
 - 24 stok/sayfa, 160 karakter eşya adı/etiketi, 512 karakter tag/hash özeti.
+- Ana ekranda 32 yerel favori; belirsiz NBT kimliği favori olarak kalıcılaştırılmaz. Favori filtresi bounded canonical varyant anahtarlarıyla sunucuda uygulanır.
 - Log yaklaşık 64 KiB'de döner; bir önceki dosya korunur.
 - Güncelleme en fazla 128 dosya, dosya başına 64 KiB, toplam kaynak 512 KiB.
 
@@ -49,7 +50,7 @@ Saf Lua SHA256 yalnızca kurulum/güncelleme dosya bütünlüğünde kullanılı
 
 ## Aşamaların gerçek durumu
 
-Phase 1'in uygulanabilir kaynakları, kurulum ve mock testleri hazırdır; üç gerçek OC bilgisayarında kabul beklenir. Phase 2'de salt okunur AE2 sürücüsü/arayüzü hazırdır; gerçek Adapter ve AE2 güvenlik/enerji kanalı kontrolü beklenir. Phase 3–5 otomasyonu uygulanmadı.
+Phase 1'in sunucu ve iki ekran arasındaki kablosuz bağlantısı kullanıcı tarafından oyun içinde doğrulandı. Uzun süreli dayanıklılık ve v0.2.0'ın yeni ana ekranı için kabul beklenir. Phase 2'de salt okunur AE2 sürücüsü/arayüzü hazırdır; gerçek Adapter ve AE2 güvenlik/enerji kanalı kontrolü beklenir. Phase 3–5 otomasyonu uygulanmadı.
 
 İleride autocrafting eklendiğinde ayrı stok kimliği, dayanıklı istek günlüğü, in-flight miktarlar, CPU sınırları, kaynak eksiği backoff'u ve sunucu yeniden başlatması sonrası belirsiz işlerin uzlaştırılması gerekir. Mevcut 60 saniyelik ağ tekrar önbelleği **kalıcı exactly-once üretim garantisi değildir**; bu yüzden v0.1'de hiçbir üretim komutu açılmaz.
 

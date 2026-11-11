@@ -337,13 +337,133 @@ test("GPU bounds, role layouts, unchanged frame writes zero cells, screen-filter
       local state={tab=1,serverStatus=status}
       screens.draw(r,role,n,state); local writes=gpu.writes()
       screens.draw(r,role,n,state); eq(gpu.writes(),writes)
-      for tab=1,7 do state.tab=tab; screens.draw(r,role,n,state) end
+      for tab=1,8 do
+        state.tab=tab; screens.draw(r,role,n,state)
+        if role=="main" and tab==2 then state.editing=true; state.draft="alloy"; screens.draw(r,role,n,state); state.editing=false end
+      end
       r:begin(); r:button(2,5,10,"test","id"); eq(r:touch("wrong",3,5),nil); eq(r:touch("screen1",3,5),"id")
     end
   end
 end)
 
 local updater=require("core.updater")
+test("Server inventory sorts the entire result and filters craftables/favorite variants before paging",function()
+  local ae=require("server.ae2").new(config.defaults("server"))
+  ae.online=true
+  for i=1,60 do ae.items[i]={name="example:item_"..i,label=string.format("Item %02d",i),damage=0,size=i*10,tag="",hasTag=false,identityComplete=true,isCraftable=i%2==0} end
+  local data=assert(ae:stocks({page=1,sort="amount"}))
+  eq(#data.items,24); eq(data.items[1].size,600); eq(data.items[24].size,370); eq(data.pages,3)
+  local craft=assert(ae:stocks({page=1,filter="craftable"})); eq(craft.total,30); eq(craft.items[1].label,"Item 02")
+  local id=require("core.items")
+  local fav=assert(ae:stocks({page=1,filter="favorites",favoriteKeys={id.key(ae.items[59]),id.key(ae.items[60])},sort="amount"}))
+  eq(fav.total,2); eq(fav.items[1].size,600); eq(fav.items[2].size,590)
+  eq(ae:stocks({page=999}).page,3)
+  eq(ae:stocks({query=".*"}).total,0)
+  assert(not ae:stocks({filter="unknown"})); assert(not ae:stocks({sort="unknown"}))
+  assert(not ae:stocks({filter="favorites",favoriteKeys={string.rep("x",1025)}}))
+end)
+local function displayFixture()
+  local prefs=require("client.preferences")
+  files[prefs.path]=nil; files[prefs.path..".bak"]=nil
+  local displayTime=100
+  local pending={}
+  local net={online=true,lastSeen=100,status={ae2={online=true,itemTypes=60},power={ae2={supported=true,stored=750,capacity=1000}},clients={}}}
+  function net:request(command,args,fn) pending[#pending+1]={command=command,args=args,callback=fn}; return "request"..#pending end
+  local state=require("client.main_display").new(net,function() return displayTime end)
+  local function take(command)
+    for i,r in ipairs(pending) do if r.command==command then table.remove(pending,i); return r end end
+    error("Missing request: "..command)
+  end
+  return net,state,pending,take,function(delta) displayTime=displayTime+delta end
+end
+local function stockPage(page)
+  local rows={}
+  for i=1,24 do rows[i]={name="example:item_"..i,label="Item "..i,damage=0,size=i*10,hasTag=false,tag="",identityComplete=true,isCraftable=true} end
+  return {items=rows,page=page or 1,pages=3,total=60,filter="all",sort="name"}
+end
+test("Display search commits on Enter and stale asynchronous responses cannot replace a newer query",function()
+  local net,state,pending,take,advance=displayFixture()
+  state:tick(); eq(#pending,1)
+  take("GET_CRAFTING_JOBS").callback({cpus={},error=""})
+  state:touch("tab:2")
+  local first=take("GET_AE2_STOCKS")
+  state:touch("search"); state:touch("key:a"); state:touch("key:l"); state:paste("loy\n")
+  eq(state.query,""); eq(state.draft,"alloy"); eq(#pending,1) -- CPU refresh only, no per-keystroke stock traffic.
+  state:touch("tab:1"); eq(state.tab,2) -- modal blocks background actions.
+  state:key(13,28); eq(state.query,"alloy"); eq(state.editing,false)
+  local latest=take("GET_AE2_STOCKS"); eq(latest.args.query,"alloy")
+  first.callback(stockPage(1)); eq(state.stocks,nil)
+  latest.callback(stockPage(1)); eq(state.stocks.total,60); eq(state.loadingStocks,false)
+  state:touch("search"); state:touch("key:x"); state:key(0,1)
+  eq(state.query,"alloy"); eq(state.editing,false)
+  advance(11); state:tick(); local poll=take("GET_AE2_STOCKS"); state:tick(); eq(state.loadingStocks,true)
+  local remaining=#pending; state:tick(); eq(#pending,remaining)
+  poll.callback(nil,"TIMEOUT"); eq(state.stocks,nil); eq(state.stockError,"TIMEOUT")
+end)
+test("Favorites persist per display, reject ambiguous NBT and roll back on disk failure",function()
+  local net,state=displayFixture()
+  local item=stockPage(1).items[1]
+  state:toggleFavorite(item); assert(state:isFavorite(item))
+  local reloaded=require("client.main_display").new(net,function() return 100 end)
+  assert(reloaded:isFavorite(item))
+  item.size=999; assert(reloaded:isFavorite(item)) -- quantity is not identity.
+  local ambiguous={name="example:nbt",damage=0,hasTag=true,tag="",identityComplete=false,label="NBT"}
+  state:toggleFavorite(ambiguous); assert(not state:isFavorite(ambiguous))
+  local second=stockPage(1).items[2]
+  failWrite=require("client.preferences").path..".tmp"
+  state:toggleFavorite(second); assert(not state:isFavorite(second)); eq(state.message.kind,"warn")
+  failWrite=nil
+  for i=2,32 do state:toggleFavorite({name="example:favorite_"..i,label="Favorite "..i,damage=0,hasTag=false,tag=""}) end
+  state:toggleFavorite(second); assert(not state:isFavorite(second)); eq(state.message.kind,"warn")
+  state:toggleFavorite(item); assert(not state:isFavorite(item))
+end)
+test("Small display pagination visits every row and crosses server pages in both directions",function()
+  local _,state,_,take=displayFixture()
+  state:touch("tab:2"); take("GET_AE2_STOCKS").callback(stockPage(1))
+  state.visibleRows=7
+  for _,offset in ipairs({7,14,21}) do state:touch("next"); eq(state.rowOffset,offset) end
+  state:touch("next"); eq(state.page,2); eq(state.rowOffset,0)
+  take("GET_AE2_STOCKS").callback(stockPage(2))
+  state:touch("prev"); eq(state.page,1)
+  take("GET_AE2_STOCKS").callback(stockPage(1)); eq(state.rowOffset,21)
+  state:touch("prev"); eq(state.rowOffset,14)
+  state:touch("sort"); local sorted=take("GET_AE2_STOCKS"); eq(sorted.args.sort,"amount"); eq(sorted.args.page,1)
+  local sortedData=stockPage(1); sortedData.sort="amount"; sorted.callback(sortedData)
+  state:toggleFavorite(sortedData.items[1]); state:touch("filter:favorites")
+  local filtered=take("GET_AE2_STOCKS"); eq(filtered.args.filter,"favorites"); eq(#filtered.args.favoriteKeys,1)
+end)
+test("Offline display clears cached stock/jobs and reconnects without accepting old replies",function()
+  local net,state,_,take=displayFixture()
+  state:tick(); local jobs=take("GET_CRAFTING_JOBS")
+  state:touch("tab:2"); local stocks=take("GET_AE2_STOCKS")
+  net.online=false; state:tick()
+  stocks.callback(stockPage(1)); jobs.callback({cpus={}})
+  eq(state.stocks,nil); eq(state.jobs,nil); eq(state.loadingStocks,false); eq(state.loadingJobs,false)
+  net.online=true; state:tick()
+  take("GET_AE2_STOCKS").callback(stockPage(1)); take("GET_CRAFTING_JOBS").callback({cpus={},error=""})
+  assert(state.stocks and state.jobs)
+end)
+test("Main dashboard touch areas, modal keyboard and offline/AE2 stale-data suppression",function()
+  local net,state=displayFixture()
+  state.tab=2; state.stocks=stockPage(1); state.stocks.items[1].size=987654321; state.selected=state.stocks.items[1]
+  local gpu=mockGpu(160,50); local r=require("ui.renderer").new(gpu,{address="main-screen"},"main")
+  local screens=require("ui.screens")
+  local function drawText()
+    screens.draw(r,"main",net,state,function() return 100 end)
+    local out={}; for _,row in ipairs(r.front) do out[#out+1]=table.concat(row.chars) end
+    return table.concat(out,"\n")
+  end
+  assert(drawText():find("987,654,321",1,true))
+  local nav
+  for _,b in ipairs(r.buttons) do if b.id=="tab:1" then nav=b end end
+  assert(nav and nav.h==3); eq(r:touch("main-screen",nav.x,nav.y+2),"tab:1")
+  state:touch("search"); drawText(); eq(r:touch("main-screen",nav.x,nav.y+2),nil)
+  local letter
+  for _,b in ipairs(r.buttons) do assert(b.id:match("^key:")); if b.id=="key:a" then letter=b end end
+  assert(letter); state:touch(r:touch("main-screen",letter.x,letter.y)); eq(state.draft,"a")
+  state:touch("key:cancel"); net.online=false; assert(not drawText():find("987,654,321",1,true))
+  net.online=true; net.status.ae2.online=false; assert(not drawText():find("987,654,321",1,true))
+end)
 local function release(version)
   local entries,payload={},{}
   for _,path in ipairs({"boot.lua","core/cli.lua","core/config.lua","core/runtime.lua","core/updater.lua"}) do

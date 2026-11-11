@@ -5,7 +5,7 @@ from pathlib import Path
 import zipfile
 
 ROOT = Path(__file__).resolve().parents[1]
-VERSION = "0.1.2"
+VERSION = "0.2.0"
 
 
 def encode(value):
@@ -80,6 +80,7 @@ def build():
         candidates += list((ROOT / "src").rglob("*.lua")) + list((ROOT / "docs").glob("*.md"))
         candidates += list((ROOT / "tools").glob("*.py")) + list((ROOT / "tools").glob("*.lua"))
         candidates += list((ROOT / "tests").glob("*.py")) + list((ROOT / "tests").glob("*.lua"))
+        candidates += list((ROOT / "docs" / "previews").glob("*.png"))
         candidates += [ROOT / ".gitignore", ROOT / "requirements-dev.txt"]
         for path in sorted(candidates):
             if path.exists():

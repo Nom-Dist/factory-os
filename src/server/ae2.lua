@@ -1,4 +1,5 @@
 local component=require("component")
+local identity=require("core.items")
 local M={}
 local types={me_controller=true,me_interface=true,me_importbus=true,me_exportbus=true}
 local function safe(p,method,...)
@@ -65,13 +66,33 @@ function M.new(cfg)
     local page=tonumber(args.page) or 1
     if page%1~=0 or page<1 or page>100000 then return nil,"INVALID_PAGE" end
     local query=type(args.query)=="string" and args.query:lower():sub(1,80) or ""
+    local filter=args.filter or "all"
+    if filter~="all" and filter~="craftable" and filter~="favorites" then return nil,"INVALID_FILTER" end
+    local sort=args.sort or "name"
+    if sort~="name" and sort~="amount" then return nil,"INVALID_SORT" end
+    local favorites={}
+    if filter=="favorites" then
+      if type(args.favoriteKeys)~="table" or #args.favoriteKeys>32 then return nil,"INVALID_FAVORITES" end
+      for _,key in ipairs(args.favoriteKeys) do
+        if type(key)~="string" or #key>1024 then return nil,"INVALID_FAVORITES" end
+        favorites[key]=true
+      end
+    end
     local matched={}
     for _,item in ipairs(self.items) do
-      if query=="" or item.label:lower():find(query,1,true) or item.name:lower():find(query,1,true) then matched[#matched+1]=item end
+      local matches=query=="" or item.label:lower():find(query,1,true) or item.name:lower():find(query,1,true)
+      if matches and (filter=="all" or filter=="craftable" and item.isCraftable or filter=="favorites" and favorites[identity.key(item) or false]) then matched[#matched+1]=item end
     end
+    if sort=="amount" then
+      table.sort(matched,function(a,b)
+        if a.size~=b.size then return a.size>b.size end
+        return a.label..a.name..a.damage..a.tag<b.label..b.name..b.damage..b.tag
+      end)
+    end
+    local pages=math.max(1,math.ceil(#matched/24)); page=math.min(page,pages)
     local rows={}
     for i=(page-1)*24+1,math.min(page*24,#matched) do rows[#rows+1]=matched[i] end
-    return {items=rows,page=page,total=#matched,pages=math.max(1,math.ceil(#matched/24)),revision=self.revision,truncated=self.truncated}
+    return {items=rows,page=page,total=#matched,allTotal=#self.items,pages=pages,revision=self.revision,truncated=self.truncated,sort=sort,filter=filter}
   end
   function self:jobs()
     -- getCpus exposes occupancy, not existing jobs or item quantities.

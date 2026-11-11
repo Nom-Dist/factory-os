@@ -73,4 +73,4 @@ Mekanism makineleri için tek tip OC component/metot varlığı varsayılmadı. 
 
 Web dokümanları zaman içinde güncellenebildiği için kritik OpenOS davranışları ayrıca **yerel JAR kaynaklarıyla** karşılaştırılmıştır. Bu çalışma gerçek Minecraft kabul testlerinin yerine geçmez.
 
-Kullanıcı v0.1.1 sunucu kurulumunun tamamlandığını bildirdi; foreground başlangıcında `maxPacketSize` hatası ekran görüntüsüyle görüldü. v0.1.2 bu hatayı yukarıdaki 1.8.3 kaynaklarına göre düzeltir; boş allowlist ve gerçek proxy callback biçimiyle foreground regresyonu mock'ta sınandı. Yeni sürümün oyunda yeniden açılışı henüz doğrulanmadı.
+Kullanıcı v0.1.1 sunucu kurulumunun tamamlandığını bildirdi; foreground başlangıcında `maxPacketSize` hatası ekran görüntüsüyle görüldü. v0.1.2 bu hatayı yukarıdaki 1.8.3 kaynaklarına göre düzeltir; kullanıcı sunucu açılışını ve iki ekranın bağlandığını doğruladı. v0.2.0'ın yeni ana ekranı mock GPU çıktısıyla kontrol edildi; yeni yerleşimin ve gerçek AE2 verilerinin oyun içi kabulü bekleniyor.

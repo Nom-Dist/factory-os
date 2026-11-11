@@ -4,7 +4,7 @@
 
 Projenin GitHub adresi [Nom-Dist/factory-os](https://github.com/Nom-Dist/factory-os). Kaynaklar, manifest ve tek dosyalı çevrimdışı installer depoda tutulur. Yerel `tools/build.py` ayrıca tam teslimat ZIP'ini üretir; bu üretilen ZIP Git'e eklenmez.
 
-En hızlı yol `dist/factoryos-offline.lua` dosyasını OpenOS HDD/disketine koymaktır. Bu dosya tüm kaynakları ve hash manifestini taşır; Internet Card gerektirmez. Kapasiteyi kontrol edin; tek dosya yaklaşık 90 KB'dir. Mevcut dosya boyutunu host bilgisayarda doğrulayın. Küçük disketlerde yer yetmezse HDD aktarımı veya aşağıdaki HTTPS yolu kullanılmalıdır.
+En hızlı yol `dist/factoryos-offline.lua` dosyasını OpenOS HDD/disketine koymaktır. Bu dosya tüm kaynakları ve hash manifestini taşır; Internet Card gerektirmez. Kapasiteyi kontrol edin; tek dosya yaklaşık 120 KB'dir. Mevcut dosya boyutunu host bilgisayarda doğrulayın. Küçük disketlerde yer yetmezse HDD aktarımı veya aşağıdaki HTTPS yolu kullanılmalıdır.
 
 ## Çevrimdışı tek dosya
 
@@ -97,6 +97,8 @@ Config dosyası veri formatıdır, Lua dosyası değildir; `edit` ile rastgele d
 
 ## Güncelleme
 
+v0.2.0 ana ekranını kullanmak için **önce sunucuyu, sonra ana ekranı** aşağıdaki komutlarla güncelleyin. Foreground panel açıksa Ctrl+C ile kabuğa dönün. Ana ekranda indirme sırasında geçici Internet Card gerekir; kurulumdan sonra çıkarılabilir. Yan ekranın yerleşimi aynı kalır ve eski protokol v2 sürümüyle çalışabilir. Modem adreslerini/izinlerini yeniden girmeniz gerekmez.
+
 v0.1.1 sunucusu açılışta `maxPacketSize` hatası verdiyse istemci adreslerini doldurmanız gerekmez; v0.1.2'ye geçin. Hata sonrası servis durmuş olduğundan aşağıdaki güncelleme akışı kullanılabilir. Sunucu ayarları korunur. v0.1.1 ve v0.1.2 aynı ağ protokolündedir.
 
 Çalışan servis varken güncelleme/geri dönüş reddedilir. v0.1 üretim/reaktör komutu vermediği için aktif otomasyon işi yoktur. İleri sürümlerde bu kilide kalıcı iş günlüğü ve idle doğrulaması eklenmeden üretim sırasında güncelleme açılmamalıdır.
@@ -113,6 +115,15 @@ Sabit bir güncelleme için `main` yerine hedef commit SHA'sını kullanın. İl
 İndirme/HTTP/SHA256 hatası aktif pointer'ı değiştirmez. Eski sürüm korunur. Config güncelleme tarafından değiştirilmez. Başarısız staging dizinleri inceleme için kalabilir; depolama alanını kontrol edin. SHA256 bozulmayı yakalar; manifest de aynı HTTPS kaynaktan gelir ve bağımsız sürüm imzası değildir. Yalnızca güvendiğiniz depoyu kullanın.
 
 Çevrimdışı yeni sürüme geçmek için yeni `factoryos-offline.lua` dosyasını aktarın, servisi durdurun, aynı rolü tekrar kurun. Var olan rol/modem/ekran ayarları korunur; installer adres alanlarını yeniden sorabilir. **v0.1.1 protokol v2 kullanır; üç bilgisayarı da aynı sürüme geçirin.** Eski installer dosyası kendiliğinden güncellenmez; yeni dosyayı indirmeniz gerekir.
+
+## Yeni ana ekranı kullanma
+
+- `AE2 DEPOSU` veya `DEPO`: `ARA` düğmesi dokunmatik klavyeyi açar. Harflere dokunun, ardından `ARA`; fiziksel klavyede Enter da sorguyu onaylar. Esc veya `IPTAL` önceki sorguyu korur. Pano metni yalnızca arama alanına eklenir.
+- `TUM / TARIFLI / FAVORILER` sunucuda tüm envanteri filtreler. `AD A-Z / MIKTAR` tüm sonuç kümesini sıralar; yalnızca görünen sayfayı sıralamaz.
+- Satırdaki `+` favoriye ekler, `*` kaldırır. En fazla 32 favori `/etc/factoryos/display.dat` dosyasında bu ekran için saklanır. `?`, NBT kimliğinin favori için belirsiz olduğunu gösterir.
+- Ürün satırına dokununca geniş ekranda sağ sütunda miktar, kimlik, metadata ve tarif bilgisi görünür. `ONCE / SONRA`, düşük çözünürlükte önce aynı sayfanın kalan satırlarına sonra sonraki 24'lük ağ sayfasına geçer.
+- Ana paneldeki CPU sayıları yalnızca gerçek CPU verisi geldiyse gösterilir. Sunucu/AE2 bağlantısı yokken eski miktarlar güncel olarak çizilmez.
+- `STOK HEDEFLERI`, makine sürücüleri ve crafting başlatma sonraki aşamadır. Bu sürüm yalnızca izler.
 
 ## Geri dönüş ve config kurtarma
 

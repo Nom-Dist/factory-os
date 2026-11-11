@@ -1,5 +1,6 @@
 -- Software diff buffer; intentionally no 1.8 VRAM/bitblt APIs.
-local M={colors={bg=0x0b1220,panel=0x152337,accent=0x20bfd0,text=0xdce8ed,muted=0x8095aa,good=0x55cc88,bad=0xee6666}}
+local M={colors={bg=0x0b1220,panel=0x152337,accent=0x20bfd0,text=0xdce8ed,muted=0x8095aa,good=0x55cc88,bad=0xee6666,
+  raised=0x1b3043,line=0x294253,blue=0x629ff5,warn=0xe6ba68,stripe=0x112032,selected=0x20435a}}
 function M.new(gpu,screen,role)
   local maxw,maxh=gpu.maxResolution()
   local w=math.min(maxw,role=="main" and 160 or role=="side" and 80 or 50)
@@ -32,10 +33,18 @@ function M.new(gpu,screen,role)
     self:fill(x,y,width,height,C.panel)
     self:text(x+1,y,title:sub(1,math.max(0,width-2)),C.accent,C.panel)
   end
-  function self:button(x,y,width,label,id,selected)
+  function self:button(x,y,width,label,id,selected,height,enabled)
+    height=height or 1
     local bg=selected and C.accent or C.panel
-    self:text(x,y,(" "..label..string.rep(" ",width)):sub(1,width),selected and C.bg or C.text,bg)
-    self.buttons[#self.buttons+1]={x=x,y=y,w=width,id=id}
+    local fg=enabled==false and C.muted or selected and C.bg or C.text
+    self:fill(x,y,width,height,bg)
+    self:text(x,y+math.floor((height-1)/2),(" "..label..string.rep(" ",width)):sub(1,width),fg,bg)
+    if enabled~=false then self:hotspot(x,y,width,height,id) end
+  end
+  function self:hotspot(x,y,width,height,id)
+    local right,bottom=math.min(self.w,x+width-1),math.min(self.h,y+height-1)
+    x,y=math.max(1,x),math.max(1,y)
+    if right>=x and bottom>=y then self.buttons[#self.buttons+1]={x=x,y=y,w=right-x+1,h=bottom-y+1,id=id} end
   end
   function self:bar(x,y,width,value)
     value=math.max(0,math.min(1,value or 0))
@@ -61,7 +70,7 @@ function M.new(gpu,screen,role)
   end
   function self:touch(address,x,y)
     if address~=self.screen then return end
-    for _,b in ipairs(self.buttons) do if y==b.y and x>=b.x and x<b.x+b.w then return b.id end end
+    for _,b in ipairs(self.buttons) do if y>=b.y and y<b.y+b.h and x>=b.x and x<b.x+b.w then return b.id end end
   end
   return self
 end

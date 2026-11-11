@@ -2,9 +2,9 @@
 
 ## Gerçekte çalıştırılanlar
 
-11 Kasım 2026'da Lupa 2.8'in **gerçek Lua 5.2 ve Lua 5.3 yorumlayıcılarında** 23 senaryo çalıştırıldı: her yorumlayıcıda 23/23 geçti. Bütün Lua dosyaları, üretilen online/offline installer ve oyun içi prob dahil sözdizimsel olarak derlendi.
+11 Kasım 2026'da Lupa 2.8'in **gerçek Lua 5.2 ve Lua 5.3 yorumlayıcılarında** 29 senaryo çalıştırıldı: her yorumlayıcıda 29/29 geçti. Bütün Lua dosyaları, üretilen online/offline installer ve oyun içi prob dahil sözdizimsel olarak derlendi.
 
-Modem/GPU/HTTP/filesystem/thread/event/zaman çevresi mock'tur. Bilgisayarlar arası haberleşme uygulaması ve tüm modüller gerçek Lua koduyla yürütüldü. Bu sonuçlar **Minecraft'ta üç bilgisayarlı uçtan uca doğrulama değildir**.
+Modem/GPU/HTTP/filesystem/thread/event/zaman çevresi mock'tur. Bilgisayarlar arası haberleşme uygulaması ve tüm modüller gerçek Lua koduyla yürütüldü. Kullanıcı sunucu ve iki ekranın kablosuz bağlantısının oyunda çalıştığını ayrıca doğruladı. **Yeni v0.2 arayüzü ve AE2 gerçek stokları için oyun içi kabul bekleniyor**; otomatik sonuçlar bunun yerine geçmez.
 
 Yerel OC 1.8.3 JAR içindeki OpenOS kaynakları incelenerek mock'lar şu davranışlara uyarlandı: `package.preload` olmaması, mevcut dizinde makeDirectory hatası, close'un boş dönüşü ve term.read cursor/newline seçenekleri. Gerçek Java filesystem, Lua mimarisi/GPU bütçeleri ve OpenOS thread scheduler'ı yine oyun içinde doğrulanmalı.
 
@@ -39,11 +39,17 @@ ARTEMIS `mobile_diagnose(attempt_fix=true)` çalıştırıldı; ADB'de bağlı A
 | 21 | Eski config'teki ortak anahtarın kullanılmadan kaldırılması, modem/ekran/rol ayarlarının korunması |
 | 22 | maxPacketSize olmadan device info kapasitesi; optional callable callback, bozuk/eksik/küçük sınır kontrolü |
 | 23 | Boş istemci listesi ve OC callable-table metotlarıyla server/main/side foreground açılışı, panel çizimi ve temiz kapanış |
+| 24 | Stokların tüm sonuç kümesinde miktara göre sıralanması, tarif/favori filtresi, sınır dışı sayfanın düzeltilmesi |
+| 25 | Arama taslağının Enter ile uygulanması, iptal, pano metni, geç gelen eski yanıtın yok sayılması, periyodik istek biriktirmeme |
+| 26 | Favorilerin ekran diskinde kalıcılığı, NBT belirsizliği reddi, 32 kayıt sınırı, disk hatasında geri alma |
+| 27 | Küçük çözünürlükte 24'lük sayfanın bütün satırlarını dolaşma, ağ sayfaları arasında ileri/geri geçiş |
+| 28 | OFFLINE sırasında stok/CPU cache temizliği, eski callback reddi, yeniden bağlantıda iki verinin yenilenmesi |
+| 29 | Üç satırlı dokunma alanı, modal klavyede arkadaki düğmelere basılmaması, offline/AE2 kaybında eski miktarların gizlenmesi |
 
 Host'ta tekrar çalıştırma:
 
 ```sh
-python -m pip install --target .tools lupa==2.8
+python -m pip install --target .tools -r requirements-dev.txt
 python tools/build.py
 python tests/run.py
 ```
@@ -62,7 +68,7 @@ Probun çıktısında stok satırı bulunması üretim testi değildir. Şu ana 
 
 ## Üç bilgisayarlı kabul sırası
 
-Önce [donanım](hardware.md) ve [kurulum](installation.md) adımlarını tamamlayın. Üç cihazda v0.1.2, doğru modem allowlist, aynı wireless port, yüklü chunk ve yeterli güç kullanın. Şifre gerekmez. Aşağıdaki süreler varsayılan konfigürasyon içindir; oyun lag'i nedeniyle gözlemi birkaç saniye uzatabilirsiniz. Otomatik testte süreler sanal saatle deterministiktir.
+Önce [donanım](hardware.md) ve [kurulum](installation.md) adımlarını tamamlayın. Sunucu ve ana ekranda v0.2.0, doğru modem allowlist, aynı wireless port, yüklü chunk ve yeterli güç kullanın. Yan ekran protokol v2 ile bağımsız çalışır. Şifre gerekmez. Aşağıdaki süreler varsayılan konfigürasyon içindir; oyun lag'i nedeniyle gözlemi birkaç saniye uzatabilirsiniz. Otomatik testte süreler sanal saatle deterministiktir.
 
 | Senaryo | Oyunda yapılacak işlem | Kabul ölçütü |
 |---|---|---|
@@ -81,9 +87,12 @@ Probun çıktısında stok satırı bulunması üretim testi değildir. Şu ana 
 | Güncellemede çalışan servis | Servis çalışırken `factoryos update` deneyin | Dosya indirmeden "Stop FactoryOS" hatası |
 | Yanlış modem/allowlist | Bir test istemcisinin adres eşleştirmesini değiştirin; sonra geri düzeltin | İzin listesinde bulunmayan cihaz OFFLINE |
 | Kurulum satırları | Yeni installer ile bir rol kurun; her soruda Enter'a basın | Şifre sorulmaz; sonraki soru yeni satırda başlar. Bu UI düzeltmesinin gerçek oyundaki kabulü bekleniyor |
-| Dokunmatik ayırma | Ana ekranda AE2 stocks/CPUs/Energy menülerine dokunun | Ana ekran değişir, yan ekran kendi telemetrisiyle kalır |
+| Dokunmatik ayırma | Ana ekranda AE2 DEPOSU/URETIM/ENERJI menülerine dokunun | Ana ekran değişir, yan ekran kendi telemetrisiyle kalır |
 | Stok doğruluğu | AE terminalinde iki metadata/NBT varyantını karşılaştırın; eşya ekleyip çıkarın | 10 s poll ve istemci poll sonrası değerler eşleşir; NBT belirsizliği üretim kimliği sayılmaz |
-| Arama/sayfalama | AE2 stocks'ta search'e dokunun, fiziksel klavyeyle ASCII sorgu girip Enter'a basın | Alt dize filtresi; next/prev 24'lük sayfa; küçük ekranlarda scroll |
+| Arama/sayfalama | AE2 DEPOSU'nda ARA'ya dokunun, ekrandaki harflerle veya fiziksel klavyeyle sorgu girip onaylayın | Alt dize filtresi; ONCE/SONRA bütün satırları ve sonra ağ sayfalarını dolaşır |
+| Sıralama/filtre | MIKTAR'a, sonra TARIFLI/FAVORILER'e dokunun | Tüm envanterde sıralama; yalnızca ilgili sonuçlar gelir |
+| Favori kalıcılığı | Satırdaki + işaretine basın, ekranı yeniden başlatın, FAVORILER'i açın | Seçilen varyant korunur; belirsiz NBT varyantı eklenmez |
+| Yeni panel | ANA PANEL'i açın, gerçek AE2 bağlantısını ayırıp geri takın | Uyarılar ve özet kartları gerçek bağlantı durumuna göre değişir; bilinmeyen değerler -- olur |
 | GPU kararlılığı | İki paneli 10 dakika açık tutun | GPU ekranlar arasında geçiş yapmaz; gereksiz tam ekran temizleme/titreme yok |
 
 ## Crafting API kabulü — sonraki aşamanın ön koşulu
@@ -91,3 +100,7 @@ Probun çıktısında stok satırı bulunması üretim testi değildir. Şu ana 
 Yedek/test dünyasında ucuz ve kolay sayılabilen bir recipe seçin. `getCraftables(filter)` sonucundaki `getItemStack()` kimliğini doğrulayın. Tek sefer `request` verip hem `isDone/isCanceled` ve ikinci dönüş metinlerini hem **AE terminalindeki gerçek stok artışını** kontrol edin. Eksik malzemeyle tekrarlayıp başarısızlık ve backoff tasarımını doğrulayın. Önceden devam eden işler, tam CPU kapasitesi, reboot sırasında belirsiz iş ve aynı istek tekrarını ayrıca sınayın. Bu adımlar henüz kodda otomasyona bağlanmadı ve oyunda yapılmadı.
 
 Reaktör kontrolü test kapsamı dışındadır; otomasyon kapalıdır. Önce salt okunur gerçek metotlar ve yerel bağımsız interlock düzeni doğrulanmalıdır.
+
+## Görsel önizlemeler
+
+`python tools/preview.py`, gerçek `ui.renderer` GPU hücre tamponunu örnek verilerle PNG'ye dönüştürür. [Ana panel](previews/main-overview.png), [depo](previews/main-stocks.png), [arama](previews/main-search.png), [offline](previews/main-offline.png) ve [80×25](previews/main-compact.png) görüntüleri görsel olarak incelendi. Görüntü başlıkları örnek veri olduğunu belirtir; bunlar Minecraft'tan alınan ekran görüntüsü değildir. 40×12, 50×16, 80×25 ve 160×50 boyutları ayrıca bütün sekmeler ve arama klavyesiyle GPU sınır testinden geçti.

@@ -1,2 +1,4 @@
 # Host test dependency only. OpenOS requires no pip or external Lua packages.
 lupa==2.8
+# Optional GPU-buffer image previews (tools/preview.py).
+Pillow>=10

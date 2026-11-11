@@ -43,11 +43,13 @@ Kayıtlı istemci REQUEST gönderir; body `command` ve `args` içerir. RESPONSE 
 | Uygulama komutu | Main | Side | İçerik |
 |---|---|---|---|
 | HEARTBEAT / GET_SERVER_STATUS | evet | evet | Sunucu özeti ve telemetri |
-| GET_AE2_STOCKS | evet | hayır | 24 varyant/sayfa, plain substring sorgusu |
+| GET_AE2_STOCKS | evet | hayır | 24 varyant/sayfa, plain substring sorgusu, genel ad/miktar sırası ve tarifli/favori filtresi |
 | GET_CRAFTING_JOBS | evet | hayır | CPU doluluğu; mevcut iş ayrıntıları unsupported |
 | GET_POWER_STATUS | evet | evet | AE birimli AE2 enerjisi, diğer sürücüler unsupported |
 | GET_MACHINE_STATUS | evet | evet | Henüz doğrulanmış sürücü olmadığı bilgisi |
 | REQUEST_CRAFT, SUBSCRIBE_UPDATES, UPDATE_AVAILABLE, diğerleri | hayır | hayır | UNSUPPORTED_COMMAND |
+
+v0.2.0 stok args alanları: `page`, `query`, `sort="name"|"amount"`, `filter="all"|"craftable"|"favorites"`. Favori filtresinde en fazla 32 adet, her biri en fazla 1024 bayt olan `favoriteKeys` string dizisi gönderilir. Anahtarlar `core.items` içindeki canonical `name/damage/hasTag/tag` temsilidir; üretim yetkisi taşımaz. Filtreleme ve sıralama sayfalamadan önce uygulanır. Yanıt `filter` ve `sort` alanlarını yankılar; eski sunucu bu alanları desteklemiyorsa ana ekran özel filtre/sıra sonucunu göstermez ve güncelleme gerektiğini bildirir. Wire protokolü v2 kalır; eski salt okunur istemciler varsayılan name/all sorgularıyla çalışabilir.
 
 ## Çalışma modeli
 

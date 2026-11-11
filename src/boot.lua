@@ -10,9 +10,9 @@ local release=root.."/releases/"..version
 if not package.loaded["factoryos.service"] or not package.loaded["factoryos.service"].running then
   -- OpenOS itself owns many core.* modules. Clear only FactoryOS's exact names.
   local names={"core.cli","core.codec","core.config","core.crypto","core.hardware","core.installer",
-    "core.logger","core.runtime","core.storage","core.updater","network.modem","network.messages",
+    "core.logger","core.runtime","core.storage","core.updater","core.items","network.modem","network.messages",
     "network.protocol","server.ae2","server.energy","server.machines","server.main",
-    "client.main_display","client.side_display","ui.renderer","ui.screens"}
+    "client.main_display","client.side_display","client.preferences","ui.renderer","ui.screens","ui.main_screen","ui.widgets","ui.format"}
   for _,name in ipairs(names) do package.loaded[name]=nil end
 end
 package.path=release.."/?.lua;"..release.."/?/init.lua;"..package.path

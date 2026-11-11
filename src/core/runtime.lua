@@ -22,6 +22,7 @@ function M.run(cfg,service)
     net=protocol.new(cfg,hw.modem,clock,nonce,server and function(cmd,args) return server:dispatch(cmd,args) end,log)
     if server then server.clients=net.clients end
     local state=cfg.role=="main" and require("client.main_display").new(net,clock) or require("client.side_display").new()
+    state.context={modem=hw.modem.address,screen=hw.screen.address,port=cfg.port,serverAddress=cfg.serverAddress,poll=cfg.poll}
     view=renderer.new(hw.gpu,hw.screen,cfg.role)
     local lastDraw=-math.huge
     service.running=true; service.started=clock(); service.role=cfg.role; service.error=nil
@@ -40,6 +41,7 @@ function M.run(cfg,service)
         net:receive(e[2],e[3],e[4],e[6],e[7])
       elseif e[1]=="touch" then state:touch(view:touch(e[2],e[3],e[4])); lastDraw=-math.huge
       elseif e[1]=="key_down" and state.key then state:key(e[3],e[4]); lastDraw=-math.huge
+      elseif e[1]=="clipboard" and state.paste then state:paste(e[3]); lastDraw=-math.huge
       elseif e[1]=="interrupted" then service.stop=true end
     end
   end,debug.traceback)
