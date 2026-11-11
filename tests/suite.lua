@@ -346,6 +346,26 @@ test("AE2 preserves native failure reasons, checks power and recovers without st
   cfg.ae2Enabled=false; ae:poll(); assert(not ae.online); eq(#ae.items,0); eq(ae.address,nil)
   components={}
 end)
+test("AE2 refresh releases the old snapshot before driver allocation and normalizes rows in place",function()
+  local ae=require("server.ae2").new(config.defaults("server"))
+  local old=setmetatable({},{__mode="v"}); local returned
+  local p={address="me-memory",type="me_interface"}
+  p.getItemsInNetwork=callback(function()
+    collectgarbage("collect"); eq(old[1],nil)
+    local raw={{name="mod:tagged",size=1,hasTag=true,nbt_hash="hash",tooltip={"unneeded"}},
+      {invalid=true},{name="mod:plain",size=2}}
+    for i=4,2100 do raw[i]={name="mod:bulk",size=i} end
+    returned=setmetatable({raw,raw[1],raw[3]},{__mode="v"})
+    return raw
+  end)
+  components={[p.address]=p}; ae:poll(); assert(ae.online)
+  eq(ae.items,returned[1]); eq(#ae.items,1999); assert(ae.truncated)
+  eq(ae.items[1999],returned[2]); eq(ae.items[1999].tag,"hash")
+  eq(ae.items[1999].tooltip,nil); eq(ae.items[1999].nbt_hash,nil)
+  eq(ae.items[1998],returned[3])
+  old[1]=ae.items; returned=nil; ae:poll(); assert(ae.online)
+  components={}
+end)
 test("AE2 exact component selection, missing pinned address and transition reason logging",function()
   local cfg=config.defaults("server"); local time=0; local logs={}
   local server=require("server.main").new(cfg,function() return time end,function(_,s) logs[#logs+1]=s end)
@@ -366,7 +386,7 @@ test("AE2 CLI samples at ten second intervals and reports exact failure",functio
   local cfg=config.defaults("server"); config.load=function() return cfg end
   print=function(s) output[#output+1]=s end
   components={me={address="me",type="me_interface",getItemsInNetwork=callback(function() return {} end)}}
-  os.sleep=function(seconds) eq(seconds,10); waits=waits+1; components={} end
+  os.sleep=function(seconds) if seconds==0 then return end; eq(seconds,10); waits=waits+1; components={} end
   local ok,why=pcall(function() require("core.cli").main({"ae2","2"}) end)
   print=oldPrint; os.sleep=oldSleep; config.load=oldLoad
   assert(ok,why); eq(waits,1)

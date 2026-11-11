@@ -2,7 +2,13 @@
 
 ME Terminal çalışırken yalnızca FactoryOS OFFLINE oluyorsa bu tek başına ME ağının kapandığını kanıtlamaz. Adapter bileşeninin kaybolması, birden fazla ME bileşeninin görünmesi veya bir API çağrısının hata vermesi ayrı ayrı araştırılmalıdır. v0.3.1 hata metnini, çağrılan metodu ve seçilen adresi korur; durum/hata/adres değişince loga yazar. Aynı hatayı her turda tekrar yazmaz.
 
-Önce sunucuyu v0.3.1'e güncelleyin. Ctrl+C ile foreground panelden çıkıp:
+## `not enough memory`
+
+Kullanıcı ME Terminal açık kalırken FactoryOS'ta bu hatayı gördüğünü bildirdi. Bu, bilgisayardaki Lua bellek yetersizliğidir; tek başına gerçek ME ağının kapandığı anlamına gelmez. v0.3.2 eski snapshot'ı sürücü çağrısından önce bırakır; dönen satırları yerinde dönüştürür, kullanılmayan alanları ve 2000 sınırını aşan satırları bırakır. OpenComputers sandbox'ında `collectgarbage` dışarı sunulmadığından bu global metoda dayanmaz; OC allocator/GC mekanizmasını kullanır.
+
+Legacy `getItemsInNetwork()` API'si Lua'ya yine bütün envanteri tek seferde aktarır; 2000 satır sınırı bu ilk tahsisin boyutunu kısıtlamaz. Çok büyük AE2 ağları için sunucu bilgisayarına daha yüksek RAM modülleri takmak hâlâ gerekebilir. İstemci ekran RAM'ini artırmak sunucudaki bu okumayı düzeltmez. `factoryos ae2` her örnekte sunucunun kullanılabilir/toplam RAM'ini KiB olarak gösterir. Yoklama aralığını artırmak yük sıklığını azaltır, tek çağrının RAM ihtiyacını azaltmaz.
+
+Önce sunucuyu v0.3.2'ye güncelleyin. Ctrl+C ile foreground panelden çıkıp:
 
 ```sh
 factoryos stop

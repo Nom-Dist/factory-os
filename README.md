@@ -1,6 +1,6 @@
-# FactoryOS v0.3.1
+# FactoryOS v0.3.2
 
-v0.3.1, AE2 kesintilerinin gerçek metot/hata/adres bilgisini loglar. Sunucuda `factoryos ae2 12` iki dakika boyunca salt okunur tanılama yapar; kullanım ve hata ayrımı için [AE2 tanılama kılavuzu](docs/ae2-diagnostics.md).
+v0.3.2, AE2 stok yenilemesinde eski snapshot'ı önceden bırakır ve yeni satırları kopyalamadan işler; RAM yükünü azaltır. v0.3.1'de eklenen `factoryos ae2 12` komutu gerçek hata/adres ve RAM bilgisini gösterir. Kullanım ve bellek sınırı için [AE2 tanılama kılavuzu](docs/ae2-diagnostics.md).
 
 Minecraft **1.12.2 / Enigmatica 2: Expert Skyblock / OpenComputers / OpenOS** için üç bilgisayarlı fabrika kontrol yazılımı. Lua 5.2 ve 5.3 hedeflenir. Sunucu ve iki ekranın kablosuz bağlantısı kullanıcı tarafından oyun içinde doğrulandı. **Yeni arayüz, otomatik açılış, kablosuz güncelleme ve gerçek AE2 davranışı için oyun içi kabul bekleniyor.**
 

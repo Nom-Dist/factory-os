@@ -2,7 +2,7 @@
 
 ## Gerçekte çalıştırılanlar
 
-11 Kasım 2026'da Lupa 2.8'in **gerçek Lua 5.2 ve Lua 5.3 yorumlayıcılarında** 43 senaryo çalıştırıldı: her yorumlayıcıda 43/43 geçti. Bütün Lua dosyaları, üretilen online/offline installer ve oyun içi prob dahil sözdizimsel olarak derlendi.
+11 Kasım 2026'da Lupa 2.8'in **gerçek Lua 5.2 ve Lua 5.3 yorumlayıcılarında** 44 senaryo ve ayrı sınırlı bellek regresyonu çalıştırıldı: her yorumlayıcıda hepsi geçti. Bütün Lua dosyaları, üretilen online/offline installer ve oyun içi prob dahil sözdizimsel olarak derlendi.
 
 Modem/GPU/HTTP/filesystem/thread/event/zaman çevresi mock'tur. Bilgisayarlar arası haberleşme uygulaması ve tüm modüller gerçek Lua koduyla yürütüldü. Kullanıcı sunucu ve iki ekranın kablosuz bağlantısının oyunda çalıştığını ayrıca doğruladı. **Yeni arayüz, otomatik boot, kablosuz sürüm aktarımı ve AE2 gerçek stokları için oyun içi kabul bekleniyor**; otomatik sonuçlar bunun yerine geçmez.
 
@@ -59,6 +59,9 @@ ARTEMIS `mobile_diagnose(attempt_fix=true)` çalıştırıldı; ADB'de bağlı A
 | AE2 tanılama | Native nil+hata dönüşü, güç kesintisi/geri gelmesi, opsiyonel metot eksikliğinin envanteri düşürmemesi, eski stok temizliği |
 | AE2 seçim/log | Çoklu bileşen ve sabit adres seçimi, adres kaybı, neden/adres değişiminde log ve aynı hatada tekrar yazmama |
 | AE2 CLI | Gerçek komut yolu, iki örnek arasında 10 saniye bekleme, ikinci örnekte kopma nedeninin çıktısı |
+| AE2 bellek | Eski snapshot'ın sürücü çağrısından önce toplanabilmesi; aynı tablo/satırların yerinde sadeleştirilmesi, NBT hash korunması, limit ve geçersiz satırların temizliği |
+
+`tests/ae2_memory.lua` ayrıca izole Lua allocator'ını **2 MiB** ile sınırlar ve 2000 farklı eşyayı beş defa yeniler. Lua 5.2/5.3'te v0.3.1 kodu aynı fixture/limit altında `not enough memory` verirken v0.3.2 geçmiştir. Bu rakam yalnızca izole fixture bütçesidir; OpenOS, GPU, modem ve gerçek AE2 verileri dahil toplam oyun RAM gereksinimi değildir. Gerçek ağdaki kabul testi bekleniyor.
 
 Host'ta tekrar çalıştırma:
 

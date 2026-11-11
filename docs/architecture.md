@@ -42,7 +42,7 @@ v0.3.0 açılışta `.shrc` üzerinden foreground başlatır. Güncelleme menüs
 - Bir uygulama mesajı en fazla 64 KiB ve 64 parça; küçük modem limitinde efektif üst sınır daha düşüktür.
 - 256 bekleyen gönderim çerçevesi, 8 parçalı alım, 8 bekleyen istemci isteği.
 - 16 izinli istemci; sunucu tekrar önbelleği en fazla 128 kayıt / 60 saniye.
-- Envanter snapshot'ı en fazla 2000 varyant; limit ekranda işaretlenir. AE2'nin `getItemsInNetwork()` çağrısı önce tüm Java/Lua tablosunu üretir; çok büyük ağlar hâlâ RAM sınırına takılabilir.
+- Envanter snapshot'ı en fazla 2000 varyant; limit ekranda işaretlenir. v0.3.2 eski snapshot'ı okumadan önce bırakır, dönen tabloyu yerinde sadeleştirir; ikinci tam kopya oluşturmaz. AE2'nin `getItemsInNetwork()` çağrısı önce tüm Java/Lua tablosunu üretir; çok büyük ağlar hâlâ RAM sınırına takılabilir.
 - 24 stok/sayfa, 160 karakter eşya adı/etiketi, 512 karakter tag/hash özeti.
 - Ana ekranda 32 yerel favori; belirsiz NBT kimliği favori olarak kalıcılaştırılmaz. Favori filtresi bounded canonical varyant anahtarlarıyla sunucuda uygulanır.
 - Log yaklaşık 64 KiB'de döner; bir önceki dosya korunur.

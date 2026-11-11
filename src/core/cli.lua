@@ -47,6 +47,9 @@ function M.main(args,root)
       if ae.powerError then print(ae.powerError) end
       if ae.energy.supported then print("Energy: "..ae.energy.stored.." / "..ae.energy.capacity.." AE") end
       if ae.cpuError and ae.cpuError~="" and ae.online then print(ae.cpuError) end
+      if computer.freeMemory and computer.totalMemory then
+        print("RAM free/total: "..math.floor(computer.freeMemory()/1024).." / "..math.floor(computer.totalMemory()/1024).." KiB")
+      end
       if i<count then os.sleep(10) end
     end
     return

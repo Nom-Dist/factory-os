@@ -2,6 +2,7 @@ local component=require("component")
 local identity=require("core.items")
 local M={}
 local types={me_controller=true,me_interface=true,me_importbus=true,me_exportbus=true}
+local itemFields={name=true,label=true,damage=true,size=true,hasTag=true,tag=true,isCraftable=true,identityComplete=true}
 local function safe(p,method,...)
   -- OC proxy callbacks are callable tables, not necessarily Lua functions.
   if not p or p[method]==nil then return nil,"unsupported: "..method end
@@ -43,25 +44,36 @@ function M.new(cfg)
     if not p then self:unavailable(err); return end
     self.powered,self.powerError=safe(p,"isNetworkPowered")
     if self.powered==false then self:unavailable("AE2 network unpowered (isNetworkPowered=false)"); return end
+    -- The legacy API returns the whole inventory. Release the previous snapshot
+    -- BEFORE crossing into the driver, rather than keeping two full inventories.
+    self:unavailable("AE2 inventory refresh")
+    -- OC's sandbox does not expose collectgarbage; yield and let its allocator
+    -- reclaim unreachable rows when it next needs memory.
+    if os.sleep then os.sleep(0) end
     local items,why=safe(p,"getItemsInNetwork")
     if type(items)~="table" then
       self:unavailable(why or "getItemsInNetwork: invalid inventory result"); return
     end
-    local normalized={}
-    self.truncated=false
-    for _,v in ipairs(items) do
+    local total=#items; local limit=math.min(total,2000); local used=0
+    self.truncated=total>limit
+    for i=limit+1,total do items[i]=nil end
+    -- Compact/normalize the returned rows in place. Do not allocate another
+    -- inventory or retain unused native fields (icons, NBT tables, tooltips...).
+    for i=1,limit do
+      local v=items[i]; items[i]=nil
       if type(v)=="table" and type(v.name)=="string" and type(v.size)=="number" then
         -- Keep variants separate. hasTag without an exposed tag/hash is explicitly ambiguous.
         local tag=type(v.tag)=="string" and v.tag or type(v.nbt_hash)=="string" and v.nbt_hash or nil
-        normalized[#normalized+1]={name=text(v.name,160),label=text(v.label or v.name,160),damage=tonumber(v.damage) or 0,
-          size=v.size,hasTag=v.hasTag==true,tag=text(tag or "",512),isCraftable=v.isCraftable==true,
-          identityComplete=v.hasTag~=true or tag~=nil}
-        if #normalized>=2000 then self.truncated=#items>2000; break end
+        v.identityComplete=v.hasTag~=true or tag~=nil
+        v.name=text(v.name,160); v.label=text(v.label or v.name,160); v.damage=tonumber(v.damage) or 0
+        v.hasTag=v.hasTag==true; v.tag=text(tag or "",512); v.isCraftable=v.isCraftable==true
+        for key in pairs(v) do if not itemFields[key] then v[key]=nil end end
+        used=used+1; items[used]=v
       end
-      if #normalized%200==0 and #normalized>0 and os.sleep then os.sleep(0) end
+      if i%200==0 and os.sleep then os.sleep(0) end
     end
-    table.sort(normalized,function(a,b) if a.label==b.label then return a.name..":"..a.damage..a.tag<b.name..":"..b.damage..b.tag end; return a.label<b.label end)
-    self.items=normalized; self.address=p.address; self.online=true; self.error=""; self.revision=self.revision+1
+    table.sort(items,function(a,b) if a.label==b.label then return a.name..":"..a.damage..a.tag<b.name..":"..b.damage..b.tag end; return a.label<b.label end)
+    self.items=items; self.address=p.address; self.online=true; self.error=""; self.revision=self.revision+1
     local cpus,ce=safe(p,"getCpus")
     self.cpus={}; self.cpuError=ce
     if type(cpus)=="table" then
