@@ -53,7 +53,7 @@ OC JAR içindeki `mcmod.info` ayrıca **OpenComputers 1.8.3 / Minecraft 1.12.2**
 
 - Adapter'a komşu ME Interface/Controller bileşeninden `getItemsInNetwork()`, `getCpus()` ve ağ enerji metotları çağrılır. Metodun bulunması başarılı bağlantı sayılmaz; gerçek çağrı ve dönüş tipi kontrol edilir.
 - `getCpus()` alanları `name`, `storage`, `coprocessors`, `busy` şeklindedir. Bu bilgiler mevcut crafting işinin ürünü/miktarı değildir.
-- `getCraftables(filter)` Craftable userdata döndürür; `getItemStack()` ve `request(amount, prioritizePower, cpuName)` bunun üzerindedir. FactoryOS v0.4.0 açık kullanıcı eylemiyle bunları çağırır; otomatik stok hedefleri kapalıdır.
+- `getCraftables(filter)` Craftable userdata döndürür; `getItemStack()` ve `request(amount, prioritizePower, cpuName)` bunun üzerindedir. FactoryOS v0.4.0 elle üretimi, v0.5.0 açıkça etkinleştirilen stok kurallarını aynı kalıcı kayıt yoluyla çağırır.
 - `request()` sonucu bir job/status userdata'sıdır. `isDone()` / `isCanceled()` henüz hesaplanırken kurulu 274990f kaynak kodunda `nil, "computing"` döndürür; kaynak eksikliğinde `false, "request failed (...)"` yanıtı alınır. Yalnızca userdata dönmesi gerçek üretim başarısı değildir. `cancel()` hesaplama sırasında nil+computing, kabul edildiğinde true verir; son durum yeniden sorgulanır.
 - `getCraftingJobs`, Craftable üzerinde genel `craft`, job üzerinde modern `status` gibi yeni/varsayımsal metotlar kullanılmaz.
 - NBT ayrımı her ortamda ham NBT/hash olarak sunulmaz. Kod `name`, `damage`, `hasTag` ve varsa string tag/hash'i ayrı tutar; varyantları birleştirmez. Hash yoksa `identityComplete=false` işaretler. Bu kimliklerle otomatik üretim açılmaz. Uzun etiket/tag özetleri sınırlanır; bunlar kalıcı üretim anahtarı sayılmaz.

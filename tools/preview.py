@@ -26,8 +26,13 @@ state={tab=1,page=1,rowOffset=0,visibleRows=24,query="",draft="",filter="all",so
   context={modem="11111111-1111-4111-8111-111111111111",screen="22222222-2222-4222-8222-222222222222",port=34100,poll=10}}
 state.favorites[require("core.items").key(data[1])]=data[1].label
 state.favorites[require("core.items").key(data[3])]=data[3].label
-state.update={phase="available",message="Sunucuda yeni surum hazir",currentRelease="0.4.0-ornek",version="0.4.1",release="0.4.1-ornek",available=true,busy=false,autoStart=true,automatic=true,interval=900,role="main",canApply=true}
-net={online=true,lastSeen=9998,server="33333333-3333-4333-8333-333333333333",status={version="0.4.0",crafting="manual",uptime=12587,
+state.rules={page=1,pages=2,total=6,revision=8,paused=false,error="",rules={
+  {id=1,item=data[1],label="Infused Alloy",minimum=2048,target=4096,stock=1250,inFlight=2846,enabled=true,state="URETIM BEKLENIYOR",retryIn=0,error=""},
+  {id=2,item=data[5],label="Basic Control Circuit",minimum=1024,target=2048,stock=840,inFlight=0,enabled=true,state="TEKRAR BEKLENIYOR",retryIn=57,error="request failed (missing resources?)"},
+  {id=3,item=data[3],label="Fluix Crystal",minimum=1024,target=4096,stock=2840,inFlight=0,enabled=true,state="STOK YETERLI",retryIn=0,error=""},
+  {id=4,item=data[7],label="Copper Ingot",minimum=8192,target=16384,stock=28400,inFlight=0,enabled=false,state="KAPALI",retryIn=0,error=""}}}
+state.update={phase="available",message="Sunucuda yeni surum hazir",currentRelease="0.5.0-ornek",version="0.5.1",release="0.5.1-ornek",available=true,busy=false,autoStart=true,automatic=true,interval=900,role="main",canApply=true}
+net={online=true,lastSeen=9998,server="33333333-3333-4333-8333-333333333333",status={version="0.5.0",crafting="manual",automation=true,uptime=12587,
   ae2={online=true,itemTypes=1834,revision=45},power={ae2={supported=true,unit="AE",stored=782000,capacity=1000000,injection=129,usage=121}},
   clients={{role="main",address=state.context.modem,age=2},{role="side",address="44444444-4444-4444-8444-444444444444",age=1}}}}
 '''
@@ -93,3 +98,9 @@ if __name__ == "__main__":
     render("main-craft-compact", 80, 25, modal)
     render("main-craft-small", 40, 12, modal)
     render("main-craft-uncertain", 160, 50, modal+'; state.craft.submitted=true; state.craft.uncertain=true; state.craft.error="Yanit yok. Emir tekrar gonderilmedi; isleri kontrol edin."')
+    for name, width, height in (("main-stock-rules", 160, 50), ("main-stock-rules-compact", 80, 25), ("main-stock-rules-small", 40, 12), ("main-stock-rules-medium", 50, 16)):
+        render(name, width, height, "state.tab=3")
+    rule_modal = 'state.tab=3; state.ruleEditor={id=1,label="Infused Alloy / Meta: 0",minimum="2048",target="4096",field="minimum"}'
+    render("main-stock-rule-editor", 160, 50, rule_modal)
+    render("main-stock-rule-editor-compact", 80, 25, rule_modal)
+    render("main-stock-rule-editor-small", 40, 12, rule_modal)

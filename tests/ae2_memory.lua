@@ -17,9 +17,18 @@ package.preload.component=function()
 end
 os.sleep=function() end
 local ae=require("server.ae2").new({ae2Enabled=true,ae2Address=""})
+local craft={journal={orders={},automation={revision=1,nextId=17,paused=false,rules={}}}}
+for i=1,16 do
+  craft.journal.automation.rules[i]={id=i,item={name="mod:item_"..i,damage=0,hasTag=false,tag=""},label="Item "..i,
+    minimum=1,target=64,enabled=false,address="me"}
+end
+local stock=require("server.stock").new(craft,ae,function() return 0 end)
 for i=1,5 do
   ae:poll()
   assert(ae.online,ae.error)
   assert(#ae.items==2000)
+  for page=1,4 do
+    for _,r in ipairs(stock:list({page=page}).rules) do assert(r.stock==r.id) end
+  end
 end
-print("  PASS AE2 2000-item refresh x5 under 2 MiB allocation limit")
+print("  PASS AE2 2000-item refresh x5 and 16 stock-rule counts under 2 MiB allocation limit")

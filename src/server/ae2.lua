@@ -64,7 +64,8 @@ function M.new(cfg)
       if type(v)=="table" and type(v.name)=="string" and type(v.size)=="number" then
         -- Keep variants separate. hasTag without an exposed tag/hash is explicitly ambiguous.
         local tag=type(v.tag)=="string" and v.tag or type(v.nbt_hash)=="string" and v.nbt_hash or nil
-        v.identityComplete=v.hasTag~=true or tag~=nil
+        v.identityComplete=(v.hasTag~=true or tag~=nil) and #v.name<=160 and not v.name:find("[%c]") and
+          (not tag or #tag<=512 and not tag:find("[%c]"))
         v.name=text(v.name,160); v.label=text(v.label or v.name,160); v.damage=tonumber(v.damage) or 0
         v.hasTag=v.hasTag==true; v.tag=text(tag or "",512); v.isCraftable=v.isCraftable==true
         for key in pairs(v) do if not itemFields[key] then v[key]=nil end end

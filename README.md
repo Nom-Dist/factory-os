@@ -1,6 +1,6 @@
-# FactoryOS v0.4.0
+# FactoryOS v0.5.0
 
-v0.4.0 ana ekrandan AE2 üretim emri, miktar/CPU seçimi, iş takibi ve iptal ekler. Kalıcı emir kaydı, yanıt kaybı ve reboot sonrası aynı emrin yeniden gönderilmesini önler. [Üretim kullanımı ve sınırlar](docs/crafting.md). Önceki sürümün [AE2 bellek düzeltmesi ve tanılaması](docs/ae2-diagnostics.md) korunur.
+v0.5.0 [minimum/hedef stokla otomatik üretim](docs/stock-automation.md) ekler: 16 kalıcı kural, başlangıçta kapalı kayıt, tümünü duraklatma, sırayla üretim ve hata sonrası artan bekleme. [Elle üretim, iş takibi ve iptal](docs/crafting.md) ile kalıcı tekrar engeli korunur. Yerel paket hazırdır; gerçek Minecraft üretim kabulü bekleniyor.
 
 Minecraft **1.12.2 / Enigmatica 2: Expert Skyblock / OpenComputers / OpenOS** için üç bilgisayarlı fabrika kontrol yazılımı. Lua 5.2 ve 5.3 hedeflenir. Sunucu ve iki ekranın kablosuz bağlantısı kullanıcı tarafından oyun içinde doğrulandı. **Yeni arayüz, otomatik açılış, kablosuz güncelleme ve gerçek AE2 davranışı için oyun içi kabul bekleniyor.**
 
@@ -18,12 +18,13 @@ Sunucu, 8×5 ana ekran ve 4×5 yan ekran ayrı bilgisayarlardır. Her bilgisayar
 - Yan panel ayrı GPU/ekranla çalışır; GPU'ya yalnızca değişen hücreler yazılır.
 - AE2 Adapter üzerinden **salt okunur** stok, metadata/NBT belirsizlik işareti, crafting CPU doluluğu, AE enerji verileri.
 - Tarifli ürün için 1/8/16/64 kısayolları veya sayı girişi; otomatik/isimli CPU, üretim emri, gerçek iş durumu ve iptal. Son 32 emir, en fazla 8 aktif/belirsiz takip; reboot sonrası belirsizlikte otomatik tekrar yok.
+- Minimum/hedef stok için en fazla 16 kural; aynı ürünün bekleyen işi, meşgul CPU, eksik envanter veya belirsiz üretim varken yeni otomatik emir yok. Kural değişiklikleri ve emirler aynı journal'da tutulur.
 - OpenOS servis komutları, config yedeği, sınırlı log dosyası, SHA256 doğrulamalı aşamalı güncelleme ve geri dönüş.
 - Bilgisayar açılınca foreground panel; kullanıcı `.shrc` içeriği korunur. Ctrl+C ile komut satırına dönülür.
 - Sunucuda 15 dakikada bir GitHub sürüm kontrolü. Ana ekranda GUNCELLEMELER sayfası, sunucu/yan ekranda güncelleme düğmesi; F5 kontrol / F6 güncelleme.
 - Ekranlar dosyaları sunucudan kablosuz alır; sonraki güncellemelerde Internet Card gerekmez. Kullanıcı düğmeye bastığında dosyalar hash/sözdizimi kontrolünden geçer, uygulama kapanır ve yeni sürümle reboot edilir.
 
-**Henüz uygulanmayanlar:** otomatik stok hedefleri, Mekanism sürücüleri, RF/FE sürücüleri ve reaktör kontrolü. FactoryOS dışında verilmiş crafting işlerinin ürün/miktar ayrıntıları ve üretim yüzdesi okunmaz; yalnızca CPU doluluğu görünür. Gerçek Minecraft üretim kabul testi bekleniyor.
+**Henüz uygulanmayanlar:** Mekanism sürücüleri, RF/FE sürücüleri ve reaktör kontrolü. FactoryOS dışında verilmiş crafting işlerinin ürün/miktar ayrıntıları ve üretim yüzdesi okunmaz; yalnızca CPU doluluğu görünür. Gerçek Minecraft üretim kabul testi bekleniyor.
 
 ## Hızlı başlangıç — GitHub gerektirmez
 

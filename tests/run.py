@@ -31,7 +31,7 @@ for engine in (lua52, lua53):
     lua.execute((ROOT / "tests" / "suite.lua").read_text(encoding="utf-8"))
     # Isolated real allocator limit catches snapshot duplication regressions.
     bounded = engine.LuaRuntime(unpack_returned_tuples=True, encoding="utf-8", max_memory=2 * 1024 * 1024)
-    for name in ("core.codec", "core.items", "server.ae2"):
+    for name in ("core.codec", "core.items", "server.ae2", "server.stock"):
         source = (ROOT / "src" / (name.replace(".", "/") + ".lua")).read_text(encoding="utf-8")
         bounded.globals().package.preload[name] = bounded.eval("function(code,name) return assert(load(code,name,'t')) end")(source, name)
     bounded.execute((ROOT / "tests" / "ae2_memory.lua").read_text(encoding="utf-8"))

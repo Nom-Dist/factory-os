@@ -2,7 +2,9 @@
 
 ## Gerçekte çalıştırılanlar
 
-11 Kasım 2026'da Lupa 2.8'in **gerçek Lua 5.2 ve Lua 5.3 yorumlayıcılarında** 60 senaryo ve ayrı sınırlı bellek regresyonu çalıştırıldı: her yorumlayıcıda hepsi geçti. Bütün Lua dosyaları, üretilen online/offline installer ve oyun içi prob dahil sözdizimsel olarak derlendi.
+11 Kasım 2026'da Lupa 2.8'in **gerçek Lua 5.2 ve Lua 5.3 yorumlayıcılarında** 75 senaryo ve ayrı sınırlı bellek regresyonu çalıştırıldı: her yorumlayıcıda hepsi geçti. Bütün Lua dosyaları, üretilen online/offline installer ve oyun içi prob dahil sözdizimsel olarak derlendi.
+
+v0.5.0 `tests/stock.lua` 15 host regresyonu ekler: minimum sınırı/hedef farkı, kalıcı kapalı kayıt, revizyonla tekrar engeli, tam varyant/AE2 adresi/CPU/güncelleme denetimi, eksik envanter, hata bekleme aralıkları, in-flight engeli ve taze stok revizyonu, reboot/yanıt kaybı, iptal/arşivlemeden önce kapatma, disk hatası, elle/harici işler, ana ekran yetkisi, 16 kural/sayfalama/monoton kimlik, modal ve dört ekran boyutu; gerçek 1024 bayt modem protokolünde kural yanıt kaybı ve reboot. Bunlar sanal saat ve mock donanımla çalışır. [Oyun içi otomatik stok kabulü](stock-automation.md) henüz yapılmadı.
 
 Modem/GPU/HTTP/filesystem/thread/event/zaman çevresi mock'tur. Bilgisayarlar arası haberleşme uygulaması ve tüm modüller gerçek Lua koduyla yürütüldü. Kullanıcı sunucu ve iki ekranın kablosuz bağlantısının oyunda çalıştığını ayrıca doğruladı. **Yeni arayüz, otomatik boot, kablosuz sürüm aktarımı ve AE2 gerçek stokları için oyun içi kabul bekleniyor**; otomatik sonuçlar bunun yerine geçmez.
 
@@ -87,7 +89,7 @@ Probun çıktısında stok satırı bulunması üretim testi değildir. Şu ana 
 
 ## Üç bilgisayarlı kabul sırası
 
-Önce [donanım](hardware.md), [kurulum](installation.md) ve [otomatik açılış/güncelleme](updates.md) adımlarını tamamlayın. Sunucu/ana ekranda v0.4.0, doğru modem allowlist, aynı wireless port, yüklü chunk ve yeterli güç kullanın. Yan ekran önceki v2 protokolüyle çalışabilir. Şifre gerekmez. Aşağıdaki süreler varsayılan konfigürasyon içindir; oyun lag'i nedeniyle gözlemi birkaç saniye uzatabilirsiniz. Otomatik testte süreler sanal saatle deterministiktir.
+Önce [donanım](hardware.md), [kurulum](installation.md) ve [otomatik açılış/güncelleme](updates.md) adımlarını tamamlayın. Sunucu/ana ekranda v0.5.0, doğru modem allowlist, aynı wireless port, yüklü chunk ve yeterli güç kullanın. Yan ekran önceki v2 protokolüyle çalışabilir. Şifre gerekmez. Aşağıdaki süreler varsayılan konfigürasyon içindir; oyun lag'i nedeniyle gözlemi birkaç saniye uzatabilirsiniz. Otomatik testte süreler sanal saatle deterministiktir.
 
 | Senaryo | Oyunda yapılacak işlem | Kabul ölçütü |
 |---|---|---|
@@ -120,12 +122,14 @@ Probun çıktısında stok satırı bulunması üretim testi değildir. Şu ana 
 
 ## Crafting API — v0.4.0 oyun kabulü
 
-Yedek/test dünyasında ucuz ve kolay sayılabilen, çıktısı bir adet olan bir recipe seçin. AE2 DEPOSU → TARIFLI → satır → URETIM EMRI VER yolundan bir adet isteyin. Hem ÜRETİM sayfasındaki job sonucunu hem **AE terminalindeki gerçek stok artışını** kontrol edin. Eksik malzemeyle hata metnini ve iptali doğrulayın. Önceden devam eden işler, tam CPU kapasitesi, reboot sırasında belirsiz iş ve aynı istek tekrarını ayrıca sınayın. Elle emir kodlandı; bu gerçek oyun adımları henüz yapılmadı. Otomatik stok hedefleri ve kaynak eksiği backoff'u sonraki aşamadır.
+Yedek/test dünyasında ucuz ve kolay sayılabilen, çıktısı bir adet olan bir recipe seçin. AE2 DEPOSU → TARIFLI → satır → URETIM EMRI VER yolundan bir adet isteyin. Hem ÜRETİM sayfasındaki job sonucunu hem **AE terminalindeki gerçek stok artışını** kontrol edin. Eksik malzemeyle hata metnini ve iptali doğrulayın. Önceden devam eden işler, tam CPU kapasitesi, reboot sırasında belirsiz iş ve aynı istek tekrarını ayrıca sınayın. Elle emir kodlandı; bu gerçek oyun adımları henüz yapılmadı. Otomatik stok hedefleri ve hata sonrası bekleme v0.5.0'da kodlandı; [ayrı oyun kabulü](stock-automation.md) bekleniyor.
 
-Reaktör kontrolü test kapsamı dışındadır; otomasyon kapalıdır. Önce salt okunur gerçek metotlar ve yerel bağımsız interlock düzeni doğrulanmalıdır.
+Reaktör kontrolü test kapsamı dışındadır; reaktör otomasyonu uygulanmadı. Önce salt okunur gerçek metotlar ve yerel bağımsız interlock düzeni doğrulanmalıdır.
 
 ## Görsel önizlemeler
 
 `python tools/preview.py`, gerçek `ui.renderer` GPU hücre tamponunu örnek verilerle PNG'ye dönüştürür. [Ana panel](previews/main-overview.png), [depo](previews/main-stocks.png), [arama](previews/main-search.png), [offline](previews/main-offline.png), [80×25](previews/main-compact.png), [güncelleme sayfası](previews/main-updates.png), [aktarım](previews/main-update-progress.png), [sunucu düğmesi](previews/server-updates.png) ve [yan ekran düğmesi](previews/side-updates.png) görsel olarak incelendi. Görüntü başlıkları örnek veri olduğunu belirtir; bunlar Minecraft'tan alınan ekran görüntüsü değildir. 40×12, 50×16, 80×25 ve 160×50 boyutları ayrıca dokuz sekme ve arama klavyesiyle GPU sınır testinden geçti.
 
 v0.4.0 [üretim listesi](previews/main-production.png), [miktar/CPU penceresi](previews/main-craft.png), [40×12 pencere](previews/main-craft-small.png) ve [80×25 işler](previews/main-production-compact.png) ayrıca görsel olarak incelendi. Modal açıkken yalnızca kendi düğmeleri dokunma hedefidir; arka plan ve F5/F6 güncelleme eylemleri açılmaz. Klavyeyle çift Enter da ikinci emir oluşturmaz.
+
+v0.5.0 [stok kuralları](previews/main-stock-rules.png), [80×25 kurallar](previews/main-stock-rules-compact.png), [40×12 kurallar](previews/main-stock-rules-small.png) ve [kural düzenleme](previews/main-stock-rule-editor-small.png) aynı örnek veri yöntemiyle üretildi ve görsel olarak incelendi. 2 MiB izole allocator regresyonu artık her yenilemede 16 kuralın stok hesabını da doğrular; gerçek OpenOS toplam RAM ihtiyacını ölçmez.

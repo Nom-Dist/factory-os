@@ -1,6 +1,6 @@
-# AE2 üretim emirleri — v0.4.0
+# AE2 üretim emirleri — v0.5.0
 
-Önce sunucuyu, ardından ana ekranı v0.4.0'a güncelleyin. Güncelleme menüsünde F5 ile kontrol, yeni sürüm varsa F6 ile yükleme yapılabilir. CLI alternatifi: Ctrl+C ile panelden çıkın ve her iki bilgisayarda sırasıyla çalıştırın:
+Önce sunucuyu, ardından ana ekranı v0.5.0'a güncelleyin. [Otomatik stok kuralları](stock-automation.md) bu sürümde ayrıca eklenmiştir. Güncelleme menüsünde F5 ile kontrol, yeni sürüm yayımlanmışsa F6 ile yükleme yapılabilir. CLI alternatifi: Ctrl+C ile panelden çıkın ve her iki bilgisayarda sırasıyla çalıştırın:
 
 ```sh
 factoryos stop
@@ -44,6 +44,6 @@ Bozuk/eksik üretim kaydı için daha eski `.bak` otomatik açılmaz; eski emir 
 
 ## Doğrulama durumu
 
-Native API, yerel OC 1.8.3 JAR'ının [274990f kaynak koduyla](https://github.com/MightyPirates/OpenComputers/blob/274990f/src/main/scala/li/cil/oc/integration/appeng/NetworkControl.scala) ve [OC AE2 dokümanıyla](https://ocdoc.cil.li/component:applied_energistics) karşılaştırıldı. Lua 5.2/5.3'te 60 senaryo ve 2 MiB stok okuma regresyonu geçti. Modem testi gerçek FactoryOS protokolüyle, 1024 bayt paket sınırı/yanıt kaybı/sunucu reboot koşullarında aynı emir için tek native çağrı doğrular. Örnek GPU çizimleri gerçek oyun görüntüsü değildir.
+Native API, yerel OC 1.8.3 JAR'ının [274990f kaynak koduyla](https://github.com/MightyPirates/OpenComputers/blob/274990f/src/main/scala/li/cil/oc/integration/appeng/NetworkControl.scala) ve [OC AE2 dokümanıyla](https://ocdoc.cil.li/component:applied_energistics) karşılaştırıldı. Lua 5.2/5.3'te 75 senaryo ve 2 MiB stok okuma regresyonu geçti. Modem testi gerçek FactoryOS protokolüyle, 1024 bayt paket sınırı/yanıt kaybı/sunucu reboot koşullarında aynı emir için tek native çağrı doğrular. Örnek GPU çizimleri gerçek oyun görüntüsü değildir.
 
 Minecraft'ta ilk kabul: çıktısı bir adet olan ucuz bir recipe'den bir adet isteyin; hem job sonucunu hem ME Terminal'deki gerçek stoğu kontrol edin. Ardından az miktarla eksik kaynak, CPU doluluğu ve iptal deneyin. Oyun içi kabul henüz yapılmadı.

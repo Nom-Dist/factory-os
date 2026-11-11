@@ -27,14 +27,14 @@ function M.jobs(r,l,state,net)
     local color=job.state=="done" and C.good or (job.state=="failed" or job.state=="unknown") and C.warn or C.accent
     W.text(r,l.x+2,y,l.w-4,F.integer(job.amount).." x "..job.label,C.text)
     local cancelable=job.state=="running" or job.state=="computing"
-    local owned=job.owner==((state.context or {}).modem)
+    local owned=job.automatic or job.owner==((state.context or {}).modem)
     local status=labels[job.state] or "BILINMIYOR"
     if compact and job.state=="failed" and job.error and job.error~="" then status=status.." / "..job.error end
     W.text(r,l.x+2,y+1,l.w-((cancelable and owned) and 15 or 4),status,color)
     if cancelable and owned then r:button(l.x+l.w-12,y+1,10,"IPTAL ET","cancelcraft:"..job.id,false,1,not (state.canceling or {})[job.id]) end
     if job.state=="unknown" and owned then r:button(l.x+l.w-19,y+1,17,"ME'DE BAKTIM","archivecraft:"..job.id,false,1,not (state.canceling or {})[job.id]) end
     if not compact then
-      W.text(r,l.x+2,y+2,l.w-4,"CPU: "..(job.cpu~="" and job.cpu or "Otomatik / AE2 secimi"),C.muted)
+      W.text(r,l.x+2,y+2,l.w-4,(job.automatic and "STOK KURALI | " or "").."CPU: "..(job.cpu~="" and job.cpu or "Otomatik / AE2 secimi"),C.muted)
       W.text(r,l.x+2,y+3,l.w-4,job.error~="" and job.error or job.id,C.muted)
     end
   end

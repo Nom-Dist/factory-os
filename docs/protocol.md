@@ -52,6 +52,7 @@ Kayıtlı istemci REQUEST gönderir; body `command` ve `args` içerir. RESPONSE 
 | GET_MACHINE_STATUS | evet | evet | Henüz doğrulanmış sürücü olmadığı bilgisi |
 | GET_UPDATE_INFO | evet | evet | Güncelleme durumu/manifest, isteğe bağlı GitHub kontrolü ve cache hazırlığı |
 | GET_UPDATE_FILE | evet | evet | Manifestte izinli dosyadan en fazla 1024 bayt salt okunur parça |
+| GET_STOCK_RULES, SET_STOCK_RULE | evet | hayır | Dörderli stok kuralı sayfası; kalıcı revizyonla değişiklik |
 | REQUEST_CRAFT, SUBSCRIBE_UPDATES, UPDATE_AVAILABLE, diğerleri | hayır | hayır | UNSUPPORTED_COMMAND |
 
 v0.2.0 stok args alanları: `page`, `query`, `sort="name"|"amount"`, `filter="all"|"craftable"|"favorites"`. Favori filtresinde en fazla 32 adet, her biri en fazla 1024 bayt olan `favoriteKeys` string dizisi gönderilir. Anahtarlar `core.items` içindeki canonical `name/damage/hasTag/tag` temsilidir; üretim yetkisi taşımaz. Filtreleme ve sıralama sayfalamadan önce uygulanır. Yanıt `filter` ve `sort` alanlarını yankılar; eski sunucu bu alanları desteklemiyorsa ana ekran özel filtre/sıra sonucunu göstermez ve güncelleme gerektiğini bildirir. Wire protokolü v2 kalır; eski salt okunur istemciler varsayılan name/all sorgularıyla çalışabilir.
@@ -60,8 +61,12 @@ v0.3.0 `GET_UPDATE_INFO` args: `check=true` manifest kontrolünü, `prepare=true
 
 v0.4.0 `GET_CRAFT_OPTIONS {item={name,damage,hasTag,tag,identityComplete}}` yanıtı `{token,sequence,label,cpus,maxAmount}`; seçim ilgili istemci modemine ve AE2 bileşenine bağlıdır. `START_CRAFT {token,sequence,amount,cpu}` için CPU boş string ise otomatik seçilir. `CANCEL_CRAFT {id}` ve `ARCHIVE_CRAFT {id}` yalnızca kayıt sahibine açıktır. Job yanıtı `{id,owner,label,amount,cpu,state,error}`; userdata ve tarif nesneleri ağdan geçirilmez. Numara/token/adet/CPU uyuşmayan tekrarlar reddedilir. Diskteki monoton numara ve sınırlı kayıtlar RPC cache'i sona erdikten, kayıt geçmişten çıkarıldıktan ve sunucu reboot olduktan sonra da aynı emrin yeniden çağrılmasını engeller. Bozuk journal'da yazma komutları açılmaz. [Üretim ve reboot davranışı](crafting.md).
 
+v0.5.0 `GET_STOCK_RULES {page=1..4}` yanıtı `{rules,page,pages,total,revision,paused,error}` verir. Dörderli sayfalama modem parça sınırını korur. Kural `{id,item,label,minimum,target,enabled,stock,inFlight,state,error,retryIn}` içerir; stok güvenilir değilse `stock` alanı yoktur. `inFlight` takip edilen aktif/belirsiz işlerin başlangıç miktarlarının toplamıdır, kalan miktar değildir.
+
+`SET_STOCK_RULE` her işlemde son okunan `revision` ve isteğe bağlı `page` ister. `action="save"` için yeni kuralda `item`, düzenlemede `id`, her ikisinde `minimum,target`; `action="enable"` için `id,enabled`; `action="delete"` için `id`; `action="pause"` için `paused` gönderilir. Save kuralı kapalı tutar. Başarılı değişiklik revizyonu diskte artırır ve güncel sayfayı döndürür. Eski revizyonla tekrarlanan istek uygulanmaz. Yanıtı kaybolan istemci listeyi yeniler. Kurallar izinli ana ekranlar arasında ortaktır; yan ekran hem okuma hem değiştirme için reddedilir. Job yanıtına `automatic,ruleId` eklenir. Otomatik işlerin iptal/arşiv yetkisi bütün izinli ana ekranlara açıktır; önce ilgili kural kalıcı kapatılır. Elle işlerin sahiplik denetimi değişmez. Wire v2 korunur. [Otomasyon ayrıntıları](stock-automation.md).
+
 ## Çalışma modeli
 
 Protokol, kullanıcının güvenilen Minecraft ağı için şifresiz çalışır. Modem adresi izin listesi ve oturum denetimleri korunur; kriptografik kimlik doğrulama ve şifreleme yoktur.
 
-Bozuk çerçeveler log taşmasına yol açmamak için sessiz reddedilir. Bağlantı geçişleri ve yazılım hataları loglanır. Bağlantı kesilmesi hiçbir üretim veya reaktör komutu tetiklemez.
+Bozuk çerçeveler log taşmasına yol açmamak için sessiz reddedilir. Bağlantı geçişleri ve yazılım hataları loglanır. Ekran bağlantısının kesilmesi yeni bir komut oluşturmaz; sunucuda önceden açılmış stok kuralları çalışmaya devam eder. AE2 bağlantı kaybında otomatik üretim bekler.

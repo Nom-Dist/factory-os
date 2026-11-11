@@ -51,6 +51,7 @@ function M.new(net,clock)
   end
   function self:refresh(force)
     self:refreshJobs(); self:refreshStocks(force)
+    if self.tab==3 then self:refreshRules() end
   end
   function self:beginSearch() self.draft=self.query; self.editing=true end
   function self:applySearch()
@@ -66,6 +67,13 @@ function M.new(net,clock)
     elseif #action==1 and #self.draft<80 then self.draft=self.draft..action end
   end
   function self:paste(text)
+    if self.ruleEditor then
+      if type(text)=="string" and not self.ruleEditor.submitted then
+        text=text:match("^%s*(.-)%s*$")
+        if text:match("^%d+$") then for i=1,#text do self:ruleEdit(text:sub(i,i)) end end
+      end
+      return
+    end
     if self.craft then
       if not self.craft.submitted and type(text)=="string" then
         text=text:match("^%s*(.-)%s*$")
@@ -78,6 +86,14 @@ function M.new(net,clock)
     self.draft=(self.draft..text:gsub("[^ -~]","")):sub(1,80)
   end
   function self:key(char,code)
+    if self.ruleEditor then
+      if code==28 or code==156 then self:ruleEdit("save")
+      elseif code==1 then self:ruleEdit("close")
+      elseif code==15 then self:ruleEdit(self.ruleEditor.field=="minimum" and "target" or "minimum")
+      elseif code==14 then self:ruleEdit("back")
+      elseif type(char)=="number" and char>=48 and char<=57 then self:ruleEdit(string.char(char)) end
+      return
+    end
     if self.craft then
       if code==28 or code==156 then self:craftTouch("submit")
       elseif code==1 then self:craftTouch("close")
@@ -108,7 +124,10 @@ function M.new(net,clock)
   end
   function self:touch(id)
     if not id then return end
+    if self.ruleEditor then local action=id:match("^ruleedit:(.+)$"); if action then self:ruleEdit(action) end; return end
     if self.craft then local action=id:match("^craft:(.+)$"); if action then self:craftTouch(action) end; return end
+    local ruleAction=id:match("^rule:(.+)$")
+    if ruleAction then self:ruleTouch(ruleAction); return end
     if id=="craft:open" then self:beginCraft(); return end
     local cancel=id:match("^cancelcraft:(.+)$")
     if cancel then self:cancelCraft(cancel); return end
@@ -123,6 +142,7 @@ function M.new(net,clock)
       if nextTab<1 or nextTab>9 then return end
       local changed=nextTab~=self.tab; self.tab=nextTab
       if changed and nextTab==2 then self:clearStocks(); self:refreshStocks(true) end
+      if nextTab==3 then self:refreshRules() end
       self:refreshJobs(); return
     end
     if id=="refresh" then self:refresh(true); self:notice("Veriler yenileniyor"); return end
@@ -156,14 +176,17 @@ function M.new(net,clock)
     if not net.online then
       if self.wasOnline then
         self:clearStocks(); self.jobToken={}; self.jobs=nil; self.jobsReceivedAt=nil; self.loadingJobs=false
+        self.ruleToken={}; self.rules=nil; self.loadingRules=false
       end
       self.wasOnline=false; return
     end
     if not self.wasOnline then self.wasOnline=true; self:refresh(true) end
     if clock()-self.lastJobsPoll>=(self.tab==4 and 2 or 10) then self:refreshJobs() end
     if self.tab==2 and clock()-self.lastStockPoll>=10 then self:refreshStocks(false) end
+    if self.tab==3 and clock()-self.lastRulePoll>=5 then self:refreshRules() end
   end
   require("client.crafting").attach(self,net)
+  require("client.stock").attach(self,net,clock)
   return self
 end
 return M

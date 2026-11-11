@@ -69,4 +69,6 @@ reboot
 
 v0.4.0'da FactoryOS'un aktif/belirsiz üretim kayıtları da menüden güncellemeyi engeller; hesaplama sırasında CPU henüz boş görünse bile. Belirsiz işi ME Terminal'de kontrol ettikten sonra ÜRETİM listesindeki **ME'DE BAKTIM** yalnızca izlemeyi arşivler. Yeni üretim emri, server güncelleme worker'ı çalışırken kabul edilmez. [Üretim/reboot ayrıntıları](crafting.md).
 
+v0.5.0 stok kuralları aynı üretim journal'ında saklanır; güncelleme kuralları sıfırlamaz. Otomatik işler de güncelleme kilidine dahildir. Güncelleme sırasında yeni otomatik emir ve kural değişikliği kabul edilmez. Aktif iş yokken güncelleme yapılabilir; istenirse önce **STOK HEDEFLERI → TUMUNU BEKLET** ile kuralları duraklatın. [Stok kuralları](stock-automation.md).
+
 Üç bilgisayarı kapatıp açın: panel otomatik gelmeli. Ctrl+C ile çıkınca kabukta kalmalı. Sunucuda F5 kontrolünü, ardından bir ekranın Internet Card'ını çıkarıp GUNCELLEMELER düğmesini deneyin. Yeni gerçek sürüm bulunduğunda aktarım, reboot ve aynı modem izinleriyle geri bağlanmayı gözleyin. Aktarım sırasında wireless bağlantısını keserek eski sürümün korunmasını ayrıca sınayın. Bu adımlar henüz gerçek oyunda çalıştırılmadı.

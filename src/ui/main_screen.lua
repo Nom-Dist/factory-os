@@ -98,7 +98,7 @@ local function rail(r,l,net,state,now,alerts)
     local busy,total=cpuState(net,state)
     W.text(r,x+2,18,w-4,"MESGUL / TOPLAM CPU",C.muted)
     W.text(r,x+2,20,w-4,busy and busy.." / "..total or "-- / --",busy and C.accent or C.muted)
-    W.text(r,x+2,23,w-4,"Crafting: elle emir",C.accent)
+    W.text(r,x+2,23,w-4,(net.status or {}).automation and "Otomatik stok: ACIK" or "Crafting: elle emir",C.accent)
     W.wrap(r,x+2,25,w-4,3,"Tarifli urun secin, miktari girin ve URET'e dokunun.",C.muted)
     r:button(x+2,29,w-4,"URETIM ISLERINI GOR","tab:4")
   end
@@ -146,7 +146,7 @@ local function overview(r,l,net,state)
     W.text(r,l.x+l.w-26,y,24,value,color,nil,"right")
   end
   row(middle+3,"AE2 DEPOLAMA",ae.online and "CEVRIMICI" or "BAGLANTI YOK",ae.online and C.good or C.warn)
-  row(middle+5,"OTOMATIK STOK","SONRAKI ASAMA",C.muted)
+  row(middle+5,"OTOMATIK STOK",status.automation and "ACIK" or "KAPALI / DURAKLATILDI",status.automation and C.good or C.muted)
   row(middle+7,"CRAFTING KONTROLU",status.crafting=="manual" and "ELLE EMIR" or "SUNUCUYU GUNCELLEYIN",C.blue)
   local button=math.floor((l.w-6)/2)
   r:button(l.x+2,middle+10,button,"AE2 DEPOSUNU AC","tab:2",true,2)
@@ -223,6 +223,7 @@ local function stocks(r,l,net,state,now)
     r:button(l.x+9,l.bottom,8,"SONRA >","next")
     r:button(l.x+l.w-10,l.bottom,10,"ARA","search",false,1,net.online)
     r:button(l.x+l.w-19,l.bottom,8,"URET","craft:open",true,1,canCraft)
+    if selected then r:button(l.x,l.bottom-1,12,"STOK HEDEFI","rule:open",false,1,canCraft) end
     if state.stockError then W.text(r,l.x+1,l.y+1,l.w-2,state.stockError,C.warn) end
     return
   end
@@ -241,6 +242,7 @@ local function stocks(r,l,net,state,now)
   if l.w>=47 then r:button(l.x+l.w-16,filterY,14,state.sort=="amount" and "MIKTAR v" or "AD A-Z","sort") end
   local y=l.y+(short and 6 or 9)
   W.panel(r,l.x,y,l.w,l.bottom-y+1,"DEPO KAYITLARI")
+  r:button(l.x+1,y,14,"STOK HEDEFI","rule:open",false,1,canCraft)
   if l.rail==0 then r:button(l.x+l.w-10,y,9,"URET","craft:open",true,1,canCraft) end
   local large=l.w>=70
   local headings=y+(short and 1 or 2)
@@ -265,9 +267,7 @@ local function content(r,l,net,state,alerts)
   W.panel(r,l.x,l.y,l.w,l.bottom-l.y+1,M.tabs[tab] or "PANEL")
   local function line(offset,text,color) if l.y+offset<=l.bottom then W.text(r,l.x+2,l.y+offset,l.w-4,text,color) end end
   if tab==3 then
-    line(3,"OTOMATIK STOK / SONRAKI ASAMA",C.accent)
-    W.wrap(r,l.x+2,l.y+6,l.w-4,5,"Hedef stok belirleme ve otomatik crafting henuz etkin degil. Once AE2 uretim API'si gercek malzemelerle dogrulanacak.",C.muted)
-    if l.y+14<l.bottom then r:button(l.x+2,l.y+14,math.min(24,l.w-4),"STOKLARI INCELE","tab:2",true,2) end
+    require("ui.stock").draw(r,l,state)
   elseif tab==4 then
     require("ui.crafting").jobs(r,l,state,net)
   elseif tab==5 then
@@ -342,9 +342,10 @@ function M.draw(r,net,state,clock)
   rail(r,l,net,state,now,alerts)
   r:fill(1,r.h,r.w,1,C.raised)
   local notice=state.message and now-state.message.at<6 and state.message
-  W.text(r,2,r.h,r.w-2,notice and notice.text or state.editing and "Arama: dokun / yaz | Enter: ara | Esc: iptal" or "DISPLAY 01 / v0.4.0 | "..((state.update or {}).available and "GUNCELLEME VAR" or net.online and "CANLI IZLEME" or "YENIDEN BAGLANIYOR"),notice and notice.kind=="warn" and C.warn or C.muted,C.raised)
+  W.text(r,2,r.h,r.w-2,notice and notice.text or state.editing and "Arama: dokun / yaz | Enter: ara | Esc: iptal" or "DISPLAY 01 / v0.5.0 | "..((state.update or {}).available and "GUNCELLEME VAR" or net.online and "CANLI IZLEME" or "YENIDEN BAGLANIYOR"),notice and notice.kind=="warn" and C.warn or C.muted,C.raised)
   keyboard(r,l,state)
   require("ui.crafting").modal(r,state)
+  require("ui.stock").modal(r,state)
   r:flush()
 end
 return M

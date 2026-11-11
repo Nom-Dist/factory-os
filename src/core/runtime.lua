@@ -48,8 +48,8 @@ function M.run(cfg,service)
         if id and id:match("^update:") then updates:touch(id) else state:touch(id) end
         lastDraw=-math.huge
       elseif e[1]=="key_down" then
-        if not state.editing and not state.craft and e[4]==63 then updates:touch("update:check")
-        elseif not state.editing and not state.craft and e[4]==64 then updates:touch("update:apply")
+        if not state.editing and not state.craft and not state.ruleEditor and e[4]==63 then updates:touch("update:check")
+        elseif not state.editing and not state.craft and not state.ruleEditor and e[4]==64 then updates:touch("update:apply")
         elseif state.key then state:key(e[3],e[4]) end
         lastDraw=-math.huge
       elseif e[1]=="clipboard" and state.paste then state:paste(e[3]); lastDraw=-math.huge

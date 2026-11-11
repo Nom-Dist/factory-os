@@ -123,7 +123,7 @@ Sabit bir güncelleme için `main` yerine hedef commit SHA'sını kullanın. İl
 - Satırdaki `+` favoriye ekler, `*` kaldırır. En fazla 32 favori `/etc/factoryos/display.dat` dosyasında bu ekran için saklanır. `?`, NBT kimliğinin favori için belirsiz olduğunu gösterir.
 - Ürün satırına dokununca geniş ekranda sağ sütunda miktar, kimlik, metadata ve tarif bilgisi görünür. `ONCE / SONRA`, düşük çözünürlükte önce aynı sayfanın kalan satırlarına sonra sonraki 24'lük ağ sayfasına geçer.
 - Ana paneldeki CPU sayıları yalnızca gerçek CPU verisi geldiyse gösterilir. Sunucu/AE2 bağlantısı yokken eski miktarlar güncel olarak çizilmez.
-- `STOK HEDEFLERI`, makine sürücüleri ve crafting başlatma sonraki aşamadır. Bu sürüm yalnızca izler.
+- v0.5.0'da `STOK HEDEFLERI` kullanıcı tarafından açılan minimum/hedef kurallarını, `URETIM` elle/otomatik işleri yönetir. Makine ve reaktör sürücüleri sonraki aşamadır. [Stok otomasyonu](stock-automation.md).
 
 ## Geri dönüş ve config kurtarma
 

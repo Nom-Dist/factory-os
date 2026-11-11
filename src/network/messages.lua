@@ -1,6 +1,6 @@
 local M={}
 M.read={HEARTBEAT=true,GET_SERVER_STATUS=true,GET_AE2_STOCKS=true,GET_CRAFTING_JOBS=true,GET_POWER_STATUS=true,GET_MACHINE_STATUS=true,GET_UPDATE_INFO=true,GET_UPDATE_FILE=true}
-M.craft={GET_CRAFT_OPTIONS=true,START_CRAFT=true,CANCEL_CRAFT=true,ARCHIVE_CRAFT=true}
+M.craft={GET_CRAFT_OPTIONS=true,START_CRAFT=true,CANCEL_CRAFT=true,ARCHIVE_CRAFT=true,GET_STOCK_RULES=true,SET_STOCK_RULE=true}
 function M.authorize(role,command)
   if M.craft[command] then return role=="main" and true or nil,role~="main" and "FORBIDDEN" or nil end
   if not M.read[command] then return nil,"UNSUPPORTED_COMMAND" end

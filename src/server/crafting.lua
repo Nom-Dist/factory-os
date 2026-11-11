@@ -34,7 +34,9 @@ local function valid(j)
     if type(r)~="table" or type(r.owner)~="string" or not integer(r.sequence,1,j.high[r.owner] or 0) or
       type(r.token)~="string" or not product(r.product) or not integer(r.amount,1,1000000) or
       type(r.cpu)~="string" or type(r.label)~="string" or not (active[r.state] or terminal[r.state]) then return false end
+    if r.ruleId~=nil and not integer(r.ruleId,1,2147483647) then return false end
   end
+  if j.automation~=nil and not require("server.stock").valid(j.automation,product) then return false end
   return true
 end
 function M.new(ae,clock,log,path)
@@ -61,8 +63,9 @@ function M.new(ae,clock,log,path)
     return true
   end
   local function public(r)
-    return {id=r.owner..":"..r.sequence,label=r.label,amount=r.amount,cpu=r.cpu,state=r.state,error=r.error or "",owner=r.owner}
+    return {id=r.owner..":"..r.sequence,label=r.label,amount=r.amount,cpu=r.cpu,state=r.state,error=r.error or "",owner=r.owner,automatic=r.ruleId~=nil,ruleId=r.ruleId}
   end
+  self.save=save
   local function find(owner,sequence)
     for _,r in ipairs(self.journal.orders) do if r.owner==owner and r.sequence==sequence then return r end end
   end
@@ -150,7 +153,7 @@ function M.new(ae,clock,log,path)
       end
       if not removed then return nil,"Uretim gecmisi dolu" end
     end
-    local r={owner=owner,sequence=args.sequence,token=args.token,product=item,label=label,amount=args.amount,cpu=cpu,state="submitting",error=""}
+    local r={owner=owner,sequence=args.sequence,token=args.token,product=item,label=label,amount=args.amount,cpu=cpu,state="submitting",error="",ruleId=q.ruleId}
     self.journal.high[owner]=args.sequence; table.insert(self.journal.orders,1,r)
     -- Durable high-water mark BEFORE the only side-effecting AE2 call.
     local written,reason=save()
