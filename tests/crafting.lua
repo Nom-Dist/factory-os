@@ -104,6 +104,7 @@ test("Craft journal failure before or after native submission fails closed",func
   T.setFailFlush(f.path..".tmp")
   local ok=f.system:start(owner,f:args(q)); T.setFailFlush(nil)
   assert(not ok); eq(f.calls,0); assert(f.system.blocked)
+  eq(assert(f.system:start(owner,f:args(q))).state,"failed"); eq(f.calls,0)
   local g=fixture(); local quote=g:quote()
   g.onRequest=function() T.setFailFlush(g.path..".tmp") end
   local result=g.system:start(owner,g:args(quote)); T.setFailFlush(nil)

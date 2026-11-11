@@ -153,7 +153,12 @@ function M.new(ae,clock,log,path)
     local r={owner=owner,sequence=args.sequence,token=args.token,product=item,label=label,amount=args.amount,cpu=cpu,state="submitting",error=""}
     self.journal.high[owner]=args.sequence; table.insert(self.journal.orders,1,r)
     -- Durable high-water mark BEFORE the only side-effecting AE2 call.
-    local written,reason=save(); if not written then return nil,reason end
+    local written,reason=save()
+    if not written then
+      r.state="failed"; r.error="Emir diske kaydedilemedi; AE2 uretim cagrisi yapilmadi. "..text(reason)
+      self.quotes[owner]=nil
+      return nil,reason
+    end
     self.quotes[owner]=nil
     local handle,failure
     if cpu=="" then handle,failure=call(craft,"request",r.amount,true)
