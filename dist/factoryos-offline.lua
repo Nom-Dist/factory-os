@@ -582,7 +582,7 @@ end
 local payload={}
 payload[ [[
 manifest.dat]] ]=[[
-m4:s5:filesm30:n1:1m3:s4:paths8:boot.luas4:sizen4:1375s6:sha256s64:7c5b2ea41201dc92f43b50aaad9c06f633e5dfd707783cd243376f16845a90bdn1:2m3:s4:paths23:client/main_display.luas4:sizen4:7776s6:sha256s64:01bd6ff817538ba5a44d6ef4caff48b85cbe642f6271f6947b38c2e1572dbc35n1:3m3:s4:paths22:client/preferences.luas4:sizen3:879s6:sha256s64:e1d9ec86fc051e57ed8b5ac78f3b1eedf3c5fe5ecb76a5127b62e7467ce8191fn1:4m3:s4:paths23:client/side_display.luas4:sizen3:159s6:sha256s64:7e94ff8c85f4be8b2c65786376ec1ff19ea17807310b3940a3e5f2aea31ecdc3n1:5m3:s4:paths18:core/autostart.luas4:sizen4:1456s6:sha256s64:954eaf256cb6b89d8092de49b6963927b39b37b4203052bd24071aa1fefe0b85n1:6m3:s4:paths12:core/cli.luas4:sizen4:4865s6:sha256s64:4af2ef01e324ea70cb2a8d5ba7a02787cf1c90bd1c1d0c51ff7d9df4503de7f3n1:7m3:s4:paths14:core/codec.luas4:sizen4:2990s6:sha256s64:d99f7fcbec5e1419877fba9e17a6bd673047dfbd55d4369890f0b8cbe436614dn1:8m3:s4:paths15:core/config.luas4:sizen4:3287s6:sha256s64:08044ececad5c3a115c28e27179582d06d9370e60ebd117c441cf0a71f48cc41n1:9m3:s4:paths15:core/crypto.luas4:sizen4:2958s6:sha256s64:c58b3b3fc70204fdc85ccd9b2c3ffdceba8516376f94110a700f070eb7b6ed95n2:10m3:s4:paths17:core/hardware.luas4:sizen4:1853s6:sha256s64:f40a399b003f0f137e11c488d79eb6d7f46c4d60dc01d1b3f14a087d7863330an2:11m3:s4:paths18:core/installer.luas4:sizen4:4220s6:sha256s64:6e61458610f4d4f821a2e6d581d083cff19ae5615cef3c56109812f150f84080n2:12m3:s4:paths14:core/items.luas4:sizen3:449s6:sha256s64:e736f06f45d682fc14911a502a0d638e929c1a43bb1f29de56ea0f8f1ff5a589n2:13m3:s4:paths15:core/logger.luas4:sizen3:719s6:sha256s64:773349ed6f72655c34f5499b8a2363b4c38a0844c51ffcb8a2bc855e8e98d81cn2:14m3:s4:paths16:core/runtime.luas4:sizen4:4004s6:sha256s64:4b5f3e7d965e40d05720902b17871e4e27554b007f3157bc3e3a71011c8936can2:15m3:s4:paths16:core/storage.luas4:sizen4:1553s6:sha256s64:2cc1a5775cd064c10aebfc1967e24fe3764c09af5d19dfc0c985973d61071f94n2:16m3:s4:paths16:core/updater.luas4:sizen4:6746s6:sha256s64:921ab0c29a6f36c2409dd8c5fa28d5d707e81a6445f15bfd6b86d8da0593b4e3n2:17m3:s4:paths16:core/updates.luas4:sizen5:11440s6:sha256s64:4b0d0c01f3a5c65f38062b0d92f16592efdb4984ebe0171162f6475b03b3aeffn2:18m3:s4:paths20:network/messages.luas4:sizen3:499s6:sha256s64:bf9ee1b1ef6f6dc8522d39f40bacd9b473fcb4e0ef20e5a0a96d492957947dean2:19m3:s4:paths17:network/modem.luas4:sizen4:4235s6:sha256s64:79d685360eb05d38dc2797f812341df5b898fb0e189565a965ddfb7f5581bc2dn2:20m3:s4:paths20:network/protocol.luas4:sizen4:6583s6:sha256s64:5a3f96e81fe121e9ec186d6a3659e163694d81eac0312f0260b988d4ad4b9ed3n2:21m3:s4:paths14:server/ae2.luas4:sizen4:5713s6:sha256s64:40270bf39f08e84431df83016944e1d75dbb9dcfad32880d5939e9734e388292n2:22m3:s4:paths17:server/energy.luas4:sizen3:156s6:sha256s64:1bcc2fd9ea9f8950d91a63065913fc089ef87750d5ef9e3d206ed044e5aa3ff6n2:23m3:s4:paths19:server/machines.luas4:sizen3:269s6:sha256s64:861aeeec2cb4fd1f7c21cd5529ae724846a15ab4fd3111b07333071ef0ba1e3bn2:24m3:s4:paths15:server/main.luas4:sizen4:2024s6:sha256s64:526f4bff39c6ce74cfe19db1e56dcf0518aa0a345a0b896d9b369d0bca9a8ae5n2:25m3:s4:paths13:ui/format.luas4:sizen4:1186s6:sha256s64:49e6419be127eb4fd3ce51574d769579c6332a4d955dc72c6162592162b65f5fn2:26m3:s4:paths18:ui/main_screen.luas4:sizen5:20768s6:sha256s64:16821670f242080cbd3fcb7aef0d1ac7e8febd78327d0dda7fcbce2d73e3dac3n2:27m3:s4:paths15:ui/renderer.luas4:sizen4:3323s6:sha256s64:a7232bae7243ab279e2740e145918e9b2bc3e24cf08ab3ec2044c2ab44ec7eeen2:28m3:s4:paths14:ui/screens.luas4:sizen4:2405s6:sha256s64:369044a91c7b7cf96551a509309f5fd2cef64e83319e853ac14ff625ba5b2d35n2:29m3:s4:paths14:ui/updates.luas4:sizen4:2905s6:sha256s64:f70bc0f1e961c46f9841f9d5037d298aeccd8e4f3da5c0d1e6e6f39999c09d8fn2:30m3:s4:paths14:ui/widgets.luas4:sizen4:1334s6:sha256s64:71642d816aebbc63a1fad5e54bf825361010233897ee848902fadb6b178a4652s6:scheman1:1s7:releases18:0.3.0-a25a5d62199es7:versions5:0.3.0]]
+m4:s5:filesm30:n1:1m3:s4:paths8:boot.luas4:sizen4:1375s6:sha256s64:7c5b2ea41201dc92f43b50aaad9c06f633e5dfd707783cd243376f16845a90bdn1:2m3:s4:paths23:client/main_display.luas4:sizen4:7776s6:sha256s64:01bd6ff817538ba5a44d6ef4caff48b85cbe642f6271f6947b38c2e1572dbc35n1:3m3:s4:paths22:client/preferences.luas4:sizen3:879s6:sha256s64:e1d9ec86fc051e57ed8b5ac78f3b1eedf3c5fe5ecb76a5127b62e7467ce8191fn1:4m3:s4:paths23:client/side_display.luas4:sizen3:159s6:sha256s64:7e94ff8c85f4be8b2c65786376ec1ff19ea17807310b3940a3e5f2aea31ecdc3n1:5m3:s4:paths18:core/autostart.luas4:sizen4:1456s6:sha256s64:954eaf256cb6b89d8092de49b6963927b39b37b4203052bd24071aa1fefe0b85n1:6m3:s4:paths12:core/cli.luas4:sizen4:6128s6:sha256s64:f91899f290313ec5b52224afc4210b41b3824e1a2f98eb6edcf10240213583fbn1:7m3:s4:paths14:core/codec.luas4:sizen4:2990s6:sha256s64:d99f7fcbec5e1419877fba9e17a6bd673047dfbd55d4369890f0b8cbe436614dn1:8m3:s4:paths15:core/config.luas4:sizen4:3287s6:sha256s64:08044ececad5c3a115c28e27179582d06d9370e60ebd117c441cf0a71f48cc41n1:9m3:s4:paths15:core/crypto.luas4:sizen4:2958s6:sha256s64:c58b3b3fc70204fdc85ccd9b2c3ffdceba8516376f94110a700f070eb7b6ed95n2:10m3:s4:paths17:core/hardware.luas4:sizen4:1853s6:sha256s64:f40a399b003f0f137e11c488d79eb6d7f46c4d60dc01d1b3f14a087d7863330an2:11m3:s4:paths18:core/installer.luas4:sizen4:4220s6:sha256s64:6e61458610f4d4f821a2e6d581d083cff19ae5615cef3c56109812f150f84080n2:12m3:s4:paths14:core/items.luas4:sizen3:449s6:sha256s64:e736f06f45d682fc14911a502a0d638e929c1a43bb1f29de56ea0f8f1ff5a589n2:13m3:s4:paths15:core/logger.luas4:sizen3:719s6:sha256s64:773349ed6f72655c34f5499b8a2363b4c38a0844c51ffcb8a2bc855e8e98d81cn2:14m3:s4:paths16:core/runtime.luas4:sizen4:4004s6:sha256s64:4b5f3e7d965e40d05720902b17871e4e27554b007f3157bc3e3a71011c8936can2:15m3:s4:paths16:core/storage.luas4:sizen4:1553s6:sha256s64:2cc1a5775cd064c10aebfc1967e24fe3764c09af5d19dfc0c985973d61071f94n2:16m3:s4:paths16:core/updater.luas4:sizen4:6746s6:sha256s64:921ab0c29a6f36c2409dd8c5fa28d5d707e81a6445f15bfd6b86d8da0593b4e3n2:17m3:s4:paths16:core/updates.luas4:sizen5:11440s6:sha256s64:4b0d0c01f3a5c65f38062b0d92f16592efdb4984ebe0171162f6475b03b3aeffn2:18m3:s4:paths20:network/messages.luas4:sizen3:499s6:sha256s64:bf9ee1b1ef6f6dc8522d39f40bacd9b473fcb4e0ef20e5a0a96d492957947dean2:19m3:s4:paths17:network/modem.luas4:sizen4:4235s6:sha256s64:79d685360eb05d38dc2797f812341df5b898fb0e189565a965ddfb7f5581bc2dn2:20m3:s4:paths20:network/protocol.luas4:sizen4:6583s6:sha256s64:5a3f96e81fe121e9ec186d6a3659e163694d81eac0312f0260b988d4ad4b9ed3n2:21m3:s4:paths14:server/ae2.luas4:sizen4:6460s6:sha256s64:08c86282a2c1b55aa6df54687117d421d2975ef324c5445827195ca450532710n2:22m3:s4:paths17:server/energy.luas4:sizen3:156s6:sha256s64:1bcc2fd9ea9f8950d91a63065913fc089ef87750d5ef9e3d206ed044e5aa3ff6n2:23m3:s4:paths19:server/machines.luas4:sizen3:269s6:sha256s64:861aeeec2cb4fd1f7c21cd5529ae724846a15ab4fd3111b07333071ef0ba1e3bn2:24m3:s4:paths15:server/main.luas4:sizen4:2139s6:sha256s64:051d0eef7c2a85351824e776bce4e18edd7924ca221c8969f05b0fc5f96b72edn2:25m3:s4:paths13:ui/format.luas4:sizen4:1186s6:sha256s64:49e6419be127eb4fd3ce51574d769579c6332a4d955dc72c6162592162b65f5fn2:26m3:s4:paths18:ui/main_screen.luas4:sizen5:20768s6:sha256s64:1a5d3471ca0165b3889a81131446e4bff5c6b8196447ccb9fcde9c092c16fd9dn2:27m3:s4:paths15:ui/renderer.luas4:sizen4:3323s6:sha256s64:a7232bae7243ab279e2740e145918e9b2bc3e24cf08ab3ec2044c2ab44ec7eeen2:28m3:s4:paths14:ui/screens.luas4:sizen4:2405s6:sha256s64:2281e9b7e017abba3d535dd8814b281c01b70a43f677448fd82e63b03b89e1dbn2:29m3:s4:paths14:ui/updates.luas4:sizen4:2905s6:sha256s64:f70bc0f1e961c46f9841f9d5037d298aeccd8e4f3da5c0d1e6e6f39999c09d8fn2:30m3:s4:paths14:ui/widgets.luas4:sizen4:1334s6:sha256s64:71642d816aebbc63a1fad5e54bf825361010233897ee848902fadb6b178a4652s6:scheman1:1s7:releases18:0.3.1-2125b34a4df4s7:versions5:0.3.1]]
 payload[ [[
 src/boot.lua]] ]=[[
 -- Loaded afresh by /bin/factoryos.lua; active pointer selects an immutable release.
@@ -854,6 +854,28 @@ function M.main(args,root)
     print("Foreground autostart: "..(c.autoStart and "ENABLED" or "DISABLED")); return
   end
   if cmd=="logs" then print(logger.read()); return end
+  if cmd=="ae2" then
+    assert(not live(),"Stop FactoryOS before AE2 diagnostics")
+    local c=assert(config.load())
+    assert(c.role=="server","Run AE2 diagnostics on the server computer")
+    local count=tonumber(args[2] or "1")
+    assert(count and count%1==0 and count>=1 and count<=60,"ae2 [samples: 1..60], interval 10 seconds")
+    local ae=require("server.ae2").new(c)
+    print("Read-only AE2 diagnostics; configured address: "..(c.ae2Address~="" and c.ae2Address or "automatic"))
+    for _,candidate in ipairs(ae:candidates()) do print(candidate.kind.." "..candidate.address) end
+    for i=1,count do
+      local ok,why=pcall(ae.poll,ae)
+      if not ok then ae:unavailable(why) end
+      print("["..i.."/"..count.."] "..(ae.online and "ONLINE" or "OFFLINE").." / "..(ae.address or "no component")..
+        " / powered="..(ae.powered==nil and "unknown" or tostring(ae.powered)))
+      if not ae.online then print(ae.error) end
+      if ae.powerError then print(ae.powerError) end
+      if ae.energy.supported then print("Energy: "..ae.energy.stored.." / "..ae.energy.capacity.." AE") end
+      if ae.cpuError and ae.cpuError~="" and ae.online then print(ae.cpuError) end
+      if i<count then os.sleep(10) end
+    end
+    return
+  end
   if cmd=="doctor" then
     print(hardware.describe())
     local c,err=config.load()
@@ -932,7 +954,7 @@ function M.main(args,root)
     end
     return
   end
-  error("Commands: start [--foreground], stop, restart, status, doctor, config, logs, update [HTTPS_BASE], rollback, autostart enable|disable")
+  error("Commands: start [--foreground], stop, restart, status, doctor, ae2 [samples], config, logs, update [HTTPS_BASE], rollback, autostart enable|disable")
 end
 return M
 ]]
@@ -2053,30 +2075,47 @@ local types={me_controller=true,me_interface=true,me_importbus=true,me_exportbus
 local function safe(p,method,...)
   -- OC proxy callbacks are callable tables, not necessarily Lua functions.
   if not p or p[method]==nil then return nil,"unsupported: "..method end
-  local ok,value=pcall(p[method],...)
-  if not ok then return nil,tostring(value) end
-  if value==nil then return nil,"no value from "..method end
+  local ok,value,reason=pcall(p[method],...)
+  if not ok then return nil,method..": "..tostring(value) end
+  if value==nil then return nil,method..": "..tostring(reason or "no value returned") end
   return value
 end
 local function text(s,n) return tostring(s or ""):gsub("[%c]"," "):sub(1,n or 160) end
 function M.new(cfg)
   local self={items={},cpus={},online=false,error="AE2 not polled",energy={supported=false,unit="AE"},revision=0}
-  function self:discover()
+  function self:unavailable(reason)
+    self.online=false; self.error=text(reason,400); self.items={}; self.cpus={}
+    self.cpuError=self.error; self.truncated=false; self.energy={supported=false,unit="AE"}
+  end
+  function self:candidates()
     local found={}
     for address,kind in component.list() do
-      if types[kind] and (cfg.ae2Address=="" or cfg.ae2Address==address) then found[#found+1]=address end
+      if types[kind] then found[#found+1]={address=address,kind=kind} end
     end
-    if #found==0 then return nil,"AE2 Adapter component missing/offline" end
+    table.sort(found,function(a,b) return a.address<b.address end)
+    return found
+  end
+  function self:discover()
+    self.address=nil
+    local found={}
+    for _,candidate in ipairs(self:candidates()) do
+      if cfg.ae2Address=="" or cfg.ae2Address==candidate.address then found[#found+1]=candidate.address end
+    end
+    if #found==0 then return nil,"AE2 Adapter component missing/offline"..(cfg.ae2Address~="" and (": "..cfg.ae2Address) or "") end
     if #found>1 then return nil,"Multiple AE2 components; set ae2Address" end
+    self.address=found[1]
     return component.proxy(found[1])
   end
   function self:poll()
-    if not cfg.ae2Enabled then self.online=false; self.error="AE2 disabled"; return end
+    self.powered=nil; self.powerError=nil
+    if not cfg.ae2Enabled then self.address=nil; self:unavailable("AE2 disabled"); return end
     local p,err=self:discover()
-    if not p then self.online=false; self.error=err; self.items={}; self.cpus={}; self.energy={supported=false,unit="AE"}; return end
+    if not p then self:unavailable(err); return end
+    self.powered,self.powerError=safe(p,"isNetworkPowered")
+    if self.powered==false then self:unavailable("AE2 network unpowered (isNetworkPowered=false)"); return end
     local items,why=safe(p,"getItemsInNetwork")
     if type(items)~="table" then
-      self.online=false; self.error=why or "Invalid AE2 inventory"; self.items={}; self.cpus={}; self.energy={supported=false,unit="AE"}; return
+      self:unavailable(why or "getItemsInNetwork: invalid inventory result"); return
     end
     local normalized={}
     self.truncated=false
@@ -2101,8 +2140,8 @@ function M.new(cfg)
       end
     end
     local stored,se=safe(p,"getStoredPower")
-    local capacity=safe(p,"getMaxStoredPower")
-    self.energy={supported=type(stored)=="number" and type(capacity)=="number",unit="AE",error=se or ""}
+    local capacity,ce=safe(p,"getMaxStoredPower")
+    self.energy={supported=type(stored)=="number" and type(capacity)=="number",unit="AE",error=se or ce or ""}
     if self.energy.supported then
       self.energy.stored=stored; self.energy.capacity=capacity
       self.energy.injection=safe(p,"getAvgPowerInjection")
@@ -2146,7 +2185,7 @@ function M.new(cfg)
     -- getCpus exposes occupancy, not existing jobs or item quantities.
     return {cpus=self.cpus,trackedJobs={},existingJobDetails="unsupported",error=self.cpuError or ""}
   end
-  function self:summary() return {online=self.online,error=self.error,itemTypes=#self.items,address=self.address or "",revision=self.revision,truncated=self.truncated==true} end
+  function self:summary() return {online=self.online,error=self.error,itemTypes=#self.items,address=self.address or "",powered=self.powered,revision=self.revision,truncated=self.truncated==true} end
   return self
 end
 return M
@@ -2178,7 +2217,7 @@ function M.new(cfg,clock,log)
   function self:status()
     local clients={}
     for address,c in pairs(self.clients) do clients[#clients+1]={address=address,role=c.role,age=math.floor(clock()-c.lastSeen)} end
-    return {version="0.3.0",uptime=math.floor(clock()-self.started),ae2=self.ae2:summary(),clients=clients,
+    return {version="0.3.1",uptime=math.floor(clock()-self.started),ae2=self.ae2:summary(),clients=clients,
       power=energy.status(self.ae2),automation=false,crafting="disabled_pending_ingame_validation",reactors="read_only_unsupported",
       update=self.updates and self.updates:public() or nil}
   end
@@ -2198,13 +2237,15 @@ function M.new(cfg,clock,log)
   function self:tick()
     if clock()-self.lastPoll<cfg.poll then return end
     self.lastPoll=clock()
-    local old=self.ae2.online
+    local old=self.ae2.online; local oldError=self.ae2.error; local oldAddress=self.ae2.address
     local ok,err=pcall(self.ae2.poll,self.ae2)
     if not ok then
-      self.ae2.online=false; self.ae2.error=tostring(err); self.ae2.items={}; self.ae2.cpus={}
-      self.ae2.energy={supported=false,unit="AE"}; log("ERROR",err)
+      self.ae2:unavailable(err)
     end
-    if old~=self.ae2.online then log(self.ae2.online and "INFO" or "WARN","AE2 "..(self.ae2.online and "ONLINE" or "OFFLINE")) end
+    if old~=self.ae2.online or oldError~=self.ae2.error or oldAddress~=self.ae2.address then
+      log(self.ae2.online and "INFO" or "WARN","AE2 "..(self.ae2.online and "ONLINE" or "OFFLINE")..
+        " ["..(self.ae2.address or "no component").."]"..(self.ae2.online and "" or (": "..self.ae2.error)))
+    end
   end
   return self
 end
@@ -2590,7 +2631,7 @@ function M.draw(r,net,state,clock)
   rail(r,l,net,state,now,alerts)
   r:fill(1,r.h,r.w,1,C.raised)
   local notice=state.message and now-state.message.at<6 and state.message
-  W.text(r,2,r.h,r.w-2,notice and notice.text or state.editing and "Arama: dokun / yaz | Enter: ara | Esc: iptal" or "DISPLAY 01 / v0.3.0 | "..((state.update or {}).available and "GUNCELLEME VAR" or net.online and "CANLI IZLEME" or "YENIDEN BAGLANIYOR"),notice and notice.kind=="warn" and C.warn or C.muted,C.raised)
+  W.text(r,2,r.h,r.w-2,notice and notice.text or state.editing and "Arama: dokun / yaz | Enter: ara | Esc: iptal" or "DISPLAY 01 / v0.3.1 | "..((state.update or {}).available and "GUNCELLEME VAR" or net.online and "CANLI IZLEME" or "YENIDEN BAGLANIYOR"),notice and notice.kind=="warn" and C.warn or C.muted,C.raised)
   keyboard(r,l,state)
   r:flush()
 end
@@ -2690,7 +2731,7 @@ function M.draw(r,role,net,state,clock)
   r:fill(1,1,r.w,3,C.panel)
   r:text(3,2,"FACTORY OS / "..(role=="side" and "TELEMETRY" or "SERVER"),C.accent,C.panel)
   r:text(math.max(3,r.w-10),2,online and "ONLINE" or "OFFLINE",online and C.good or C.bad,C.panel)
-  r:text(2,r.h,"v0.3.0 | F5: check / F6: update",C.muted)
+  r:text(2,r.h,"v0.3.1 | F5: check / F6: update",C.muted)
   if role=="server" then
     r:panel(2,5,r.w-2,r.h-6,"SYSTEM CONSOLE")
     r:text(3,7,"Clients: "..#(status.clients or {}),nil,C.panel)

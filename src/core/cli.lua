@@ -29,6 +29,28 @@ function M.main(args,root)
     print("Foreground autostart: "..(c.autoStart and "ENABLED" or "DISABLED")); return
   end
   if cmd=="logs" then print(logger.read()); return end
+  if cmd=="ae2" then
+    assert(not live(),"Stop FactoryOS before AE2 diagnostics")
+    local c=assert(config.load())
+    assert(c.role=="server","Run AE2 diagnostics on the server computer")
+    local count=tonumber(args[2] or "1")
+    assert(count and count%1==0 and count>=1 and count<=60,"ae2 [samples: 1..60], interval 10 seconds")
+    local ae=require("server.ae2").new(c)
+    print("Read-only AE2 diagnostics; configured address: "..(c.ae2Address~="" and c.ae2Address or "automatic"))
+    for _,candidate in ipairs(ae:candidates()) do print(candidate.kind.." "..candidate.address) end
+    for i=1,count do
+      local ok,why=pcall(ae.poll,ae)
+      if not ok then ae:unavailable(why) end
+      print("["..i.."/"..count.."] "..(ae.online and "ONLINE" or "OFFLINE").." / "..(ae.address or "no component")..
+        " / powered="..(ae.powered==nil and "unknown" or tostring(ae.powered)))
+      if not ae.online then print(ae.error) end
+      if ae.powerError then print(ae.powerError) end
+      if ae.energy.supported then print("Energy: "..ae.energy.stored.." / "..ae.energy.capacity.." AE") end
+      if ae.cpuError and ae.cpuError~="" and ae.online then print(ae.cpuError) end
+      if i<count then os.sleep(10) end
+    end
+    return
+  end
   if cmd=="doctor" then
     print(hardware.describe())
     local c,err=config.load()
@@ -107,6 +129,6 @@ function M.main(args,root)
     end
     return
   end
-  error("Commands: start [--foreground], stop, restart, status, doctor, config, logs, update [HTTPS_BASE], rollback, autostart enable|disable")
+  error("Commands: start [--foreground], stop, restart, status, doctor, ae2 [samples], config, logs, update [HTTPS_BASE], rollback, autostart enable|disable")
 end
 return M

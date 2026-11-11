@@ -7,7 +7,7 @@ function M.new(cfg,clock,log)
   function self:status()
     local clients={}
     for address,c in pairs(self.clients) do clients[#clients+1]={address=address,role=c.role,age=math.floor(clock()-c.lastSeen)} end
-    return {version="0.3.0",uptime=math.floor(clock()-self.started),ae2=self.ae2:summary(),clients=clients,
+    return {version="0.3.1",uptime=math.floor(clock()-self.started),ae2=self.ae2:summary(),clients=clients,
       power=energy.status(self.ae2),automation=false,crafting="disabled_pending_ingame_validation",reactors="read_only_unsupported",
       update=self.updates and self.updates:public() or nil}
   end
@@ -27,13 +27,15 @@ function M.new(cfg,clock,log)
   function self:tick()
     if clock()-self.lastPoll<cfg.poll then return end
     self.lastPoll=clock()
-    local old=self.ae2.online
+    local old=self.ae2.online; local oldError=self.ae2.error; local oldAddress=self.ae2.address
     local ok,err=pcall(self.ae2.poll,self.ae2)
     if not ok then
-      self.ae2.online=false; self.ae2.error=tostring(err); self.ae2.items={}; self.ae2.cpus={}
-      self.ae2.energy={supported=false,unit="AE"}; log("ERROR",err)
+      self.ae2:unavailable(err)
     end
-    if old~=self.ae2.online then log(self.ae2.online and "INFO" or "WARN","AE2 "..(self.ae2.online and "ONLINE" or "OFFLINE")) end
+    if old~=self.ae2.online or oldError~=self.ae2.error or oldAddress~=self.ae2.address then
+      log(self.ae2.online and "INFO" or "WARN","AE2 "..(self.ae2.online and "ONLINE" or "OFFLINE")..
+        " ["..(self.ae2.address or "no component").."]"..(self.ae2.online and "" or (": "..self.ae2.error)))
+    end
   end
   return self
 end

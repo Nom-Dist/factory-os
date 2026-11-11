@@ -326,6 +326,53 @@ test("AE2 real-shaped stacks preserve metadata/NBT, disconnect clears stale data
   ae:poll(); assert(not ae.online); eq(#ae.items,0); assert(not ae.energy.supported)
   components={}; ae:poll(); assert(not ae.online)
 end)
+test("AE2 preserves native failure reasons, checks power and recovers without stale data",function()
+  local cfg=config.defaults("server"); local ae=require("server.ae2").new(cfg)
+  local reads=0; local powered=true; local failure=false
+  local p={address="me-diagnostic",type="me_interface",
+    isNetworkPowered=callback(function() return powered end),
+    getItemsInNetwork=callback(function()
+      reads=reads+1
+      if failure then return nil,"no ae grid" end
+      return {{name="minecraft:iron_ingot",size=8}}
+    end)}
+  components={[p.address]=p}; ae:poll(); assert(ae.online); eq(reads,1)
+  failure=true; ae:poll(); assert(not ae.online); eq(ae.error,"getItemsInNetwork: no ae grid")
+  eq(ae:summary().address,p.address); eq(#ae.items,0); assert(not ae:stocks({}))
+  powered=false; ae:poll(); eq(reads,2); eq(ae:summary().powered,false)
+  assert(ae.error:find("unpowered",1,true)); eq(#ae.cpus,0)
+  powered=true; failure=false; ae:poll(); assert(ae.online); eq(#ae.items,1)
+  assert(ae.cpuError:find("getCpus",1,true)); assert(not ae.energy.supported)
+  cfg.ae2Enabled=false; ae:poll(); assert(not ae.online); eq(#ae.items,0); eq(ae.address,nil)
+  components={}
+end)
+test("AE2 exact component selection, missing pinned address and transition reason logging",function()
+  local cfg=config.defaults("server"); local time=0; local logs={}
+  local server=require("server.main").new(cfg,function() return time end,function(_,s) logs[#logs+1]=s end)
+  local function poll() server:tick(); time=time+cfg.poll end
+  local p={address="me-a",type="me_interface",getItemsInNetwork=callback(function() return {} end)}
+  components={[p.address]=p,["me-b"]={address="me-b",type="me_controller"}}
+  local found=server.ae2:candidates(); eq(#found,2); eq(found[1].address,"me-a")
+  poll(); assert(logs[1]:find("Multiple AE2 components",1,true)); poll(); eq(#logs,1)
+  cfg.ae2Address="me-a"; poll(); assert(server.ae2.online); eq(#logs,2)
+  p.getItemsInNetwork=callback(function() return nil,"grid removed" end)
+  poll(); assert(logs[3]:find("getItemsInNetwork: grid removed",1,true)); poll(); eq(#logs,3)
+  components["me-a"]=nil; poll(); assert(logs[4]:find("missing/offline: me-a",1,true)); eq(server.ae2.address,nil)
+  components={}
+end)
+test("AE2 CLI samples at ten second intervals and reports exact failure",function()
+  local oldPrint,oldSleep,oldLoad=print,os.sleep,config.load; local output={}; local waits=0
+  package.preload.serialization=function() return {serialize=codec.encode} end
+  local cfg=config.defaults("server"); config.load=function() return cfg end
+  print=function(s) output[#output+1]=s end
+  components={me={address="me",type="me_interface",getItemsInNetwork=callback(function() return {} end)}}
+  os.sleep=function(seconds) eq(seconds,10); waits=waits+1; components={} end
+  local ok,why=pcall(function() require("core.cli").main({"ae2","2"}) end)
+  print=oldPrint; os.sleep=oldSleep; config.load=oldLoad
+  assert(ok,why); eq(waits,1)
+  local result=table.concat(output,"\n"); assert(result:find("[1/2] ONLINE",1,true))
+  assert(result:find("[2/2] OFFLINE",1,true)); assert(result:find("Adapter component missing/offline",1,true))
+end)
 test("GPU bounds, role layouts, unchanged frame writes zero cells, screen-filtered touch",function()
   local Renderer=require("ui.renderer")
   local screens=require("ui.screens")

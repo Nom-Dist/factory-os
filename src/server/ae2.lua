@@ -5,30 +5,47 @@ local types={me_controller=true,me_interface=true,me_importbus=true,me_exportbus
 local function safe(p,method,...)
   -- OC proxy callbacks are callable tables, not necessarily Lua functions.
   if not p or p[method]==nil then return nil,"unsupported: "..method end
-  local ok,value=pcall(p[method],...)
-  if not ok then return nil,tostring(value) end
-  if value==nil then return nil,"no value from "..method end
+  local ok,value,reason=pcall(p[method],...)
+  if not ok then return nil,method..": "..tostring(value) end
+  if value==nil then return nil,method..": "..tostring(reason or "no value returned") end
   return value
 end
 local function text(s,n) return tostring(s or ""):gsub("[%c]"," "):sub(1,n or 160) end
 function M.new(cfg)
   local self={items={},cpus={},online=false,error="AE2 not polled",energy={supported=false,unit="AE"},revision=0}
-  function self:discover()
+  function self:unavailable(reason)
+    self.online=false; self.error=text(reason,400); self.items={}; self.cpus={}
+    self.cpuError=self.error; self.truncated=false; self.energy={supported=false,unit="AE"}
+  end
+  function self:candidates()
     local found={}
     for address,kind in component.list() do
-      if types[kind] and (cfg.ae2Address=="" or cfg.ae2Address==address) then found[#found+1]=address end
+      if types[kind] then found[#found+1]={address=address,kind=kind} end
     end
-    if #found==0 then return nil,"AE2 Adapter component missing/offline" end
+    table.sort(found,function(a,b) return a.address<b.address end)
+    return found
+  end
+  function self:discover()
+    self.address=nil
+    local found={}
+    for _,candidate in ipairs(self:candidates()) do
+      if cfg.ae2Address=="" or cfg.ae2Address==candidate.address then found[#found+1]=candidate.address end
+    end
+    if #found==0 then return nil,"AE2 Adapter component missing/offline"..(cfg.ae2Address~="" and (": "..cfg.ae2Address) or "") end
     if #found>1 then return nil,"Multiple AE2 components; set ae2Address" end
+    self.address=found[1]
     return component.proxy(found[1])
   end
   function self:poll()
-    if not cfg.ae2Enabled then self.online=false; self.error="AE2 disabled"; return end
+    self.powered=nil; self.powerError=nil
+    if not cfg.ae2Enabled then self.address=nil; self:unavailable("AE2 disabled"); return end
     local p,err=self:discover()
-    if not p then self.online=false; self.error=err; self.items={}; self.cpus={}; self.energy={supported=false,unit="AE"}; return end
+    if not p then self:unavailable(err); return end
+    self.powered,self.powerError=safe(p,"isNetworkPowered")
+    if self.powered==false then self:unavailable("AE2 network unpowered (isNetworkPowered=false)"); return end
     local items,why=safe(p,"getItemsInNetwork")
     if type(items)~="table" then
-      self.online=false; self.error=why or "Invalid AE2 inventory"; self.items={}; self.cpus={}; self.energy={supported=false,unit="AE"}; return
+      self:unavailable(why or "getItemsInNetwork: invalid inventory result"); return
     end
     local normalized={}
     self.truncated=false
@@ -53,8 +70,8 @@ function M.new(cfg)
       end
     end
     local stored,se=safe(p,"getStoredPower")
-    local capacity=safe(p,"getMaxStoredPower")
-    self.energy={supported=type(stored)=="number" and type(capacity)=="number",unit="AE",error=se or ""}
+    local capacity,ce=safe(p,"getMaxStoredPower")
+    self.energy={supported=type(stored)=="number" and type(capacity)=="number",unit="AE",error=se or ce or ""}
     if self.energy.supported then
       self.energy.stored=stored; self.energy.capacity=capacity
       self.energy.injection=safe(p,"getAvgPowerInjection")
@@ -98,7 +115,7 @@ function M.new(cfg)
     -- getCpus exposes occupancy, not existing jobs or item quantities.
     return {cpus=self.cpus,trackedJobs={},existingJobDetails="unsupported",error=self.cpuError or ""}
   end
-  function self:summary() return {online=self.online,error=self.error,itemTypes=#self.items,address=self.address or "",revision=self.revision,truncated=self.truncated==true} end
+  function self:summary() return {online=self.online,error=self.error,itemTypes=#self.items,address=self.address or "",powered=self.powered,revision=self.revision,truncated=self.truncated==true} end
   return self
 end
 return M

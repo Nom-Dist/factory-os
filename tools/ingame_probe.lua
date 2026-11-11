@@ -6,7 +6,7 @@ local serialization=require("serialization")
 local report={lua=_VERSION,openos=_OSVERSION or "unknown",uptime=computer.uptime(),components={}}
 local infoOk,deviceInfo=pcall(function() return computer.getDeviceInfo() end)
 local readMethods={"isWireless","maxPacketSize","getScreen","getAspectRatio","getResolution","maxResolution",
-  "getItemsInNetwork","getCpus","getStoredPower","getMaxStoredPower","getAvgPowerInjection","getAvgPowerUsage"}
+  "isNetworkPowered","getItemsInNetwork","getCpus","getStoredPower","getMaxStoredPower","getAvgPowerInjection","getAvgPowerUsage"}
 for address,kind in component.list() do
   local entry={address=address,type=kind,methods={},results={}}
   if infoOk and type(deviceInfo)=="table" then entry.deviceInfo=deviceInfo[address] end
