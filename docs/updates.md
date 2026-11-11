@@ -67,4 +67,6 @@ reboot
 
 ## İlk oyun kabulü
 
+v0.4.0'da FactoryOS'un aktif/belirsiz üretim kayıtları da menüden güncellemeyi engeller; hesaplama sırasında CPU henüz boş görünse bile. Belirsiz işi ME Terminal'de kontrol ettikten sonra ÜRETİM listesindeki **ME'DE BAKTIM** yalnızca izlemeyi arşivler. Yeni üretim emri, server güncelleme worker'ı çalışırken kabul edilmez. [Üretim/reboot ayrıntıları](crafting.md).
+
 Üç bilgisayarı kapatıp açın: panel otomatik gelmeli. Ctrl+C ile çıkınca kabukta kalmalı. Sunucuda F5 kontrolünü, ardından bir ekranın Internet Card'ını çıkarıp GUNCELLEMELER düğmesini deneyin. Yeni gerçek sürüm bulunduğunda aktarım, reboot ve aynı modem izinleriyle geri bağlanmayı gözleyin. Aktarım sırasında wireless bağlantısını keserek eski sürümün korunmasını ayrıca sınayın. Bu adımlar henüz gerçek oyunda çalıştırılmadı.

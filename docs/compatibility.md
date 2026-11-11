@@ -53,10 +53,11 @@ OC JAR içindeki `mcmod.info` ayrıca **OpenComputers 1.8.3 / Minecraft 1.12.2**
 
 - Adapter'a komşu ME Interface/Controller bileşeninden `getItemsInNetwork()`, `getCpus()` ve ağ enerji metotları çağrılır. Metodun bulunması başarılı bağlantı sayılmaz; gerçek çağrı ve dönüş tipi kontrol edilir.
 - `getCpus()` alanları `name`, `storage`, `coprocessors`, `busy` şeklindedir. Bu bilgiler mevcut crafting işinin ürünü/miktarı değildir.
-- `getCraftables(filter)` Craftable userdata döndürür; `getItemStack()` ve `request(amount, prioritizePower, cpuName)` bunun üzerindedir. FactoryOS v0.1 bunları otomasyon için çağırmaz.
-- `request()` sonucu bir job/status userdata'sıdır. `isDone()` / `isCanceled()` henüz hesaplanırken `false, "computing"` döndürebilir; kaynak eksikliği/status hatası sonraki dönüşlerde belli olabilir. Yalnızca userdata dönmesi gerçek üretim başarısı değildir.
+- `getCraftables(filter)` Craftable userdata döndürür; `getItemStack()` ve `request(amount, prioritizePower, cpuName)` bunun üzerindedir. FactoryOS v0.4.0 açık kullanıcı eylemiyle bunları çağırır; otomatik stok hedefleri kapalıdır.
+- `request()` sonucu bir job/status userdata'sıdır. `isDone()` / `isCanceled()` henüz hesaplanırken kurulu 274990f kaynak kodunda `nil, "computing"` döndürür; kaynak eksikliğinde `false, "request failed (...)"` yanıtı alınır. Yalnızca userdata dönmesi gerçek üretim başarısı değildir. `cancel()` hesaplama sırasında nil+computing, kabul edildiğinde true verir; son durum yeniden sorgulanır.
 - `getCraftingJobs`, Craftable üzerinde genel `craft`, job üzerinde modern `status` gibi yeni/varsayımsal metotlar kullanılmaz.
 - NBT ayrımı her ortamda ham NBT/hash olarak sunulmaz. Kod `name`, `damage`, `hasTag` ve varsa string tag/hash'i ayrı tutar; varyantları birleştirmez. Hash yoksa `identityComplete=false` işaretler. Bu kimliklerle otomatik üretim açılmaz. Uzun etiket/tag özetleri sınırlanır; bunlar kalıcı üretim anahtarı sayılmaz.
+- v0.4.0 üretim yolu native tarif kimliğini kesmeden karşılaştırır; 512 baytı aşan tag/hash, eksik NBT kimliği, çoklu eşleşme ve değiştirilmiş CPU isimleriyle üretim başlatmaz. Job userdata'sı yalnızca sunucunun RAM'inde tutulur; reboot sonrası aktif kayıt bilinmeyen duruma döner, yeniden çağrı yapılmaz.
 - `getStoredPower`, `getMaxStoredPower`, `getAvgPowerInjection`, `getAvgPowerUsage` ağ değerleri **AE**, akışlar **AE/t** olarak gösterilir. Bunlar RF/FE'ye çevrilmez. Controller'a özgü yan enerji metotlarıyla karıştırılmaz.
 
 ## Henüz doğrulanmayan sürücüler

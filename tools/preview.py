@@ -18,12 +18,16 @@ for i,label in ipairs(labels) do data[i]={name="example:item_"..i,label=label,da
 state={tab=1,page=1,rowOffset=0,visibleRows=24,query="",draft="",filter="all",sort="name",favorites={},
   stocks={items=data,page=1,pages=77,total=1834,truncated=false},stockReceivedAt=9997,
   jobs={cpus={{name="ASSEMBLY / 01",busy=true,storage=65536},{name="CHEMICAL / 02",busy=true,storage=262144},
-    {name="GENERAL / 03",busy=false,storage=65536},{name="PROCESSORS / 04",busy=false,storage=131072}},error=""},
+    {name="GENERAL / 03",busy=false,storage=65536},{name="PROCESSORS / 04",busy=false,storage=131072}},error="",trackedJobs={
+      {id="11111111-1111-4111-8111-111111111111:4",owner="11111111-1111-4111-8111-111111111111",label="Infused Alloy",amount=64,cpu="ASSEMBLY / 01",state="running",error=""},
+      {id="11111111-1111-4111-8111-111111111111:3",owner="11111111-1111-4111-8111-111111111111",label="Logic Processor",amount=16,cpu="",state="computing",error=""},
+      {id="11111111-1111-4111-8111-111111111111:2",owner="11111111-1111-4111-8111-111111111111",label="Fluix Crystal",amount=32,cpu="",state="failed",error="request failed (missing resources?)"},
+      {id="11111111-1111-4111-8111-111111111111:1",owner="11111111-1111-4111-8111-111111111111",label="Steel Ingot",amount=128,cpu="GENERAL / 03",state="done",error=""}}},
   context={modem="11111111-1111-4111-8111-111111111111",screen="22222222-2222-4222-8222-222222222222",port=34100,poll=10}}
 state.favorites[require("core.items").key(data[1])]=data[1].label
 state.favorites[require("core.items").key(data[3])]=data[3].label
-state.update={phase="available",message="Sunucuda yeni surum hazir",currentRelease="0.3.0-ornek",version="0.3.1",release="0.3.1-ornek",available=true,busy=false,autoStart=true,automatic=true,interval=900,role="main",canApply=true}
-net={online=true,lastSeen=9998,server="33333333-3333-4333-8333-333333333333",status={version="0.3.0",uptime=12587,
+state.update={phase="available",message="Sunucuda yeni surum hazir",currentRelease="0.4.0-ornek",version="0.4.1",release="0.4.1-ornek",available=true,busy=false,autoStart=true,automatic=true,interval=900,role="main",canApply=true}
+net={online=true,lastSeen=9998,server="33333333-3333-4333-8333-333333333333",status={version="0.4.0",crafting="manual",uptime=12587,
   ae2={online=true,itemTypes=1834,revision=45},power={ae2={supported=true,unit="AE",stored=782000,capacity=1000000,injection=129,usage=121}},
   clients={{role="main",address=state.context.modem,age=2},{role="side",address="44444444-4444-4444-8444-444444444444",age=1}}}}
 '''
@@ -81,3 +85,11 @@ if __name__ == "__main__":
     render("main-update-progress", 160, 50, 'state.tab=9; state.update.phase="downloading"; state.update.busy=true; state.update.progress=14; state.update.total=30; state.update.file="ui/main_screen.lua"; state.update.message="Dosyalar kablosuz aliniyor"')
     render("side-updates", 80, 25, "", role="side")
     render("server-updates", 50, 16, 'state.serverStatus=net.status; state.update.role="server"', role="server")
+    render("main-production", 160, 50, "state.tab=4")
+    render("main-production-compact", 80, 25, "state.tab=4")
+    render("main-production-small", 40, 12, "state.tab=4")
+    modal = 'state.tab=2; state.craft={label="Infused Alloy / Meta: 0",amount="64",cpu="ASSEMBLY / 01",preview={token="example"},cpus={"","ASSEMBLY / 01"}}'
+    render("main-craft", 160, 50, modal)
+    render("main-craft-compact", 80, 25, modal)
+    render("main-craft-small", 40, 12, modal)
+    render("main-craft-uncertain", 160, 50, modal+'; state.craft.submitted=true; state.craft.uncertain=true; state.craft.error="Yanit yok. Emir tekrar gonderilmedi; isleri kontrol edin."')

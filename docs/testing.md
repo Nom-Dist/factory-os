@@ -2,7 +2,7 @@
 
 ## Gerçekte çalıştırılanlar
 
-11 Kasım 2026'da Lupa 2.8'in **gerçek Lua 5.2 ve Lua 5.3 yorumlayıcılarında** 44 senaryo ve ayrı sınırlı bellek regresyonu çalıştırıldı: her yorumlayıcıda hepsi geçti. Bütün Lua dosyaları, üretilen online/offline installer ve oyun içi prob dahil sözdizimsel olarak derlendi.
+11 Kasım 2026'da Lupa 2.8'in **gerçek Lua 5.2 ve Lua 5.3 yorumlayıcılarında** 60 senaryo ve ayrı sınırlı bellek regresyonu çalıştırıldı: her yorumlayıcıda hepsi geçti. Bütün Lua dosyaları, üretilen online/offline installer ve oyun içi prob dahil sözdizimsel olarak derlendi.
 
 Modem/GPU/HTTP/filesystem/thread/event/zaman çevresi mock'tur. Bilgisayarlar arası haberleşme uygulaması ve tüm modüller gerçek Lua koduyla yürütüldü. Kullanıcı sunucu ve iki ekranın kablosuz bağlantısının oyunda çalıştığını ayrıca doğruladı. **Yeni arayüz, otomatik boot, kablosuz sürüm aktarımı ve AE2 gerçek stokları için oyun içi kabul bekleniyor**; otomatik sonuçlar bunun yerine geçmez.
 
@@ -61,6 +61,8 @@ ARTEMIS `mobile_diagnose(attempt_fix=true)` çalıştırıldı; ADB'de bağlı A
 | AE2 CLI | Gerçek komut yolu, iki örnek arasında 10 saniye bekleme, ikinci örnekte kopma nedeninin çıktısı |
 | AE2 bellek | Eski snapshot'ın sürücü çağrısından önce toplanabilmesi; aynı tablo/satırların yerinde sadeleştirilmesi, NBT hash korunması, limit ve geçersiz satırların temizliği |
 
+`tests/crafting.lua` içindeki 16 üretim senaryosu: filtreli tam varyant; flush edilmiş kayıttan sonra native çağrı; computing/running/done ayrımı; aynı ve farklı RPC kimlikleriyle tekrar; reboot ve geçmişten çıkan emir numarası; NBT belirsizliği/çoklu tarif; eskimiş token; miktar sınırları; taze CPU kontrolü/tekrarlı veya değiştirilmiş isimler; çağrıdan önce/sonra disk hatası; eski yedeğe dönmeme; gerçek native hata; iptal/aidiyet; belirsiz işi elle arşivleme; 8 aktif/32 geçmiş sınırı; geçici durum hatası; güncelleme kilidi; modal klavye/çift tıklama/yanıt kaybı/pano; dört çözünürlük; gerçek FactoryOS protokolü + 1024 bayt modem + düşürülen yanıt + server reboot altında tek native çağrı.
+
 `tests/ae2_memory.lua` ayrıca izole Lua allocator'ını **2 MiB** ile sınırlar ve 2000 farklı eşyayı beş defa yeniler. Lua 5.2/5.3'te v0.3.1 kodu aynı fixture/limit altında `not enough memory` verirken v0.3.2 geçmiştir. Bu rakam yalnızca izole fixture bütçesidir; OpenOS, GPU, modem ve gerçek AE2 verileri dahil toplam oyun RAM gereksinimi değildir. Gerçek ağdaki kabul testi bekleniyor.
 
 Host'ta tekrar çalıştırma:
@@ -85,7 +87,7 @@ Probun çıktısında stok satırı bulunması üretim testi değildir. Şu ana 
 
 ## Üç bilgisayarlı kabul sırası
 
-Önce [donanım](hardware.md), [kurulum](installation.md) ve [otomatik açılış/güncelleme](updates.md) adımlarını tamamlayın. Bütün cihazlarda v0.3.0, doğru modem allowlist, aynı wireless port, yüklü chunk ve yeterli güç kullanın. Şifre gerekmez. Aşağıdaki süreler varsayılan konfigürasyon içindir; oyun lag'i nedeniyle gözlemi birkaç saniye uzatabilirsiniz. Otomatik testte süreler sanal saatle deterministiktir.
+Önce [donanım](hardware.md), [kurulum](installation.md) ve [otomatik açılış/güncelleme](updates.md) adımlarını tamamlayın. Sunucu/ana ekranda v0.4.0, doğru modem allowlist, aynı wireless port, yüklü chunk ve yeterli güç kullanın. Yan ekran önceki v2 protokolüyle çalışabilir. Şifre gerekmez. Aşağıdaki süreler varsayılan konfigürasyon içindir; oyun lag'i nedeniyle gözlemi birkaç saniye uzatabilirsiniz. Otomatik testte süreler sanal saatle deterministiktir.
 
 | Senaryo | Oyunda yapılacak işlem | Kabul ölçütü |
 |---|---|---|
@@ -116,12 +118,14 @@ Probun çıktısında stok satırı bulunması üretim testi değildir. Şu ana 
 | Kablosuz güncelleme | İstemcinin Internet Card'ını çıkarın; gerçek yeni sürümde GUNCELLE / YENIDEN AC seçin | Server cache'inden alır, doğrular, reboot eder ve aynı modem izinleriyle geri bağlanır |
 | Üretim kilidi | AE2 CPU meşgulken güncelleme deneyin | Dosyalar uygulamaya alınmaz; bekleme nedeni görünür |
 
-## Crafting API kabulü — sonraki aşamanın ön koşulu
+## Crafting API — v0.4.0 oyun kabulü
 
-Yedek/test dünyasında ucuz ve kolay sayılabilen bir recipe seçin. `getCraftables(filter)` sonucundaki `getItemStack()` kimliğini doğrulayın. Tek sefer `request` verip hem `isDone/isCanceled` ve ikinci dönüş metinlerini hem **AE terminalindeki gerçek stok artışını** kontrol edin. Eksik malzemeyle tekrarlayıp başarısızlık ve backoff tasarımını doğrulayın. Önceden devam eden işler, tam CPU kapasitesi, reboot sırasında belirsiz iş ve aynı istek tekrarını ayrıca sınayın. Bu adımlar henüz kodda otomasyona bağlanmadı ve oyunda yapılmadı.
+Yedek/test dünyasında ucuz ve kolay sayılabilen, çıktısı bir adet olan bir recipe seçin. AE2 DEPOSU → TARIFLI → satır → URETIM EMRI VER yolundan bir adet isteyin. Hem ÜRETİM sayfasındaki job sonucunu hem **AE terminalindeki gerçek stok artışını** kontrol edin. Eksik malzemeyle hata metnini ve iptali doğrulayın. Önceden devam eden işler, tam CPU kapasitesi, reboot sırasında belirsiz iş ve aynı istek tekrarını ayrıca sınayın. Elle emir kodlandı; bu gerçek oyun adımları henüz yapılmadı. Otomatik stok hedefleri ve kaynak eksiği backoff'u sonraki aşamadır.
 
 Reaktör kontrolü test kapsamı dışındadır; otomasyon kapalıdır. Önce salt okunur gerçek metotlar ve yerel bağımsız interlock düzeni doğrulanmalıdır.
 
 ## Görsel önizlemeler
 
 `python tools/preview.py`, gerçek `ui.renderer` GPU hücre tamponunu örnek verilerle PNG'ye dönüştürür. [Ana panel](previews/main-overview.png), [depo](previews/main-stocks.png), [arama](previews/main-search.png), [offline](previews/main-offline.png), [80×25](previews/main-compact.png), [güncelleme sayfası](previews/main-updates.png), [aktarım](previews/main-update-progress.png), [sunucu düğmesi](previews/server-updates.png) ve [yan ekran düğmesi](previews/side-updates.png) görsel olarak incelendi. Görüntü başlıkları örnek veri olduğunu belirtir; bunlar Minecraft'tan alınan ekran görüntüsü değildir. 40×12, 50×16, 80×25 ve 160×50 boyutları ayrıca dokuz sekme ve arama klavyesiyle GPU sınır testinden geçti.
+
+v0.4.0 [üretim listesi](previews/main-production.png), [miktar/CPU penceresi](previews/main-craft.png), [40×12 pencere](previews/main-craft-small.png) ve [80×25 işler](previews/main-production-compact.png) ayrıca görsel olarak incelendi. Modal açıkken yalnızca kendi düğmeleri dokunma hedefidir; arka plan ve F5/F6 güncelleme eylemleri açılmaz. Klavyeyle çift Enter da ikinci emir oluşturmaz.

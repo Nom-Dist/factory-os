@@ -52,8 +52,8 @@ Saf Lua SHA256 yalnızca kurulum/güncelleme dosya bütünlüğünde kullanılı
 
 ## Aşamaların gerçek durumu
 
-Phase 1'in sunucu ve iki ekran arasındaki kablosuz bağlantısı kullanıcı tarafından oyun içinde doğrulandı. Yeni arayüz, otomatik açılış ve kablosuz güncelleme için oyun kabulü beklenir. Phase 2'de salt okunur AE2 sürücüsü/arayüzü hazırdır; gerçek Adapter ve AE2 güvenlik/enerji kanalı kontrolü beklenir. Phase 3/4 üretim ve reaktör sürücüleri uygulanmadı; Phase 5'in kablosuz yazılım dağıtımı eklendi.
+Phase 1'in sunucu ve iki ekran arasındaki kablosuz bağlantısı kullanıcı tarafından oyun içinde doğrulandı. Yeni arayüz, otomatik açılış ve kablosuz güncelleme için oyun kabulü beklenir. Phase 2'de salt okunur AE2 sürücüsü/arayüzü hazırdır. v0.4.0 Phase 3'ün elle üretim emri, miktar/CPU seçimi, takip ve iptalini ekler; gerçek Minecraft crafting kabulü beklenir. Otomatik stok hedefleri ve Phase 4 reaktör sürücüleri uygulanmadı; Phase 5'in kablosuz yazılım dağıtımı hazırdır.
 
-İleride autocrafting eklendiğinde ayrı stok kimliği, dayanıklı istek günlüğü, in-flight miktarlar, CPU sınırları, kaynak eksiği backoff'u ve sunucu yeniden başlatması sonrası belirsiz işlerin uzlaştırılması gerekir. Mevcut 60 saniyelik ağ tekrar önbelleği **kalıcı exactly-once üretim garantisi değildir**; bu yüzden v0.1'de hiçbir üretim komutu açılmaz.
+v0.4.0 `server.crafting`, filtreli native tariften tam varyantı doğrular. Tek `request()` çağrısından önce modem başına monoton emir numarası ve kayıt diske flush edilir. RPC cache'inden bağımsız tekrar denetimi, 8 aktif/belirsiz iş, 32 geçmiş kayıt, CPU tekrar kontrolü ve güncelleme kilidi vardır. Reboot sonrası userdata tekrar bağlanmaz; belirsiz işler yeniden gönderilmez ve ME Terminal kontrolünden sonra kullanıcı tarafından yalnızca izlemeden arşivlenebilir. [Üretim akışı](crafting.md). Otomatik stok hedefleri için ayrıca in-flight stok hesabı, kaynak eksikliğinde bekleme ve hız sınırı gerekir.
 
 Reaktör sürücülerinin başlangıcı salt okunur olmalı. Gerçek kontrol eklenirken yerel bağımsız kapama/interlock düzeni zorunlu tasarım girdisidir; merkezî heartbeat kaybı bir güvenlik sistemi yerine geçmez.

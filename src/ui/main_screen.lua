@@ -35,6 +35,12 @@ function M.alerts(net,state)
     if state.stockError then add("DEPO VERISI ALINAMADI",state.stockError,C.warn) end
     if state.jobsError or state.jobs and state.jobs.error and state.jobs.error~="" then add("CPU VERISI ALINAMADI",state.jobsError or state.jobs.error,C.warn) end
   end
+  if net.online then
+    for _,job in ipairs((state.jobs or {}).trackedJobs or {}) do
+      if job.state=="unknown" then add("URETIM DURUMU BELIRSIZ",job.label..": "..(job.error or "ME Terminal'de kontrol edin."),C.warn); break end
+    end
+    if (state.jobs or {}).craftingError and state.jobs.craftingError~="" then add("URETIM KAYDI HATASI",state.jobs.craftingError,C.warn) end
+  end
   return result
 end
 local function header(r,net,state,now)
@@ -86,14 +92,15 @@ local function rail(r,l,net,state,now,alerts)
     W.text(r,x+2,25,w-4,selected.isCraftable and "Tarif: mevcut" or "Tarif: yok",selected.isCraftable and C.good or C.muted)
     local complete=identity.key(selected)~=nil
     if not complete then W.text(r,x+2,27,w-4,"NBT kimligi belirsiz",C.warn) end
-    r:button(x+2,28,w-4,favorite(state,selected) and "FAVORIDEN KALDIR" or "FAVORIYE EKLE","favorite:selected",favorite(state,selected),2,complete)
+    r:button(x+2,27,w-4,favorite(state,selected) and "FAVORIDEN KALDIR" or "FAVORIYE EKLE","favorite:selected",favorite(state,selected),1,complete)
+    r:button(x+2,29,w-4,"URETIM EMRI VER","craft:open",true,1,complete and selected.isCraftable)
   else
     local busy,total=cpuState(net,state)
     W.text(r,x+2,18,w-4,"MESGUL / TOPLAM CPU",C.muted)
     W.text(r,x+2,20,w-4,busy and busy.." / "..total or "-- / --",busy and C.accent or C.muted)
-    W.text(r,x+2,23,w-4,"Crafting kontrolu: pasif",C.muted)
-    W.wrap(r,x+2,25,w-4,3,"CPU dolulugu izlenir. Is ayrintilari henuz okunmuyor.",C.muted)
-    r:button(x+2,29,w-4,"CPU'LARI GOR","tab:4")
+    W.text(r,x+2,23,w-4,"Crafting: elle emir",C.accent)
+    W.wrap(r,x+2,25,w-4,3,"Tarifli urun secin, miktari girin ve URET'e dokunun.",C.muted)
+    r:button(x+2,29,w-4,"URETIM ISLERINI GOR","tab:4")
   end
   W.panel(r,x,33,w,math.max(1,l.bottom-32),"SISTEM UYARILARI / "..#alerts)
   if #alerts==0 then
@@ -140,7 +147,7 @@ local function overview(r,l,net,state)
   end
   row(middle+3,"AE2 DEPOLAMA",ae.online and "CEVRIMICI" or "BAGLANTI YOK",ae.online and C.good or C.warn)
   row(middle+5,"OTOMATIK STOK","SONRAKI ASAMA",C.muted)
-  row(middle+7,"CRAFTING KONTROLU","IZLEME MODU",C.blue)
+  row(middle+7,"CRAFTING KONTROLU",status.crafting=="manual" and "ELLE EMIR" or "SUNUCUYU GUNCELLEYIN",C.blue)
   local button=math.floor((l.w-6)/2)
   r:button(l.x+2,middle+10,button,"AE2 DEPOSUNU AC","tab:2",true,2)
   r:button(l.x+button+4,middle+10,l.w-button-6,"URETIM CPU'LARI","tab:4",false,2)
@@ -204,6 +211,8 @@ local function pager(r,l,state,y,height)
 end
 local function stocks(r,l,net,state,now)
   local small=r.h<24
+  local selected=net.online and ((net.status or {}).ae2 or {}).online and not state.stockError and state.selected
+  local canCraft=selected and selected.isCraftable and identity.key(selected)~=nil
   if small then
     W.panel(r,l.x,l.y,l.w,l.bottom-l.y+1,"DEPO / "..(state.loadingStocks and "YUKLENIYOR" or state.query or ""))
     local visible=math.max(1,l.bottom-l.y-2)
@@ -213,6 +222,7 @@ local function stocks(r,l,net,state,now)
     r:button(l.x,l.bottom,8,"< ONCE","prev")
     r:button(l.x+9,l.bottom,8,"SONRA >","next")
     r:button(l.x+l.w-10,l.bottom,10,"ARA","search",false,1,net.online)
+    r:button(l.x+l.w-19,l.bottom,8,"URET","craft:open",true,1,canCraft)
     if state.stockError then W.text(r,l.x+1,l.y+1,l.w-2,state.stockError,C.warn) end
     return
   end
@@ -231,6 +241,7 @@ local function stocks(r,l,net,state,now)
   if l.w>=47 then r:button(l.x+l.w-16,filterY,14,state.sort=="amount" and "MIKTAR v" or "AD A-Z","sort") end
   local y=l.y+(short and 6 or 9)
   W.panel(r,l.x,y,l.w,l.bottom-y+1,"DEPO KAYITLARI")
+  if l.rail==0 then r:button(l.x+l.w-10,y,9,"URET","craft:open",true,1,canCraft) end
   local large=l.w>=70
   local headings=y+(short and 1 or 2)
   W.text(r,l.x+2,headings,l.w-4,large and "*  URUN / VARYANT" or "*  URUN",C.muted)
@@ -258,21 +269,7 @@ local function content(r,l,net,state,alerts)
     W.wrap(r,l.x+2,l.y+6,l.w-4,5,"Hedef stok belirleme ve otomatik crafting henuz etkin degil. Once AE2 uretim API'si gercek malzemelerle dogrulanacak.",C.muted)
     if l.y+14<l.bottom then r:button(l.x+2,l.y+14,math.min(24,l.w-4),"STOKLARI INCELE","tab:2",true,2) end
   elseif tab==4 then
-    line(2,"CRAFTING CPU / SALT OKUNUR",C.blue)
-    line(4,state.jobsError or "CPU dolulugu gosterilir; mevcut is ayrintilari okunmaz.",state.jobsError and C.warn or C.muted)
-    local busy,total=cpuState(net,state)
-    if not busy then line(7,"CPU verisi bekleniyor veya AE2 bagli degil.",C.muted)
-    elseif total==0 then line(7,"AE2 aginda crafting CPU bulunamadi.",C.warn)
-    else
-      for i,cpu in ipairs(state.jobs.cpus or {}) do
-        local y=l.y+6+i*2
-        if y>=l.bottom-4 then break end
-        W.text(r,l.x+2,y,math.max(1,l.w-27),cpu.name~="" and cpu.name or "Isimsiz CPU "..i,C.text)
-        W.text(r,l.x+l.w-24,y,11,F.compact(cpu.storage).." B",C.muted)
-        W.text(r,l.x+l.w-12,y,10,cpu.busy and "MESGUL" or "BOSTA",cpu.busy and C.blue or C.good,nil,"right")
-      end
-    end
-    if l.bottom-l.y>=8 then line(l.bottom-l.y-1,"UZAKTAN URETIM BASLATMA / PASIF",C.muted) end
+    require("ui.crafting").jobs(r,l,state,net)
   elseif tab==5 then
     local ae=(net.status or {}).ae2 or {}; local e=((net.status or {}).power or {}).ae2 or {}
     line(3,"AE2 AG ENERJISI",C.accent)
@@ -345,8 +342,9 @@ function M.draw(r,net,state,clock)
   rail(r,l,net,state,now,alerts)
   r:fill(1,r.h,r.w,1,C.raised)
   local notice=state.message and now-state.message.at<6 and state.message
-  W.text(r,2,r.h,r.w-2,notice and notice.text or state.editing and "Arama: dokun / yaz | Enter: ara | Esc: iptal" or "DISPLAY 01 / v0.3.2 | "..((state.update or {}).available and "GUNCELLEME VAR" or net.online and "CANLI IZLEME" or "YENIDEN BAGLANIYOR"),notice and notice.kind=="warn" and C.warn or C.muted,C.raised)
+  W.text(r,2,r.h,r.w-2,notice and notice.text or state.editing and "Arama: dokun / yaz | Enter: ara | Esc: iptal" or "DISPLAY 01 / v0.4.0 | "..((state.update or {}).available and "GUNCELLEME VAR" or net.online and "CANLI IZLEME" or "YENIDEN BAGLANIYOR"),notice and notice.kind=="warn" and C.warn or C.muted,C.raised)
   keyboard(r,l,state)
+  require("ui.crafting").modal(r,state)
   r:flush()
 end
 return M

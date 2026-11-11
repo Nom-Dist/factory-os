@@ -66,10 +66,25 @@ function M.new(net,clock)
     elseif #action==1 and #self.draft<80 then self.draft=self.draft..action end
   end
   function self:paste(text)
+    if self.craft then
+      if not self.craft.submitted and type(text)=="string" then
+        text=text:match("^%s*(.-)%s*$")
+        if text:match("^%d+$") then self.craft.amount=(self.craft.amount..text):sub(1,7)
+        else self.craft.error="Miktar alanina yalnizca rakam girin" end
+      end
+      return
+    end
     if not self.editing or type(text)~="string" then return end
     self.draft=(self.draft..text:gsub("[^ -~]","")):sub(1,80)
   end
   function self:key(char,code)
+    if self.craft then
+      if code==28 or code==156 then self:craftTouch("submit")
+      elseif code==1 then self:craftTouch("close")
+      elseif code==14 then self:craftTouch("back")
+      elseif type(char)=="number" and char>=48 and char<=57 then self:craftTouch(string.char(char)) end
+      return
+    end
     if not self.editing then return end
     if code==28 or code==156 then self:edit("apply")
     elseif code==1 then self:edit("cancel")
@@ -93,6 +108,13 @@ function M.new(net,clock)
   end
   function self:touch(id)
     if not id then return end
+    if self.craft then local action=id:match("^craft:(.+)$"); if action then self:craftTouch(action) end; return end
+    if id=="craft:open" then self:beginCraft(); return end
+    local cancel=id:match("^cancelcraft:(.+)$")
+    if cancel then self:cancelCraft(cancel); return end
+    local archive=id:match("^archivecraft:(.+)$")
+    if archive then self:cancelCraft(archive,true); return end
+    if id=="jobsprev" or id=="jobsnext" then self.jobsPage=math.max(1,(self.jobsPage or 1)+(id=="jobsnext" and 1 or -1)); return end
     local key=id:match("^key:(.+)$")
     if self.editing then if key then self:edit(key) end; return end
     local tab=id:match("^tab:(%d)$")
@@ -138,9 +160,10 @@ function M.new(net,clock)
       self.wasOnline=false; return
     end
     if not self.wasOnline then self.wasOnline=true; self:refresh(true) end
-    if clock()-self.lastJobsPoll>=10 then self:refreshJobs() end
+    if clock()-self.lastJobsPoll>=(self.tab==4 and 2 or 10) then self:refreshJobs() end
     if self.tab==2 and clock()-self.lastStockPoll>=10 then self:refreshStocks(false) end
   end
+  require("client.crafting").attach(self,net)
   return self
 end
 return M

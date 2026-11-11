@@ -44,7 +44,10 @@ Kayıtlı istemci REQUEST gönderir; body `command` ve `args` içerir. RESPONSE 
 |---|---|---|---|
 | HEARTBEAT / GET_SERVER_STATUS | evet | evet | Sunucu özeti ve telemetri |
 | GET_AE2_STOCKS | evet | hayır | 24 varyant/sayfa, plain substring sorgusu, genel ad/miktar sırası ve tarifli/favori filtresi |
-| GET_CRAFTING_JOBS | evet | hayır | CPU doluluğu; mevcut iş ayrıntıları unsupported |
+| GET_CRAFTING_JOBS | evet | hayır | CPU doluluğu ve en fazla 32 FactoryOS emrinin gerçek durumu |
+| GET_CRAFT_OPTIONS | evet | hayır | Tam ürün kimliğinden filtreli tarif doğrulaması, CPU seçenekleri, 60 saniyelik seçim token'ı ve sıradaki emir numarası |
+| START_CRAFT | evet | hayır | Token/numara/adet/CPU ile kalıcı kayıttan sonra tek üretim çağrısı |
+| CANCEL_CRAFT / ARCHIVE_CRAFT | evet | hayır | Emir sahibinin işi iptal etmesi / belirsiz işi kontrol sonrası yalnızca izlemeden arşivlemesi |
 | GET_POWER_STATUS | evet | evet | AE birimli AE2 enerjisi, diğer sürücüler unsupported |
 | GET_MACHINE_STATUS | evet | evet | Henüz doğrulanmış sürücü olmadığı bilgisi |
 | GET_UPDATE_INFO | evet | evet | Güncelleme durumu/manifest, isteğe bağlı GitHub kontrolü ve cache hazırlığı |
@@ -54,6 +57,8 @@ Kayıtlı istemci REQUEST gönderir; body `command` ve `args` içerir. RESPONSE 
 v0.2.0 stok args alanları: `page`, `query`, `sort="name"|"amount"`, `filter="all"|"craftable"|"favorites"`. Favori filtresinde en fazla 32 adet, her biri en fazla 1024 bayt olan `favoriteKeys` string dizisi gönderilir. Anahtarlar `core.items` içindeki canonical `name/damage/hasTag/tag` temsilidir; üretim yetkisi taşımaz. Filtreleme ve sıralama sayfalamadan önce uygulanır. Yanıt `filter` ve `sort` alanlarını yankılar; eski sunucu bu alanları desteklemiyorsa ana ekran özel filtre/sıra sonucunu göstermez ve güncelleme gerektiğini bildirir. Wire protokolü v2 kalır; eski salt okunur istemciler varsayılan name/all sorgularıyla çalışabilir.
 
 v0.3.0 `GET_UPDATE_INFO` args: `check=true` manifest kontrolünü, `prepare=true,release=...` doğrulanmış server cache hazırlığını ister. Yanıt `{info,manifest,busy,ready}`; `info` heartbeat durumuna da eklenir. Hazırlık asenkron olduğundan istemci yeni istek kimlikleriyle durumu tekrar okur. `GET_UPDATE_FILE` args `{release,path,offset}`; yanıt `{release,path,offset,size,data}`. Release ve path cache manifestiyle tam eşleşmelidir; config/başka dosyalar okunmaz. Kaynak metinleri ağdan direkt çalıştıran komut yoktur. İstemci ancak yerel kullanıcının güncelleme eyleminden sonra tam dosyaları staging alanına alır, SHA256/sözdizimi doğrular ve kendi bilgisayarını yeniden başlatır. [Güncelleme akışı](updates.md).
+
+v0.4.0 `GET_CRAFT_OPTIONS {item={name,damage,hasTag,tag,identityComplete}}` yanıtı `{token,sequence,label,cpus,maxAmount}`; seçim ilgili istemci modemine ve AE2 bileşenine bağlıdır. `START_CRAFT {token,sequence,amount,cpu}` için CPU boş string ise otomatik seçilir. `CANCEL_CRAFT {id}` ve `ARCHIVE_CRAFT {id}` yalnızca kayıt sahibine açıktır. Job yanıtı `{id,owner,label,amount,cpu,state,error}`; userdata ve tarif nesneleri ağdan geçirilmez. Numara/token/adet/CPU uyuşmayan tekrarlar reddedilir. Diskteki monoton numara ve sınırlı kayıtlar RPC cache'i sona erdikten, kayıt geçmişten çıkarıldıktan ve sunucu reboot olduktan sonra da aynı emrin yeniden çağrılmasını engeller. Bozuk journal'da yazma komutları açılmaz. [Üretim ve reboot davranışı](crafting.md).
 
 ## Çalışma modeli
 

@@ -19,7 +19,7 @@ function M.run(cfg,service)
   local function nonce() return uuid.next() end
   local ok,reason=xpcall(function()
     local server=cfg.role=="server" and require("server.main").new(cfg,clock,log) or nil
-    net=protocol.new(cfg,hw.modem,clock,nonce,server and function(cmd,args) return server:dispatch(cmd,args) end,log)
+    net=protocol.new(cfg,hw.modem,clock,nonce,server and function(cmd,args,client) return server:dispatch(cmd,args,client) end,log)
     if server then server.clients=net.clients end
     updates=require("core.updates").new(cfg,net,clock,service,{log=log,isIdle=server and function() return server:canUpdate() end or nil})
     if server then server.updates=updates end
@@ -48,8 +48,8 @@ function M.run(cfg,service)
         if id and id:match("^update:") then updates:touch(id) else state:touch(id) end
         lastDraw=-math.huge
       elseif e[1]=="key_down" then
-        if not state.editing and e[4]==63 then updates:touch("update:check")
-        elseif not state.editing and e[4]==64 then updates:touch("update:apply")
+        if not state.editing and not state.craft and e[4]==63 then updates:touch("update:check")
+        elseif not state.editing and not state.craft and e[4]==64 then updates:touch("update:apply")
         elseif state.key then state:key(e[3],e[4]) end
         lastDraw=-math.huge
       elseif e[1]=="clipboard" and state.paste then state:paste(e[3]); lastDraw=-math.huge

@@ -582,7 +582,7 @@ end
 local payload={}
 payload[ [[
 manifest.dat]] ]=[[
-m4:s5:filesm30:n1:1m3:s4:paths8:boot.luas4:sizen4:1375s6:sha256s64:7c5b2ea41201dc92f43b50aaad9c06f633e5dfd707783cd243376f16845a90bdn1:2m3:s4:paths23:client/main_display.luas4:sizen4:7776s6:sha256s64:01bd6ff817538ba5a44d6ef4caff48b85cbe642f6271f6947b38c2e1572dbc35n1:3m3:s4:paths22:client/preferences.luas4:sizen3:879s6:sha256s64:e1d9ec86fc051e57ed8b5ac78f3b1eedf3c5fe5ecb76a5127b62e7467ce8191fn1:4m3:s4:paths23:client/side_display.luas4:sizen3:159s6:sha256s64:7e94ff8c85f4be8b2c65786376ec1ff19ea17807310b3940a3e5f2aea31ecdc3n1:5m3:s4:paths18:core/autostart.luas4:sizen4:1456s6:sha256s64:954eaf256cb6b89d8092de49b6963927b39b37b4203052bd24071aa1fefe0b85n1:6m3:s4:paths12:core/cli.luas4:sizen4:6327s6:sha256s64:35fe3bb25ff8f328d56dcd6fe6e5b4f733d751780d230b66d788b1f1918618f3n1:7m3:s4:paths14:core/codec.luas4:sizen4:2990s6:sha256s64:d99f7fcbec5e1419877fba9e17a6bd673047dfbd55d4369890f0b8cbe436614dn1:8m3:s4:paths15:core/config.luas4:sizen4:3287s6:sha256s64:08044ececad5c3a115c28e27179582d06d9370e60ebd117c441cf0a71f48cc41n1:9m3:s4:paths15:core/crypto.luas4:sizen4:2958s6:sha256s64:c58b3b3fc70204fdc85ccd9b2c3ffdceba8516376f94110a700f070eb7b6ed95n2:10m3:s4:paths17:core/hardware.luas4:sizen4:1853s6:sha256s64:f40a399b003f0f137e11c488d79eb6d7f46c4d60dc01d1b3f14a087d7863330an2:11m3:s4:paths18:core/installer.luas4:sizen4:4220s6:sha256s64:6e61458610f4d4f821a2e6d581d083cff19ae5615cef3c56109812f150f84080n2:12m3:s4:paths14:core/items.luas4:sizen3:449s6:sha256s64:e736f06f45d682fc14911a502a0d638e929c1a43bb1f29de56ea0f8f1ff5a589n2:13m3:s4:paths15:core/logger.luas4:sizen3:719s6:sha256s64:773349ed6f72655c34f5499b8a2363b4c38a0844c51ffcb8a2bc855e8e98d81cn2:14m3:s4:paths16:core/runtime.luas4:sizen4:4004s6:sha256s64:4b5f3e7d965e40d05720902b17871e4e27554b007f3157bc3e3a71011c8936can2:15m3:s4:paths16:core/storage.luas4:sizen4:1553s6:sha256s64:2cc1a5775cd064c10aebfc1967e24fe3764c09af5d19dfc0c985973d61071f94n2:16m3:s4:paths16:core/updater.luas4:sizen4:6746s6:sha256s64:921ab0c29a6f36c2409dd8c5fa28d5d707e81a6445f15bfd6b86d8da0593b4e3n2:17m3:s4:paths16:core/updates.luas4:sizen5:11440s6:sha256s64:4b0d0c01f3a5c65f38062b0d92f16592efdb4984ebe0171162f6475b03b3aeffn2:18m3:s4:paths20:network/messages.luas4:sizen3:499s6:sha256s64:bf9ee1b1ef6f6dc8522d39f40bacd9b473fcb4e0ef20e5a0a96d492957947dean2:19m3:s4:paths17:network/modem.luas4:sizen4:4235s6:sha256s64:79d685360eb05d38dc2797f812341df5b898fb0e189565a965ddfb7f5581bc2dn2:20m3:s4:paths20:network/protocol.luas4:sizen4:6583s6:sha256s64:5a3f96e81fe121e9ec186d6a3659e163694d81eac0312f0260b988d4ad4b9ed3n2:21m3:s4:paths14:server/ae2.luas4:sizen4:7224s6:sha256s64:5eeaf562fdaff52b2a2fb29c470c12fbd8c7859ddc65a03d41c003d5c3be8413n2:22m3:s4:paths17:server/energy.luas4:sizen3:156s6:sha256s64:1bcc2fd9ea9f8950d91a63065913fc089ef87750d5ef9e3d206ed044e5aa3ff6n2:23m3:s4:paths19:server/machines.luas4:sizen3:269s6:sha256s64:861aeeec2cb4fd1f7c21cd5529ae724846a15ab4fd3111b07333071ef0ba1e3bn2:24m3:s4:paths15:server/main.luas4:sizen4:2139s6:sha256s64:00b501cac1142250ea062dddcb30a7c863983ba43406b1c76f05917e656eb7e8n2:25m3:s4:paths13:ui/format.luas4:sizen4:1186s6:sha256s64:49e6419be127eb4fd3ce51574d769579c6332a4d955dc72c6162592162b65f5fn2:26m3:s4:paths18:ui/main_screen.luas4:sizen5:20768s6:sha256s64:3de775e24334866c7d61a08a693a19782a6174fe5b5a723cbf842dd864fac15cn2:27m3:s4:paths15:ui/renderer.luas4:sizen4:3323s6:sha256s64:a7232bae7243ab279e2740e145918e9b2bc3e24cf08ab3ec2044c2ab44ec7eeen2:28m3:s4:paths14:ui/screens.luas4:sizen4:2405s6:sha256s64:3bc4db0b23aec3fb7660c9c38bf2b4a54a045bbbd8355273a9f76d1a4fa7b3b5n2:29m3:s4:paths14:ui/updates.luas4:sizen4:2905s6:sha256s64:f70bc0f1e961c46f9841f9d5037d298aeccd8e4f3da5c0d1e6e6f39999c09d8fn2:30m3:s4:paths14:ui/widgets.luas4:sizen4:1334s6:sha256s64:71642d816aebbc63a1fad5e54bf825361010233897ee848902fadb6b178a4652s6:scheman1:1s7:releases18:0.3.2-4f29e14967a4s7:versions5:0.3.2]]
+m4:s5:filesm33:n1:1m3:s4:paths8:boot.luas4:sizen4:1425s6:sha256s64:8f6130f2571089fd9b60a28a3e08252abd98adbc13ae4ecb376c709c2cb03f71n1:2m3:s4:paths19:client/crafting.luas4:sizen4:3576s6:sha256s64:facebc295b3719fafa7c19fac12ea1d789cd34968e10ceef9d652a5752c7b7aan1:3m3:s4:paths23:client/main_display.luas4:sizen4:9002s6:sha256s64:e0d12b26b7d13f33b76242b2e628e00d53c34c4b97f0eb418c70514b4fbcba5cn1:4m3:s4:paths22:client/preferences.luas4:sizen3:879s6:sha256s64:e1d9ec86fc051e57ed8b5ac78f3b1eedf3c5fe5ecb76a5127b62e7467ce8191fn1:5m3:s4:paths23:client/side_display.luas4:sizen3:159s6:sha256s64:7e94ff8c85f4be8b2c65786376ec1ff19ea17807310b3940a3e5f2aea31ecdc3n1:6m3:s4:paths18:core/autostart.luas4:sizen4:1456s6:sha256s64:954eaf256cb6b89d8092de49b6963927b39b37b4203052bd24071aa1fefe0b85n1:7m3:s4:paths12:core/cli.luas4:sizen4:6327s6:sha256s64:35fe3bb25ff8f328d56dcd6fe6e5b4f733d751780d230b66d788b1f1918618f3n1:8m3:s4:paths14:core/codec.luas4:sizen4:2990s6:sha256s64:d99f7fcbec5e1419877fba9e17a6bd673047dfbd55d4369890f0b8cbe436614dn1:9m3:s4:paths15:core/config.luas4:sizen4:3287s6:sha256s64:08044ececad5c3a115c28e27179582d06d9370e60ebd117c441cf0a71f48cc41n2:10m3:s4:paths15:core/crypto.luas4:sizen4:2958s6:sha256s64:c58b3b3fc70204fdc85ccd9b2c3ffdceba8516376f94110a700f070eb7b6ed95n2:11m3:s4:paths17:core/hardware.luas4:sizen4:1853s6:sha256s64:f40a399b003f0f137e11c488d79eb6d7f46c4d60dc01d1b3f14a087d7863330an2:12m3:s4:paths18:core/installer.luas4:sizen4:4220s6:sha256s64:6e61458610f4d4f821a2e6d581d083cff19ae5615cef3c56109812f150f84080n2:13m3:s4:paths14:core/items.luas4:sizen3:523s6:sha256s64:350073205e1291bcf903130ebbe1f7de509ea5f4442f047e3e30d4ba8f96e690n2:14m3:s4:paths15:core/logger.luas4:sizen3:719s6:sha256s64:773349ed6f72655c34f5499b8a2363b4c38a0844c51ffcb8a2bc855e8e98d81cn2:15m3:s4:paths16:core/runtime.luas4:sizen4:4058s6:sha256s64:32bc55c6c1fa2987a1828a82e1f1a4cb575e0377e35ddd672d66733e525c99f9n2:16m3:s4:paths16:core/storage.luas4:sizen4:1553s6:sha256s64:2cc1a5775cd064c10aebfc1967e24fe3764c09af5d19dfc0c985973d61071f94n2:17m3:s4:paths16:core/updater.luas4:sizen4:6746s6:sha256s64:921ab0c29a6f36c2409dd8c5fa28d5d707e81a6445f15bfd6b86d8da0593b4e3n2:18m3:s4:paths16:core/updates.luas4:sizen5:11440s6:sha256s64:4b0d0c01f3a5c65f38062b0d92f16592efdb4984ebe0171162f6475b03b3aeffn2:19m3:s4:paths20:network/messages.luas4:sizen3:689s6:sha256s64:651a29aeac8f1c477b636940d26dda0a1ab9de1efa8dd1b83f313847e0870e21n2:20m3:s4:paths17:network/modem.luas4:sizen4:4235s6:sha256s64:79d685360eb05d38dc2797f812341df5b898fb0e189565a965ddfb7f5581bc2dn2:21m3:s4:paths20:network/protocol.luas4:sizen4:6598s6:sha256s64:e14a88c4328dbf2b1c082d5d48436d5adc6c8a7aaa1a6720e9af01a70c346844n2:22m3:s4:paths14:server/ae2.luas4:sizen4:7224s6:sha256s64:5eeaf562fdaff52b2a2fb29c470c12fbd8c7859ddc65a03d41c003d5c3be8413n2:23m3:s4:paths19:server/crafting.luas4:sizen5:11783s6:sha256s64:8c338ee2bc86a30bc93fd975ad63229df45e80dda74c403a554e179c9bc0d897n2:24m3:s4:paths17:server/energy.luas4:sizen3:156s6:sha256s64:1bcc2fd9ea9f8950d91a63065913fc089ef87750d5ef9e3d206ed044e5aa3ff6n2:25m3:s4:paths19:server/machines.luas4:sizen3:269s6:sha256s64:861aeeec2cb4fd1f7c21cd5529ae724846a15ab4fd3111b07333071ef0ba1e3bn2:26m3:s4:paths15:server/main.luas4:sizen4:3132s6:sha256s64:f258c27238bc84d6a920fe39f471eac7c8596b0aa0f1d3b730f92271fd94ce16n2:27m3:s4:paths15:ui/crafting.luas4:sizen4:5043s6:sha256s64:67bd397312990d403fa25fa91e075d79765c12c9cd432da64162ab72e974b460n2:28m3:s4:paths13:ui/format.luas4:sizen4:1186s6:sha256s64:49e6419be127eb4fd3ce51574d769579c6332a4d955dc72c6162592162b65f5fn2:29m3:s4:paths18:ui/main_screen.luas4:sizen5:20853s6:sha256s64:c6a63776a0820209b81e613e31d7e5fd0edf5536b45297c123e6da182e87e5can2:30m3:s4:paths15:ui/renderer.luas4:sizen4:3323s6:sha256s64:a7232bae7243ab279e2740e145918e9b2bc3e24cf08ab3ec2044c2ab44ec7eeen2:31m3:s4:paths14:ui/screens.luas4:sizen4:2405s6:sha256s64:5a81ad494708bfdcc421fa4bc2b5fa776eec1326eb7f13c96b366c97fe339ec0n2:32m3:s4:paths14:ui/updates.luas4:sizen4:2905s6:sha256s64:f70bc0f1e961c46f9841f9d5037d298aeccd8e4f3da5c0d1e6e6f39999c09d8fn2:33m3:s4:paths14:ui/widgets.luas4:sizen4:1334s6:sha256s64:71642d816aebbc63a1fad5e54bf825361010233897ee848902fadb6b178a4652s6:scheman1:1s7:releases18:0.4.0-43d2fdc1e9das7:versions5:0.4.0]]
 payload[ [[
 src/boot.lua]] ]=[[
 -- Loaded afresh by /bin/factoryos.lua; active pointer selects an immutable release.
@@ -598,12 +598,86 @@ if not package.loaded["factoryos.service"] or not package.loaded["factoryos.serv
   -- OpenOS itself owns many core.* modules. Clear only FactoryOS's exact names.
   local names={"core.cli","core.codec","core.config","core.crypto","core.hardware","core.installer",
     "core.logger","core.runtime","core.storage","core.updater","core.items","core.autostart","core.updates","network.modem","network.messages",
-    "network.protocol","server.ae2","server.energy","server.machines","server.main",
-    "client.main_display","client.side_display","client.preferences","ui.renderer","ui.screens","ui.main_screen","ui.widgets","ui.format","ui.updates"}
+    "network.protocol","server.ae2","server.crafting","server.energy","server.machines","server.main",
+    "client.main_display","client.crafting","client.side_display","client.preferences","ui.renderer","ui.screens","ui.main_screen","ui.crafting","ui.widgets","ui.format","ui.updates"}
   for _,name in ipairs(names) do package.loaded[name]=nil end
 end
 package.path=release.."/?.lua;"..release.."/?/init.lua;"..package.path
 return require("core.cli").main(args or {},root)
+]]
+payload[ [[
+src/client/crafting.lua]] ]=[[
+local identity=require("core.items")
+local M={}
+function M.attach(self,net)
+  function self:beginCraft()
+    local item=self.selected
+    if not net.online or not ((net.status or {}).ae2 or {}).online or not item or not item.isCraftable or not identity.key(item) then
+      self:notice("Tarifli ve kimligi belirli bir urun secin","warn"); return
+    end
+    local c={label=item.label,variant=" / Meta: "..tostring(item.damage or 0)..(item.hasTag and " / NBT" or ""),amount="1",cpu="",loading=true}; self.craft=c
+    local id,why=net:request("GET_CRAFT_OPTIONS",{item={name=item.name,damage=item.damage,hasTag=item.hasTag,tag=item.tag,identityComplete=item.identityComplete}},function(data,err)
+      if self.craft~=c then return end
+      c.loading=false; c.preview=data; c.error=err
+      if data then
+        c.label=data.label; c.cpus={""}; local names={}
+        for _,cpu in ipairs(data.cpus or {}) do
+          if cpu.name~="" then names[cpu.name]=(names[cpu.name] or 0)+1 end
+        end
+        for _,cpu in ipairs(data.cpus or {}) do if cpu.name~="" and cpu.selectable~=false and not cpu.busy and names[cpu.name]==1 then c.cpus[#c.cpus+1]=cpu.name end end
+      end
+    end)
+    if not id then c.loading=false; c.error=why end
+  end
+  function self:craftTouch(action)
+    local c=self.craft; if not c then return end
+    if action=="close" or action=="jobs" then
+      if c.submitting then return end
+      self.craft=nil
+      if action=="jobs" then self.tab=4; self:refreshJobs() end
+      return
+    end
+    if c.submitted then return end
+    if action=="submit" then
+      local n=tonumber(c.amount)
+      if c.loading or not c.preview or not n or n%1~=0 or n<1 or n>1000000 then c.error="Miktar 1..1000000 arasi tam sayi olmali"; return end
+      c.submitted=true; c.submitting=true; c.error=nil
+      local id,why=net:request("START_CRAFT",{token=c.preview.token,sequence=c.preview.sequence,amount=n,cpu=c.cpu},function(data,err)
+        if self.craft~=c then return end
+        c.submitting=false
+        if data then
+          self.craft=nil; self.tab=4; self:notice("Emir kaydedildi: "..c.label.." x"..n); self:refreshJobs()
+        else
+          c.error=err or "Emir sonucu alinamadi"
+          if err=="TIMEOUT" or err=="OFFLINE" or err=="INTERNAL_ERROR" then
+            c.uncertain=true; c.error="Yanit yok. Emir tekrar gonderilmedi; isleri kontrol edin."
+          else c.submitted=false end
+        end
+      end)
+      if not id then c.submitting=false; c.submitted=false; c.error=why end
+      return
+    end
+    if action=="back" then c.amount=c.amount:sub(1,-2)
+    elseif action=="clear" then c.amount=""
+    elseif action=="cpu" and c.cpus then
+      local index=1; for i,name in ipairs(c.cpus) do if name==c.cpu then index=i; break end end
+      c.cpu=c.cpus[index%#c.cpus+1]
+    elseif action:match("^preset:%d+$") then c.amount=action:sub(8)
+    elseif action:match("^%d$") and #c.amount<7 then c.amount=(c.amount=="0" and "" or c.amount)..action end
+  end
+  function self:cancelCraft(id,archive)
+    self.canceling=self.canceling or {}
+    if self.canceling[id] then return end
+    self.canceling[id]=true
+    local sent,why=net:request(archive and "ARCHIVE_CRAFT" or "CANCEL_CRAFT",{id=id},function(data,err)
+      self.canceling[id]=nil
+      self:notice(data and (archive and "Izleme arsivlendi; AE2 isi degistirilmedi" or "Iptal durumu yenileniyor") or (err or "Islem tamamlanamadi"),data and "info" or "warn")
+      self:refreshJobs()
+    end)
+    if not sent then self.canceling[id]=nil; self:notice(why,"warn") end
+  end
+end
+return M
 ]]
 payload[ [[
 src/client/main_display.lua]] ]=[[
@@ -675,10 +749,25 @@ function M.new(net,clock)
     elseif #action==1 and #self.draft<80 then self.draft=self.draft..action end
   end
   function self:paste(text)
+    if self.craft then
+      if not self.craft.submitted and type(text)=="string" then
+        text=text:match("^%s*(.-)%s*$")
+        if text:match("^%d+$") then self.craft.amount=(self.craft.amount..text):sub(1,7)
+        else self.craft.error="Miktar alanina yalnizca rakam girin" end
+      end
+      return
+    end
     if not self.editing or type(text)~="string" then return end
     self.draft=(self.draft..text:gsub("[^ -~]","")):sub(1,80)
   end
   function self:key(char,code)
+    if self.craft then
+      if code==28 or code==156 then self:craftTouch("submit")
+      elseif code==1 then self:craftTouch("close")
+      elseif code==14 then self:craftTouch("back")
+      elseif type(char)=="number" and char>=48 and char<=57 then self:craftTouch(string.char(char)) end
+      return
+    end
     if not self.editing then return end
     if code==28 or code==156 then self:edit("apply")
     elseif code==1 then self:edit("cancel")
@@ -702,6 +791,13 @@ function M.new(net,clock)
   end
   function self:touch(id)
     if not id then return end
+    if self.craft then local action=id:match("^craft:(.+)$"); if action then self:craftTouch(action) end; return end
+    if id=="craft:open" then self:beginCraft(); return end
+    local cancel=id:match("^cancelcraft:(.+)$")
+    if cancel then self:cancelCraft(cancel); return end
+    local archive=id:match("^archivecraft:(.+)$")
+    if archive then self:cancelCraft(archive,true); return end
+    if id=="jobsprev" or id=="jobsnext" then self.jobsPage=math.max(1,(self.jobsPage or 1)+(id=="jobsnext" and 1 or -1)); return end
     local key=id:match("^key:(.+)$")
     if self.editing then if key then self:edit(key) end; return end
     local tab=id:match("^tab:(%d)$")
@@ -747,9 +843,10 @@ function M.new(net,clock)
       self.wasOnline=false; return
     end
     if not self.wasOnline then self.wasOnline=true; self:refresh(true) end
-    if clock()-self.lastJobsPoll>=10 then self:refreshJobs() end
+    if clock()-self.lastJobsPoll>=(self.tab==4 and 2 or 10) then self:refreshJobs() end
     if self.tab==2 and clock()-self.lastStockPoll>=10 then self:refreshStocks(false) end
   end
+  require("client.crafting").attach(self,net)
   return self
 end
 return M
@@ -1312,7 +1409,8 @@ payload[ [[
 src/core/items.lua]] ]=[[
 local codec=require("core.codec")
 local M={}
--- View preference identity only. Ambiguous NBT variants cannot be favorited.
+-- Canonical variant key. Crafting additionally validates full, untruncated
+-- native identities and re-resolves the recipe before submitting an order.
 function M.key(item)
   if type(item)~="table" or type(item.name)~="string" then return end
   if item.identityComplete==false or (item.hasTag and (type(item.tag)~="string" or item.tag=="")) then return end
@@ -1365,7 +1463,7 @@ function M.run(cfg,service)
   local function nonce() return uuid.next() end
   local ok,reason=xpcall(function()
     local server=cfg.role=="server" and require("server.main").new(cfg,clock,log) or nil
-    net=protocol.new(cfg,hw.modem,clock,nonce,server and function(cmd,args) return server:dispatch(cmd,args) end,log)
+    net=protocol.new(cfg,hw.modem,clock,nonce,server and function(cmd,args,client) return server:dispatch(cmd,args,client) end,log)
     if server then server.clients=net.clients end
     updates=require("core.updates").new(cfg,net,clock,service,{log=log,isIdle=server and function() return server:canUpdate() end or nil})
     if server then server.updates=updates end
@@ -1394,8 +1492,8 @@ function M.run(cfg,service)
         if id and id:match("^update:") then updates:touch(id) else state:touch(id) end
         lastDraw=-math.huge
       elseif e[1]=="key_down" then
-        if not state.editing and e[4]==63 then updates:touch("update:check")
-        elseif not state.editing and e[4]==64 then updates:touch("update:apply")
+        if not state.editing and not state.craft and e[4]==63 then updates:touch("update:check")
+        elseif not state.editing and not state.craft and e[4]==64 then updates:touch("update:apply")
         elseif state.key then state:key(e[3],e[4]) end
         lastDraw=-math.huge
       elseif e[1]=="clipboard" and state.paste then state:paste(e[3]); lastDraw=-math.huge
@@ -1831,7 +1929,9 @@ payload[ [[
 src/network/messages.lua]] ]=[[
 local M={}
 M.read={HEARTBEAT=true,GET_SERVER_STATUS=true,GET_AE2_STOCKS=true,GET_CRAFTING_JOBS=true,GET_POWER_STATUS=true,GET_MACHINE_STATUS=true,GET_UPDATE_INFO=true,GET_UPDATE_FILE=true}
+M.craft={GET_CRAFT_OPTIONS=true,START_CRAFT=true,CANCEL_CRAFT=true,ARCHIVE_CRAFT=true}
 function M.authorize(role,command)
+  if M.craft[command] then return role=="main" and true or nil,role~="main" and "FORBIDDEN" or nil end
   if not M.read[command] then return nil,"UNSUPPORTED_COMMAND" end
   if role~="main" and role~="side" then return nil,"FORBIDDEN" end
   if role=="side" and (command=="GET_AE2_STOCKS" or command=="GET_CRAFTING_JOBS") then return nil,"FORBIDDEN" end
@@ -1984,7 +2084,7 @@ function M.new(cfg,modem,clock,nonce,dispatch,log)
         local o=self.offers[remote]
         if not o or now-o.created>15 or o.boot~=m.boot or o.challenge~=m.body.challenge then return end
         self.offers[remote]=nil
-        self.clients[remote]={role=role,boot=m.boot,lastSeen=now}
+        self.clients[remote]={role=role,boot=m.boot,lastSeen=now,address=remote}
         log("INFO","Registered "..role.." "..remote)
         send(remote,"REGISTERED",{role=role},m.boot)
         return
@@ -2206,6 +2306,228 @@ end
 return M
 ]]
 payload[ [[
+src/server/crafting.lua]] ]=[[
+local storage=require("core.storage")
+local fs=require("filesystem")
+local identity=require("core.items")
+local uuid=require("uuid")
+local M={path="/var/lib/factoryos/crafting.dat"}
+local active={submitting=true,computing=true,running=true,cancel_requested=true,unknown=true}
+local terminal={done=true,canceled=true,failed=true,reviewed=true}
+local function text(s) return tostring(s or ""):gsub("[%c]"," "):sub(1,240) end
+local function integer(n,min,max) return type(n)=="number" and n==n and n%1==0 and n>=min and n<=max end
+local function call(p,method,...)
+  if not p then return nil,"unsupported: "..method end
+  local accessible,fn=pcall(function() return p[method] end)
+  if not accessible then return nil,text(fn) end
+  if fn==nil then return nil,"unsupported: "..method end
+  local ok,a,b=pcall(fn,...)
+  if not ok then return nil,text(a) end
+  return a,b and text(b) or nil
+end
+local function product(v)
+  if type(v)~="table" or type(v.name)~="string" or #v.name==0 or #v.name>160 or v.identityComplete==false then return end
+  if not integer(v.damage or 0,0,2147483647) then return end
+  local tag=type(v.tag)=="string" and v.tag or type(v.nbt_hash)=="string" and v.nbt_hash or ""
+  if #tag>512 or v.hasTag==true and tag=="" then return end
+  return {name=v.name,damage=v.damage or 0,hasTag=v.hasTag==true,tag=tag,identityComplete=true}
+end
+local function valid(j)
+  if type(j)~="table" or j.schema~=1 or type(j.high)~="table" or type(j.orders)~="table" or #j.orders>32 then return false end
+  local n=0
+  for owner,seq in pairs(j.high) do
+    n=n+1
+    if type(owner)~="string" or #owner>64 or not integer(seq,1,2147483647) or n>16 then return false end
+  end
+  for _,r in ipairs(j.orders) do
+    if type(r)~="table" or type(r.owner)~="string" or not integer(r.sequence,1,j.high[r.owner] or 0) or
+      type(r.token)~="string" or not product(r.product) or not integer(r.amount,1,1000000) or
+      type(r.cpu)~="string" or type(r.label)~="string" or not (active[r.state] or terminal[r.state]) then return false end
+  end
+  return true
+end
+function M.new(ae,clock,log,path)
+  path=path or M.path; log=log or function() end
+  local self={journal={schema=1,high={},orders={}},quotes={},handles={},lastTick=-math.huge}
+  if fs.exists(path) then
+    local j=storage.load(path)
+    if valid(j) then
+      self.journal=j
+      for _,r in ipairs(j.orders) do
+        if active[r.state] then r.state="unknown"; r.error="Sunucu yeniden basladi; ME Terminal'den kontrol edin. Emir tekrar gonderilmedi." end
+      end
+    else self.blocked="Uretim kaydi bozuk; yeni emirler durduruldu" end
+  elseif fs.exists(path..".bak") or fs.exists(path..".tmp") then
+    self.blocked="Uretim kaydi eksik; eski kayitla emir tekrari engellendi"
+  end
+  local function save()
+    if self.blocked then return nil,self.blocked end
+    local ok,a,b=pcall(storage.save,path,self.journal)
+    if not ok or not a then
+      self.blocked="Uretim kaydi yazilamadi: "..text(ok and b or a)
+      log("ERROR",self.blocked); return nil,self.blocked
+    end
+    return true
+  end
+  local function public(r)
+    return {id=r.owner..":"..r.sequence,label=r.label,amount=r.amount,cpu=r.cpu,state=r.state,error=r.error or "",owner=r.owner}
+  end
+  local function find(owner,sequence)
+    for _,r in ipairs(self.journal.orders) do if r.owner==owner and r.sequence==sequence then return r end end
+  end
+  function self:busy()
+    for _,r in ipairs(self.journal.orders) do if active[r.state] then return true end end
+    return self.blocked~=nil
+  end
+  function self:resolve(item)
+    local wanted=product(item)
+    if not wanted then return nil,"Urunun NBT/varyant kimligi belirsiz" end
+    if not ae.online then return nil,"AE2 baglantisi yok" end
+    local p,why=ae:discover(); if not p then return nil,why end
+    local list,err=call(p,"getCraftables",{name=wanted.name,damage=wanted.damage})
+    if type(list)~="table" then return nil,err or "Tarif okunamadi" end
+    if #list>64 then return nil,"Bu urun icin 64'ten fazla tarif varyanti var; secim dogrulanamadi" end
+    local match,label
+    for _,craft in ipairs(list) do
+      local stack,why=call(craft,"getItemStack")
+      if type(stack)~="table" then return nil,"Tarif kimligi okunamadi: "..(why or "gecersiz urun") end
+      local exact=product(stack)
+      if exact and identity.key(exact)==identity.key(wanted) then
+        if match then return nil,"Ayni varyant icin birden fazla tarif var" end
+        match=craft; label=text(stack.label or stack.name):sub(1,160)
+      end
+    end
+    if not match then return nil,"Bu urun/varyant icin tarif bulunamadi" end
+    return match,nil,p,wanted,label
+  end
+  function self:cpus(p)
+    local cpus,err=call(p,"getCpus")
+    if type(cpus)~="table" then return nil,err or "CPU listesi okunamadi" end
+    local out={}
+    for i=1,math.min(32,#cpus) do
+      local c=cpus[i]
+      if type(c)=="table" then
+        local name=text(c.name):sub(1,160)
+        out[#out+1]={name=name,selectable=type(c.name)=="string" and c.name~="" and name==c.name,
+          busy=c.busy==true,storage=tonumber(c.storage) or 0}
+      end
+    end
+    return out
+  end
+  function self:options(owner,args)
+    if self.blocked then return nil,self.blocked end
+    local craft,err,p,item,label=self:resolve(args.item)
+    if not craft then return nil,err end
+    local cpus,why=self:cpus(p); if not cpus then return nil,why end
+    local q={token=uuid.next(),sequence=(self.journal.high[owner] or 0)+1,item=item,label=label,address=p.address,at=clock()}
+    if q.sequence>2147483647 then return nil,"Emir numarasi sinirina ulasildi" end
+    self.quotes[owner]=q
+    return {token=q.token,sequence=q.sequence,label=label,cpus=cpus,maxAmount=1000000}
+  end
+  function self:start(owner,args)
+    if not integer(args.sequence,1,2147483647) or type(args.token)~="string" or #args.token>64 or
+      not integer(args.amount,1,1000000) or type(args.cpu or "")~="string" or #(args.cpu or "")>160 then return nil,"Gecersiz uretim emri" end
+    local cpu=args.cpu or ""
+    local old=find(owner,args.sequence)
+    if old then
+      if old.token~=args.token or old.amount~=args.amount or old.cpu~=cpu then return nil,"Emir kimligi baska bir istekte kullanilmis" end
+      return public(old)
+    end
+    if args.sequence<=(self.journal.high[owner] or 0) then return nil,"Bu emir daha once islendi; tekrar gonderilmedi" end
+    if self.blocked then return nil,self.blocked end
+    local q=self.quotes[owner]
+    if not q or q.token~=args.token or q.sequence~=args.sequence or clock()-q.at>60 then return nil,"Uretim secimi eskidi; pencereyi yeniden acin" end
+    local live=0; for _,r in ipairs(self.journal.orders) do if active[r.state] then live=live+1 end end
+    if live>=8 then return nil,"En fazla 8 aktif/belirsiz emir izlenebilir" end
+    local owners=0; for _ in pairs(self.journal.high) do owners=owners+1 end
+    if not self.journal.high[owner] and owners>=16 then return nil,"Emir sahibi kaydi siniri dolu" end
+    local craft,err,p,item,label=self:resolve(q.item)
+    if not craft then return nil,err end
+    if p.address~=q.address then return nil,"AE2 bileseni degisti; urunu yeniden secin" end
+    local cpus,why=self:cpus(p); if not cpus then return nil,why end
+    local available=false; local named=0
+    for _,c in ipairs(cpus) do
+      if cpu=="" and not c.busy then available=true end
+      if cpu~="" and c.name==cpu then named=named+1; available=not c.busy and c.selectable end
+    end
+    if cpu~="" and named~=1 then return nil,"CPU adi benzersiz degil veya CPU bulunamadi" end
+    if not available then return nil,"Uygun bos crafting CPU yok" end
+    if #self.journal.orders>=32 then
+      local removed=false
+      for i=#self.journal.orders,1,-1 do
+        if terminal[self.journal.orders[i].state] then table.remove(self.journal.orders,i); removed=true; break end
+      end
+      if not removed then return nil,"Uretim gecmisi dolu" end
+    end
+    local r={owner=owner,sequence=args.sequence,token=args.token,product=item,label=label,amount=args.amount,cpu=cpu,state="submitting",error=""}
+    self.journal.high[owner]=args.sequence; table.insert(self.journal.orders,1,r)
+    -- Durable high-water mark BEFORE the only side-effecting AE2 call.
+    local written,reason=save(); if not written then return nil,reason end
+    self.quotes[owner]=nil
+    local handle,failure
+    if cpu=="" then handle,failure=call(craft,"request",r.amount,true)
+    else handle,failure=call(craft,"request",r.amount,true,cpu) end
+    if (type(handle)=="table" or type(handle)=="userdata") and handle.isDone~=nil and handle.isCanceled~=nil then
+      self.handles[r]=handle; r.state="computing"
+    else r.state="unknown"; r.error=text(failure or "Emir sonucu alinamadi; ME Terminal'den kontrol edin") end
+    save(); log("INFO","Craft "..r.owner..":"..r.sequence.." "..r.label.." x"..r.amount.." "..r.state)
+    return public(r)
+  end
+  function self:tick()
+    if clock()-self.lastTick<2 then return end
+    self.lastTick=clock()
+    for owner,q in pairs(self.quotes) do if clock()-q.at>60 then self.quotes[owner]=nil end end
+    local changed=false
+    for r,handle in pairs(self.handles) do
+      local done,de=call(handle,"isDone"); local canceled,ce=call(handle,"isCanceled")
+      local state,err
+      if done==true then state="done"
+      elseif canceled==true then state="canceled"
+      elseif de=="computing" or ce=="computing" then state="computing"
+      elseif done==false and canceled==false and not de and not ce then state=r.state=="cancel_requested" and "cancel_requested" or "running"
+      elseif done==false and de or canceled==false and ce then state="failed"; err=de or ce
+      else state="unknown"; err=de or ce or "Is durumu okunamadi" end
+      if r.state~=state or r.error~=(err or "") then
+        r.state=state; r.error=text(err); changed=true
+        log((state=="failed" or state=="unknown") and "WARN" or "INFO","Craft "..r.owner..":"..r.sequence.." "..state..(r.error~="" and (": "..r.error) or ""))
+      end
+      if terminal[state] then self.handles[r]=nil end
+    end
+    if changed then save() end
+  end
+  function self:cancel(owner,args)
+    local r
+    for _,record in ipairs(self.journal.orders) do if record.owner==owner and record.owner..":"..record.sequence==args.id then r=record; break end end
+    if not r then return nil,"Emir bulunamadi veya bu ekrana ait degil" end
+    if terminal[r.state] or r.state=="cancel_requested" then return public(r) end
+    local handle=self.handles[r]; if not handle then return nil,"Is baglantisi kayip; ME Terminal'den iptal edin" end
+    local ok,why=call(handle,"cancel")
+    if ok~=true then return nil,why=="computing" and "Hesaplama suruyor; biraz sonra iptal edin" or why or "Is henuz iptal edilemiyor" end
+    r.state="cancel_requested"; r.error=""; save()
+    return public(r)
+  end
+  function self:archive(owner,args)
+    for _,r in ipairs(self.journal.orders) do
+      if r.owner==owner and r.owner..":"..r.sequence==args.id then
+        if r.state=="reviewed" then return public(r) end
+        if r.state~="unknown" then return nil,"Yalnizca durumu bilinmeyen emir elle arsivlenebilir" end
+        self.handles[r]=nil; r.state="reviewed"; r.error="Kullanici ME Terminal kontrolunden sonra izlemeyi arsivledi; AE2'ye iptal veya uretim emri verilmedi."
+        local ok,err=save(); if not ok then return nil,err end
+        return public(r)
+      end
+    end
+    return nil,"Emir bulunamadi veya bu ekrana ait degil"
+  end
+  function self:jobs()
+    local out={}; for _,r in ipairs(self.journal.orders) do out[#out+1]=public(r) end
+    return {cpus=ae.cpus,trackedJobs=out,existingJobDetails="factoryos_orders_only",error=ae.cpuError or "",
+      craftingEnabled=not self.blocked,craftingError=self.blocked or ""}
+  end
+  return self
+end
+return M
+]]
+payload[ [[
 src/server/energy.lua]] ]=[[
 local M={}
 function M.status(ae2)
@@ -2229,27 +2551,38 @@ local machines=require("server.machines")
 local M={}
 function M.new(cfg,clock,log)
   local self={ae2=ae2.new(cfg),lastPoll=-math.huge,started=clock(),clients={}}
+  self.crafting=require("server.crafting").new(self.ae2,clock,log)
   function self:status()
     local clients={}
     for address,c in pairs(self.clients) do clients[#clients+1]={address=address,role=c.role,age=math.floor(clock()-c.lastSeen)} end
-    return {version="0.3.2",uptime=math.floor(clock()-self.started),ae2=self.ae2:summary(),clients=clients,
-      power=energy.status(self.ae2),automation=false,crafting="disabled_pending_ingame_validation",reactors="read_only_unsupported",
+    return {version="0.4.0",uptime=math.floor(clock()-self.started),ae2=self.ae2:summary(),clients=clients,
+      power=energy.status(self.ae2),automation=false,crafting=self.crafting.blocked and "blocked" or "manual",reactors="read_only_unsupported",
       update=self.updates and self.updates:public() or nil}
   end
   function self:canUpdate()
+    if self.crafting:busy() then return false,"Aktif/belirsiz uretim emri var; isleri kontrol edin" end
     for _,cpu in ipairs(self.ae2.cpus or {}) do if cpu.busy then return false,"Uretim CPU'lari mesgul; sonra tekrar deneyin" end end
     return true
   end
-  function self:dispatch(command,args)
+  function self:dispatch(command,args,client)
     if command=="HEARTBEAT" or command=="GET_SERVER_STATUS" then return self:status() end
     if command=="GET_AE2_STOCKS" then return self.ae2:stocks(args) end
-    if command=="GET_CRAFTING_JOBS" then return self.ae2:jobs() end
+    if command=="GET_CRAFTING_JOBS" then return self.crafting:jobs() end
+    if command=="GET_CRAFT_OPTIONS" or command=="START_CRAFT" or command=="CANCEL_CRAFT" or command=="ARCHIVE_CRAFT" then
+      if not client or client.role~="main" or type(client.address)~="string" then return nil,"FORBIDDEN" end
+      if self.updates and (self.updates.busy or self.updates.readyManifest) and (command=="GET_CRAFT_OPTIONS" or command=="START_CRAFT") then return nil,"Guncelleme suruyor; uretimi sonra deneyin" end
+      if command=="GET_CRAFT_OPTIONS" then return self.crafting:options(client.address,args) end
+      if command=="START_CRAFT" then return self.crafting:start(client.address,args) end
+      if command=="ARCHIVE_CRAFT" then return self.crafting:archive(client.address,args) end
+      return self.crafting:cancel(client.address,args)
+    end
     if command=="GET_POWER_STATUS" then return energy.status(self.ae2) end
     if command=="GET_MACHINE_STATUS" then return machines.status() end
     if (command=="GET_UPDATE_INFO" or command=="GET_UPDATE_FILE") and self.updates then return self.updates:serve(command,args) end
     return nil,"UNSUPPORTED_COMMAND"
   end
   function self:tick()
+    self.crafting:tick()
     if clock()-self.lastPoll<cfg.poll then return end
     self.lastPoll=clock()
     local old=self.ae2.online; local oldError=self.ae2.error; local oldAddress=self.ae2.address
@@ -2263,6 +2596,80 @@ function M.new(cfg,clock,log)
     end
   end
   return self
+end
+return M
+]]
+payload[ [[
+src/ui/crafting.lua]] ]=[[
+local C=require("ui.renderer").colors
+local W=require("ui.widgets")
+local F=require("ui.format")
+local M={}
+local labels={submitting="GONDERILIYOR",computing="HESAPLANIYOR",running="CALISIYOR",done="TAMAMLANDI",
+  canceled="IPTAL EDILDI",cancel_requested="IPTAL BEKLENIYOR",failed="HATA",unknown="DURUMU BILINMIYOR",reviewed="ELLE ARSIVLENDI"}
+function M.jobs(r,l,state,net)
+  W.panel(r,l.x,l.y,l.w,l.bottom-l.y+1,"URETIM / EMIRLER VE CPU")
+  local tiny=l.bottom-l.y<8; local compact=l.bottom-l.y<22
+  local jobs=state.jobs or {}; local cpus=jobs.cpus or {}; local busy=0
+  for _,cpu in ipairs(cpus) do if cpu.busy then busy=busy+1 end end
+  if not tiny then W.text(r,l.x+1,l.y+2,l.w-2,state.jobsError or ("CPU: "..busy.." / "..#cpus.." mesgul | "..(jobs.error~="" and jobs.error or "AE2 otomatik CPU secimi")),C.muted) end
+  local start=l.y+(tiny and 1 or compact and 4 or 8)
+  if not compact then
+    local names={}
+    for i=1,math.min(3,#cpus) do names[#names+1]=(cpus[i].name~="" and cpus[i].name or "Isimsiz CPU")..(cpus[i].busy and " [MESGUL]" or " [BOS]") end
+    W.wrap(r,l.x+2,l.y+4,l.w-4,2,table.concat(names," | "),C.blue)
+    W.text(r,l.x+2,l.y+6,l.w-4,"Yalnizca FactoryOS'tan verilen emirler izlenir.",C.muted)
+  end
+  local rows=jobs.trackedJobs or {}; local step=compact and 3 or 5
+  local count=math.max(1,math.floor((l.bottom-start-2)/step))
+  local pages=math.max(1,math.ceil(#rows/count)); state.jobsPage=math.min(pages,state.jobsPage or 1)
+  if #rows==0 then W.text(r,l.x+2,start,l.w-4,"Henuz uretim emri yok. Depodan tarifli urun secin.",C.muted) end
+  for i=1,count do
+    local job=rows[(state.jobsPage-1)*count+i]; if not job then break end
+    local y=start+(i-1)*step
+    local color=job.state=="done" and C.good or (job.state=="failed" or job.state=="unknown") and C.warn or C.accent
+    W.text(r,l.x+2,y,l.w-4,F.integer(job.amount).." x "..job.label,C.text)
+    local cancelable=job.state=="running" or job.state=="computing"
+    local owned=job.owner==((state.context or {}).modem)
+    local status=labels[job.state] or "BILINMIYOR"
+    if compact and job.state=="failed" and job.error and job.error~="" then status=status.." / "..job.error end
+    W.text(r,l.x+2,y+1,l.w-((cancelable and owned) and 15 or 4),status,color)
+    if cancelable and owned then r:button(l.x+l.w-12,y+1,10,"IPTAL ET","cancelcraft:"..job.id,false,1,not (state.canceling or {})[job.id]) end
+    if job.state=="unknown" and owned then r:button(l.x+l.w-19,y+1,17,"ME'DE BAKTIM","archivecraft:"..job.id,false,1,not (state.canceling or {})[job.id]) end
+    if not compact then
+      W.text(r,l.x+2,y+2,l.w-4,"CPU: "..(job.cpu~="" and job.cpu or "Otomatik / AE2 secimi"),C.muted)
+      W.text(r,l.x+2,y+3,l.w-4,job.error~="" and job.error or job.id,C.muted)
+    end
+  end
+  local y=tiny and l.bottom or l.bottom-1
+  if not tiny and jobs.craftingError and jobs.craftingError~="" then W.text(r,l.x+1,l.bottom,l.w-2,jobs.craftingError,C.warn) end
+  if pages>1 then
+    r:button(l.x+1,y,8,"ONCE","jobsprev",false,1,state.jobsPage>1)
+    W.text(r,l.x+10,y,math.max(1,l.w-21),state.jobsPage.." / "..pages,C.muted)
+    r:button(l.x+l.w-9,y,8,"SONRA","jobsnext",false,1,state.jobsPage<pages)
+  end
+end
+function M.modal(r,state)
+  local c=state.craft; if not c then return end
+  r.buttons={}
+  local tall=r.h>=24; local step=tall and 2 or 1
+  local width=math.min(76,r.w-2); local height=tall and 18 or 10
+  local x=math.floor((r.w-width)/2)+1; local y=math.max(2,math.floor((r.h-height)/2))
+  r:fill(1,2,r.w,r.h-2,C.bg)
+  W.panel(r,x,y,width,height,"AE2 / URETIM EMRI")
+  W.text(r,x+2,y+1,width-4,c.label..(c.variant or ""),C.text)
+  W.text(r,x+2,y+step+1,width-4,"MIKTAR: "..c.amount..(c.submitted and "" or "_"),C.accent)
+  local cell=math.floor((width-4)/4)
+  for i,n in ipairs({1,8,16,64}) do r:button(x+2+(i-1)*cell,y+step*2+1,cell-1,tostring(n),"craft:preset:"..n,false,1,not c.submitted) end
+  local digit=math.floor((width-4)/10)
+  for i=1,10 do r:button(x+2+(i-1)*digit,y+step*3+1,digit-1,tostring(i%10),"craft:"..i%10,false,1,not c.submitted) end
+  r:button(x+2,y+step*4+1,math.floor((width-5)/2),"SIL","craft:back",false,1,not c.submitted)
+  r:button(x+2+math.floor((width-3)/2),y+step*4+1,math.floor((width-5)/2),"TEMIZLE","craft:clear",false,1,not c.submitted)
+  r:button(x+2,y+step*5+1,width-4,"CPU: "..(c.cpu~="" and c.cpu or "OTOMATIK").." >","craft:cpu",false,1,not c.submitted and not c.loading)
+  W.wrap(r,x+2,y+step*6+1,width-4,tall and 2 or 1,c.error or c.loading and "Tarif ve CPU bilgisi aliniyor..." or c.submitting and "Emir gonderiliyor; yanit bekleniyor..." or "Adet miktari, stok hedefi degildir.",c.error and C.warn or C.muted)
+  local actions=y+step*7+1; local half=math.floor((width-5)/2)
+  r:button(x+2,actions,half,"VAZGEC","craft:close",false,tall and 2 or 1,not c.submitting)
+  r:button(x+3+half,actions,half,c.uncertain and "ISLERI GOR" or (c.amount.." ADET URET"),c.uncertain and "craft:jobs" or "craft:submit",true,tall and 2 or 1,c.uncertain or not c.loading and not c.submitted and c.preview~=nil)
 end
 return M
 ]]
@@ -2336,6 +2743,12 @@ function M.alerts(net,state)
     if state.stockError then add("DEPO VERISI ALINAMADI",state.stockError,C.warn) end
     if state.jobsError or state.jobs and state.jobs.error and state.jobs.error~="" then add("CPU VERISI ALINAMADI",state.jobsError or state.jobs.error,C.warn) end
   end
+  if net.online then
+    for _,job in ipairs((state.jobs or {}).trackedJobs or {}) do
+      if job.state=="unknown" then add("URETIM DURUMU BELIRSIZ",job.label..": "..(job.error or "ME Terminal'de kontrol edin."),C.warn); break end
+    end
+    if (state.jobs or {}).craftingError and state.jobs.craftingError~="" then add("URETIM KAYDI HATASI",state.jobs.craftingError,C.warn) end
+  end
   return result
 end
 local function header(r,net,state,now)
@@ -2387,14 +2800,15 @@ local function rail(r,l,net,state,now,alerts)
     W.text(r,x+2,25,w-4,selected.isCraftable and "Tarif: mevcut" or "Tarif: yok",selected.isCraftable and C.good or C.muted)
     local complete=identity.key(selected)~=nil
     if not complete then W.text(r,x+2,27,w-4,"NBT kimligi belirsiz",C.warn) end
-    r:button(x+2,28,w-4,favorite(state,selected) and "FAVORIDEN KALDIR" or "FAVORIYE EKLE","favorite:selected",favorite(state,selected),2,complete)
+    r:button(x+2,27,w-4,favorite(state,selected) and "FAVORIDEN KALDIR" or "FAVORIYE EKLE","favorite:selected",favorite(state,selected),1,complete)
+    r:button(x+2,29,w-4,"URETIM EMRI VER","craft:open",true,1,complete and selected.isCraftable)
   else
     local busy,total=cpuState(net,state)
     W.text(r,x+2,18,w-4,"MESGUL / TOPLAM CPU",C.muted)
     W.text(r,x+2,20,w-4,busy and busy.." / "..total or "-- / --",busy and C.accent or C.muted)
-    W.text(r,x+2,23,w-4,"Crafting kontrolu: pasif",C.muted)
-    W.wrap(r,x+2,25,w-4,3,"CPU dolulugu izlenir. Is ayrintilari henuz okunmuyor.",C.muted)
-    r:button(x+2,29,w-4,"CPU'LARI GOR","tab:4")
+    W.text(r,x+2,23,w-4,"Crafting: elle emir",C.accent)
+    W.wrap(r,x+2,25,w-4,3,"Tarifli urun secin, miktari girin ve URET'e dokunun.",C.muted)
+    r:button(x+2,29,w-4,"URETIM ISLERINI GOR","tab:4")
   end
   W.panel(r,x,33,w,math.max(1,l.bottom-32),"SISTEM UYARILARI / "..#alerts)
   if #alerts==0 then
@@ -2441,7 +2855,7 @@ local function overview(r,l,net,state)
   end
   row(middle+3,"AE2 DEPOLAMA",ae.online and "CEVRIMICI" or "BAGLANTI YOK",ae.online and C.good or C.warn)
   row(middle+5,"OTOMATIK STOK","SONRAKI ASAMA",C.muted)
-  row(middle+7,"CRAFTING KONTROLU","IZLEME MODU",C.blue)
+  row(middle+7,"CRAFTING KONTROLU",status.crafting=="manual" and "ELLE EMIR" or "SUNUCUYU GUNCELLEYIN",C.blue)
   local button=math.floor((l.w-6)/2)
   r:button(l.x+2,middle+10,button,"AE2 DEPOSUNU AC","tab:2",true,2)
   r:button(l.x+button+4,middle+10,l.w-button-6,"URETIM CPU'LARI","tab:4",false,2)
@@ -2505,6 +2919,8 @@ local function pager(r,l,state,y,height)
 end
 local function stocks(r,l,net,state,now)
   local small=r.h<24
+  local selected=net.online and ((net.status or {}).ae2 or {}).online and not state.stockError and state.selected
+  local canCraft=selected and selected.isCraftable and identity.key(selected)~=nil
   if small then
     W.panel(r,l.x,l.y,l.w,l.bottom-l.y+1,"DEPO / "..(state.loadingStocks and "YUKLENIYOR" or state.query or ""))
     local visible=math.max(1,l.bottom-l.y-2)
@@ -2514,6 +2930,7 @@ local function stocks(r,l,net,state,now)
     r:button(l.x,l.bottom,8,"< ONCE","prev")
     r:button(l.x+9,l.bottom,8,"SONRA >","next")
     r:button(l.x+l.w-10,l.bottom,10,"ARA","search",false,1,net.online)
+    r:button(l.x+l.w-19,l.bottom,8,"URET","craft:open",true,1,canCraft)
     if state.stockError then W.text(r,l.x+1,l.y+1,l.w-2,state.stockError,C.warn) end
     return
   end
@@ -2532,6 +2949,7 @@ local function stocks(r,l,net,state,now)
   if l.w>=47 then r:button(l.x+l.w-16,filterY,14,state.sort=="amount" and "MIKTAR v" or "AD A-Z","sort") end
   local y=l.y+(short and 6 or 9)
   W.panel(r,l.x,y,l.w,l.bottom-y+1,"DEPO KAYITLARI")
+  if l.rail==0 then r:button(l.x+l.w-10,y,9,"URET","craft:open",true,1,canCraft) end
   local large=l.w>=70
   local headings=y+(short and 1 or 2)
   W.text(r,l.x+2,headings,l.w-4,large and "*  URUN / VARYANT" or "*  URUN",C.muted)
@@ -2559,21 +2977,7 @@ local function content(r,l,net,state,alerts)
     W.wrap(r,l.x+2,l.y+6,l.w-4,5,"Hedef stok belirleme ve otomatik crafting henuz etkin degil. Once AE2 uretim API'si gercek malzemelerle dogrulanacak.",C.muted)
     if l.y+14<l.bottom then r:button(l.x+2,l.y+14,math.min(24,l.w-4),"STOKLARI INCELE","tab:2",true,2) end
   elseif tab==4 then
-    line(2,"CRAFTING CPU / SALT OKUNUR",C.blue)
-    line(4,state.jobsError or "CPU dolulugu gosterilir; mevcut is ayrintilari okunmaz.",state.jobsError and C.warn or C.muted)
-    local busy,total=cpuState(net,state)
-    if not busy then line(7,"CPU verisi bekleniyor veya AE2 bagli degil.",C.muted)
-    elseif total==0 then line(7,"AE2 aginda crafting CPU bulunamadi.",C.warn)
-    else
-      for i,cpu in ipairs(state.jobs.cpus or {}) do
-        local y=l.y+6+i*2
-        if y>=l.bottom-4 then break end
-        W.text(r,l.x+2,y,math.max(1,l.w-27),cpu.name~="" and cpu.name or "Isimsiz CPU "..i,C.text)
-        W.text(r,l.x+l.w-24,y,11,F.compact(cpu.storage).." B",C.muted)
-        W.text(r,l.x+l.w-12,y,10,cpu.busy and "MESGUL" or "BOSTA",cpu.busy and C.blue or C.good,nil,"right")
-      end
-    end
-    if l.bottom-l.y>=8 then line(l.bottom-l.y-1,"UZAKTAN URETIM BASLATMA / PASIF",C.muted) end
+    require("ui.crafting").jobs(r,l,state,net)
   elseif tab==5 then
     local ae=(net.status or {}).ae2 or {}; local e=((net.status or {}).power or {}).ae2 or {}
     line(3,"AE2 AG ENERJISI",C.accent)
@@ -2646,8 +3050,9 @@ function M.draw(r,net,state,clock)
   rail(r,l,net,state,now,alerts)
   r:fill(1,r.h,r.w,1,C.raised)
   local notice=state.message and now-state.message.at<6 and state.message
-  W.text(r,2,r.h,r.w-2,notice and notice.text or state.editing and "Arama: dokun / yaz | Enter: ara | Esc: iptal" or "DISPLAY 01 / v0.3.2 | "..((state.update or {}).available and "GUNCELLEME VAR" or net.online and "CANLI IZLEME" or "YENIDEN BAGLANIYOR"),notice and notice.kind=="warn" and C.warn or C.muted,C.raised)
+  W.text(r,2,r.h,r.w-2,notice and notice.text or state.editing and "Arama: dokun / yaz | Enter: ara | Esc: iptal" or "DISPLAY 01 / v0.4.0 | "..((state.update or {}).available and "GUNCELLEME VAR" or net.online and "CANLI IZLEME" or "YENIDEN BAGLANIYOR"),notice and notice.kind=="warn" and C.warn or C.muted,C.raised)
   keyboard(r,l,state)
+  require("ui.crafting").modal(r,state)
   r:flush()
 end
 return M
@@ -2746,7 +3151,7 @@ function M.draw(r,role,net,state,clock)
   r:fill(1,1,r.w,3,C.panel)
   r:text(3,2,"FACTORY OS / "..(role=="side" and "TELEMETRY" or "SERVER"),C.accent,C.panel)
   r:text(math.max(3,r.w-10),2,online and "ONLINE" or "OFFLINE",online and C.good or C.bad,C.panel)
-  r:text(2,r.h,"v0.3.2 | F5: check / F6: update",C.muted)
+  r:text(2,r.h,"v0.4.0 | F5: check / F6: update",C.muted)
   if role=="server" then
     r:panel(2,5,r.w-2,r.h-6,"SYSTEM CONSOLE")
     r:text(3,7,"Clients: "..#(status.clients or {}),nil,C.panel)

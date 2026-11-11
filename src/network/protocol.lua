@@ -49,7 +49,7 @@ function M.new(cfg,modem,clock,nonce,dispatch,log)
         local o=self.offers[remote]
         if not o or now-o.created>15 or o.boot~=m.boot or o.challenge~=m.body.challenge then return end
         self.offers[remote]=nil
-        self.clients[remote]={role=role,boot=m.boot,lastSeen=now}
+        self.clients[remote]={role=role,boot=m.boot,lastSeen=now,address=remote}
         log("INFO","Registered "..role.." "..remote)
         send(remote,"REGISTERED",{role=role},m.boot)
         return

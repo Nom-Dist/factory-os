@@ -4,27 +4,38 @@ local machines=require("server.machines")
 local M={}
 function M.new(cfg,clock,log)
   local self={ae2=ae2.new(cfg),lastPoll=-math.huge,started=clock(),clients={}}
+  self.crafting=require("server.crafting").new(self.ae2,clock,log)
   function self:status()
     local clients={}
     for address,c in pairs(self.clients) do clients[#clients+1]={address=address,role=c.role,age=math.floor(clock()-c.lastSeen)} end
-    return {version="0.3.2",uptime=math.floor(clock()-self.started),ae2=self.ae2:summary(),clients=clients,
-      power=energy.status(self.ae2),automation=false,crafting="disabled_pending_ingame_validation",reactors="read_only_unsupported",
+    return {version="0.4.0",uptime=math.floor(clock()-self.started),ae2=self.ae2:summary(),clients=clients,
+      power=energy.status(self.ae2),automation=false,crafting=self.crafting.blocked and "blocked" or "manual",reactors="read_only_unsupported",
       update=self.updates and self.updates:public() or nil}
   end
   function self:canUpdate()
+    if self.crafting:busy() then return false,"Aktif/belirsiz uretim emri var; isleri kontrol edin" end
     for _,cpu in ipairs(self.ae2.cpus or {}) do if cpu.busy then return false,"Uretim CPU'lari mesgul; sonra tekrar deneyin" end end
     return true
   end
-  function self:dispatch(command,args)
+  function self:dispatch(command,args,client)
     if command=="HEARTBEAT" or command=="GET_SERVER_STATUS" then return self:status() end
     if command=="GET_AE2_STOCKS" then return self.ae2:stocks(args) end
-    if command=="GET_CRAFTING_JOBS" then return self.ae2:jobs() end
+    if command=="GET_CRAFTING_JOBS" then return self.crafting:jobs() end
+    if command=="GET_CRAFT_OPTIONS" or command=="START_CRAFT" or command=="CANCEL_CRAFT" or command=="ARCHIVE_CRAFT" then
+      if not client or client.role~="main" or type(client.address)~="string" then return nil,"FORBIDDEN" end
+      if self.updates and (self.updates.busy or self.updates.readyManifest) and (command=="GET_CRAFT_OPTIONS" or command=="START_CRAFT") then return nil,"Guncelleme suruyor; uretimi sonra deneyin" end
+      if command=="GET_CRAFT_OPTIONS" then return self.crafting:options(client.address,args) end
+      if command=="START_CRAFT" then return self.crafting:start(client.address,args) end
+      if command=="ARCHIVE_CRAFT" then return self.crafting:archive(client.address,args) end
+      return self.crafting:cancel(client.address,args)
+    end
     if command=="GET_POWER_STATUS" then return energy.status(self.ae2) end
     if command=="GET_MACHINE_STATUS" then return machines.status() end
     if (command=="GET_UPDATE_INFO" or command=="GET_UPDATE_FILE") and self.updates then return self.updates:serve(command,args) end
     return nil,"UNSUPPORTED_COMMAND"
   end
   function self:tick()
+    self.crafting:tick()
     if clock()-self.lastPoll<cfg.poll then return end
     self.lastPoll=clock()
     local old=self.ae2.online; local oldError=self.ae2.error; local oldAddress=self.ae2.address

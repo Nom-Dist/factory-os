@@ -1,6 +1,7 @@
 local codec=require("core.codec")
 local M={}
--- View preference identity only. Ambiguous NBT variants cannot be favorited.
+-- Canonical variant key. Crafting additionally validates full, untruncated
+-- native identities and re-resolves the recipe before submitting an order.
 function M.key(item)
   if type(item)~="table" or type(item.name)~="string" then return end
   if item.identityComplete==false or (item.hasTag and (type(item.tag)~="string" or item.tag=="")) then return end

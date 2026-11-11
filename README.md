@@ -1,6 +1,6 @@
-# FactoryOS v0.3.2
+# FactoryOS v0.4.0
 
-v0.3.2, AE2 stok yenilemesinde eski snapshot'ı önceden bırakır ve yeni satırları kopyalamadan işler; RAM yükünü azaltır. v0.3.1'de eklenen `factoryos ae2 12` komutu gerçek hata/adres ve RAM bilgisini gösterir. Kullanım ve bellek sınırı için [AE2 tanılama kılavuzu](docs/ae2-diagnostics.md).
+v0.4.0 ana ekrandan AE2 üretim emri, miktar/CPU seçimi, iş takibi ve iptal ekler. Kalıcı emir kaydı, yanıt kaybı ve reboot sonrası aynı emrin yeniden gönderilmesini önler. [Üretim kullanımı ve sınırlar](docs/crafting.md). Önceki sürümün [AE2 bellek düzeltmesi ve tanılaması](docs/ae2-diagnostics.md) korunur.
 
 Minecraft **1.12.2 / Enigmatica 2: Expert Skyblock / OpenComputers / OpenOS** için üç bilgisayarlı fabrika kontrol yazılımı. Lua 5.2 ve 5.3 hedeflenir. Sunucu ve iki ekranın kablosuz bağlantısı kullanıcı tarafından oyun içinde doğrulandı. **Yeni arayüz, otomatik açılış, kablosuz güncelleme ve gerçek AE2 davranışı için oyun içi kabul bekleniyor.**
 
@@ -17,12 +17,13 @@ Sunucu, 8×5 ana ekran ve 4×5 yan ekran ayrı bilgisayarlardır. Her bilgisayar
 - Ekrana özel diskte saklanan en fazla 32 favori; metadata/NBT belirsizliği olan varyantlar favoriye eklenmez.
 - Yan panel ayrı GPU/ekranla çalışır; GPU'ya yalnızca değişen hücreler yazılır.
 - AE2 Adapter üzerinden **salt okunur** stok, metadata/NBT belirsizlik işareti, crafting CPU doluluğu, AE enerji verileri.
+- Tarifli ürün için 1/8/16/64 kısayolları veya sayı girişi; otomatik/isimli CPU, üretim emri, gerçek iş durumu ve iptal. Son 32 emir, en fazla 8 aktif/belirsiz takip; reboot sonrası belirsizlikte otomatik tekrar yok.
 - OpenOS servis komutları, config yedeği, sınırlı log dosyası, SHA256 doğrulamalı aşamalı güncelleme ve geri dönüş.
 - Bilgisayar açılınca foreground panel; kullanıcı `.shrc` içeriği korunur. Ctrl+C ile komut satırına dönülür.
 - Sunucuda 15 dakikada bir GitHub sürüm kontrolü. Ana ekranda GUNCELLEMELER sayfası, sunucu/yan ekranda güncelleme düğmesi; F5 kontrol / F6 güncelleme.
 - Ekranlar dosyaları sunucudan kablosuz alır; sonraki güncellemelerde Internet Card gerekmez. Kullanıcı düğmeye bastığında dosyalar hash/sözdizimi kontrolünden geçer, uygulama kapanır ve yeni sürümle reboot edilir.
 
-**Henüz uygulanmayanlar:** otomatik stok hedefleri, crafting başlatma/takibi, Mekanism sürücüleri, RF/FE sürücüleri ve reaktör kontrolü. İlgili ekranlar bunları `unsupported` veya devre dışı gösterir. CPU'nun `busy` olması mevcut işin ayrıntılarının okunabildiği anlamına gelmez.
+**Henüz uygulanmayanlar:** otomatik stok hedefleri, Mekanism sürücüleri, RF/FE sürücüleri ve reaktör kontrolü. FactoryOS dışında verilmiş crafting işlerinin ürün/miktar ayrıntıları ve üretim yüzdesi okunmaz; yalnızca CPU doluluğu görünür. Gerçek Minecraft üretim kabul testi bekleniyor.
 
 ## Hızlı başlangıç — GitHub gerektirmez
 
@@ -115,6 +116,7 @@ v0.2.0 ana ekran tasarımını yeniler. Sıralama ve tarifli/favori filtreleri i
 
 - [Kurulum, güncelleme ve kurtarma](docs/installation.md)
 - [Otomatik açılış ve kablosuz güncelleme](docs/updates.md)
+- [AE2 üretim emri, iş takibi ve iptal](docs/crafting.md)
 - [Donanım ve üç bilgisayarlı bağlantı](docs/hardware.md)
 - [Mimari ve kapsam](docs/architecture.md)
 - [Mesaj protokolü ve güvenlik sınırları](docs/protocol.md)
