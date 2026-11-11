@@ -59,13 +59,15 @@ function M.new(cfg,modem,clock,nonce,dispatch,log)
       c.lastSeen=now
       local key=remote..":"..m.id
       local fingerprint=codec.encode(m.body)
-      local old=self.seen[key]
+      -- Immutable chunk reads are idempotent and must not exhaust the RPC replay cache.
+      local cacheable=m.body.command~="GET_UPDATE_FILE"
+      local old=cacheable and self.seen[key]
       if old then
         if old.fingerprint==fingerprint then send(remote,"RESPONSE",old.body,m.boot,m.id) end
         return
       end
       -- Cache never evicts an unexpired request: refuse additional work under load.
-      if size(self.seen)>=128 then return end
+      if cacheable and size(self.seen)>=128 then return end
       local allowed,err=messages.authorize(c.role,m.body.command)
       local value
       if allowed and type(m.body.args)=="table" then
@@ -73,7 +75,7 @@ function M.new(cfg,modem,clock,nonce,dispatch,log)
         if ok then value,err=result,why else err="INTERNAL_ERROR"; log("ERROR",result) end
       elseif allowed then err="INVALID_ARGUMENTS" end
       local body={ok=err==nil,data=value or {},error=err or ""}
-      self.seen[key]={body=body,at=now,fingerprint=fingerprint}
+      if cacheable then self.seen[key]={body=body,at=now,fingerprint=fingerprint} end
       send(remote,"RESPONSE",body,m.boot,m.id)
     else
       if m.target~=self.boot then return end

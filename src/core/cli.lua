@@ -11,6 +11,23 @@ local function live()
 end
 function M.main(args,root)
   local cmd=args[1] or "status"
+  if cmd=="autostart-run" then
+    if package.loaded["factoryos.autostart_once"] then return end
+    package.loaded["factoryos.autostart_once"]=true
+    local c=config.load()
+    if c and c.autoStart and not live() then return M.main({"start","--foreground"},root) end
+    return
+  end
+  if cmd=="autostart" then
+    assert(not live(),"Stop FactoryOS before changing startup")
+    local c=assert(config.load())
+    if args[2] then
+      assert(args[2]=="enable" or args[2]=="disable","autostart enable|disable")
+      c.autoStart=args[2]=="enable"; assert(config.save(c))
+    end
+    require("core.autostart").ensure(c.autoStart)
+    print("Foreground autostart: "..(c.autoStart and "ENABLED" or "DISABLED")); return
+  end
   if cmd=="logs" then print(logger.read()); return end
   if cmd=="doctor" then
     print(hardware.describe())
@@ -31,7 +48,7 @@ function M.main(args,root)
   if cmd=="stop" or cmd=="restart" then
     local running,s=live()
     if running then
-      s.stop=true
+      s.stop=true; s.applyUpdate=nil
       local deadline=computer.uptime()+8
       repeat os.sleep(0.1) until not s.running or computer.uptime()>=deadline
       if s.running then error("Graceful stop timed out; update blocked. Check logs.") end
@@ -59,7 +76,9 @@ function M.main(args,root)
       elseif type(c[k])=="boolean" then assert(v=="true" or v=="false","true|false required"); v=v=="true" end
       c[k]=v
     end
-    assert(config.save(c)); print("Configuration saved; restart to apply."); return
+    assert(config.save(c))
+    if k=="autoStart" then require("core.autostart").ensure(c.autoStart) end
+    print("Configuration saved; restart to apply."); return
   end
   if cmd=="update" or cmd=="rollback" then
     assert(not live(),"Stop FactoryOS before updating; runtime must be idle")
@@ -74,6 +93,7 @@ function M.main(args,root)
   if cmd=="start" then
     assert(not live(),"FactoryOS already running")
     local c,err=config.load(); assert(c,err)
+    require("core.autostart").ensure(c.autoStart)
     if err then logger.log("WARN",err) end
     local hw,why=hardware.check(c); assert(hw,why)
     local s={running=false,stop=false,role=c.role}; package.loaded["factoryos.service"]=s
@@ -87,6 +107,6 @@ function M.main(args,root)
     end
     return
   end
-  error("Commands: start [--foreground], stop, restart, status, doctor, config, logs, update [HTTPS_BASE], rollback")
+  error("Commands: start [--foreground], stop, restart, status, doctor, config, logs, update [HTTPS_BASE], rollback, autostart enable|disable")
 end
 return M

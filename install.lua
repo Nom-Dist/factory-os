@@ -254,11 +254,16 @@ local M={path="/etc/factoryos/config.dat"}
 function M.defaults(role)
   return {schema=2,role=role or "server",port=34100,strength=64,serverAddress="",
     modem="",gpu="",screen="",allowedClients={},heartbeat=5,offlineAfter=18,poll=10,
-    ae2Address="",ae2Enabled=true,updateBase=""}
+    ae2Address="",ae2Enabled=true,updateBase="https://raw.githubusercontent.com/Nom-Dist/factory-os/main",
+    autoStart=true,updateAutoCheck=true,updateCheckInterval=900}
 end
 function M.upgrade(c)
   if type(c)=="table" and (c.schema==1 or c.schema==2) then
     c.schema=2; c.key=nil
+    if c.autoStart==nil then c.autoStart=true end
+    if c.updateAutoCheck==nil then c.updateAutoCheck=true end
+    if c.updateCheckInterval==nil then c.updateCheckInterval=900 end
+    if c.updateBase=="" then c.updateBase=M.defaults().updateBase end
   end
   return c
 end
@@ -274,6 +279,8 @@ function M.validate(c)
     if type(c[k])~="string" or #c[k]>512 then return nil,"invalid "..k end
   end
   if type(c.ae2Enabled)~="boolean" then return nil,"invalid feature flags" end
+  if type(c.autoStart)~="boolean" or type(c.updateAutoCheck)~="boolean" then return nil,"invalid startup/update flags" end
+  if type(c.updateCheckInterval)~="number" or c.updateCheckInterval%1~=0 or c.updateCheckInterval<60 or c.updateCheckInterval>86400 then return nil,"invalid update check interval" end
   if type(c.allowedClients)~="table" then return nil,"invalid client allowlist" end
   local count=0
   for address,role in pairs(c.allowedClients) do
@@ -300,6 +307,40 @@ function M.save(c)
     assert(fs.rename(M.path,M.path..".corrupt"))
   end
   return storage.save(M.path,c)
+end
+return M
+]]
+sources[ [[
+core.autostart]] ]=[[
+local fs=require("filesystem")
+local storage=require("core.storage")
+local M={path="/home/.shrc",first="# BEGIN FACTORYOS AUTOSTART",last="# END FACTORYOS AUTOSTART"}
+M.launcher="/usr/lib/factoryos/autostart.lua"
+M.script=[=[if package.loaded["factoryos.autostart_once"] then return end
+package.loaded["factoryos.autostart_once"]=true
+local ok,reason=pcall(function() return assert(loadfile("/bin/factoryos.lua"))("start","--foreground") end)
+if not ok then io.stderr:write("FactoryOS startup failed: "..tostring(reason).."\n") end
+]=]
+function M.ensure(enabled)
+  if enabled and storage.read(M.launcher)~=M.script then assert(storage.atomic(M.launcher,M.script)) end
+  local original=""
+  if fs.exists(M.path) then original=assert(storage.read(M.path,65536)) end
+  local first=original:find(M.first,1,true)
+  local last=original:find(M.last,1,true)
+  assert((first==nil)==(last==nil) and (not first or last>first),"Incomplete FactoryOS .shrc block; original preserved")
+  local text=original
+  if first then
+    local finish=last+#M.last
+    if text:sub(finish,finish)=="\r" then finish=finish+1 end
+    if text:sub(finish,finish)=="\n" then finish=finish+1 end
+    text=text:sub(1,first-1)..text:sub(finish)
+  end
+  if enabled then
+    if #text>0 and text:sub(-1)~="\n" then text=text.."\n" end
+    text=text..M.first.."\n"..M.launcher.."\n"..M.last.."\n"
+  end
+  if text~=original then assert(storage.atomic(M.path,text)) end
+  return true
 end
 return M
 ]]
@@ -378,9 +419,10 @@ function M.source(base)
   end
   error("Updates require HTTPS; offline installer accepts --local PATH")
 end
-function M.stage(get,root)
+function M.stage(get,root,options)
+  options=options or {}
   root=root or M.root
-  local manifest=assert(codec.decode(get("manifest.dat",65536)),"Cannot decode manifest")
+  local manifest=options.manifest or assert(codec.decode(get("manifest.dat",65536)),"Cannot decode manifest")
   local bytes=M.validate(manifest)
   assert(storage.mkdir(root.."/releases"))
   local proxy=fs.get(root)
@@ -391,9 +433,12 @@ function M.stage(get,root)
   local stage=root.."/releases/.stage-"..uuid.next()
   assert(storage.mkdir(stage))
   for i,file in ipairs(manifest.files) do
-    io.write(string.format("[%02d/%02d] %s\n",i,#manifest.files,file.path))
+    if not options.quiet then io.write(string.format("[%02d/%02d] %s\n",i,#manifest.files,file.path)) end
+    if options.progress then options.progress(i,#manifest.files,file.path) end
     local data=get("src/"..file.path,file.size)
     assert(#data==file.size and crypto.equal(crypto.sha256(data),file.sha256),"Integrity failure: "..file.path)
+    local compiled,syntaxError=load(data,"=factoryos/update/"..file.path,"t",{})
+    assert(compiled,"Invalid Lua source: "..file.path..": "..tostring(syntaxError))
     assert(storage.write(stage.."/"..file.path,data))
     os.sleep(0)
   end
@@ -419,6 +464,9 @@ function M.install(base,cfg,root)
   assert(cfg.role=="server" or component.isAvailable("internet"),"Display needs temporary Internet Card or offline reinstall")
   local manifest=M.stage(M.source(base),root)
   M.activate(manifest,root)
+  -- Old releases do not have this helper; upgrading from them needs one CLI enable.
+  local ok,autostart=pcall(require,"core.autostart")
+  if ok then autostart.ensure(cfg.autoStart~=false) end
   return manifest
 end
 function M.rollback(root)
@@ -445,6 +493,7 @@ local hardware=require("core.hardware")
 local config=require("core.config")
 local storage=require("core.storage")
 local updater=require("core.updater")
+local autostart=require("core.autostart")
 local M={}
 local function ask(label,default)
   io.write(label..(default and (" ["..default.."]") or "")..": ")
@@ -507,12 +556,14 @@ function M.main(args,embedded)
   assert(config.save(c))
   assert(storage.atomic("/bin/factoryos.lua",updater.launcher))
   updater.activate(manifest)
+  autostart.ensure(c.autoStart)
   -- Read back installed settings and selected release before declaring installation complete.
   assert(config.load())
   assert(storage.read(updater.root.."/active",100)==manifest.release.."\n")
   print("FactoryOS "..manifest.release.." installed as "..role)
   print("Start: factoryos start --foreground\nBackground: factoryos start\nInspect: factoryos status / doctor / logs")
   print("Stop: factoryos stop\nUpdate: factoryos stop, then factoryos update HTTPS_BASE\nRollback: factoryos rollback")
+  print("Auto foreground startup enabled. Ctrl+C returns to shell. Updates: panel button.")
   print("Network and real AE2 behavior still require in-game acceptance tests (docs/testing.md).")
 end
 return M

@@ -71,9 +71,10 @@ function M.source(base)
   end
   error("Updates require HTTPS; offline installer accepts --local PATH")
 end
-function M.stage(get,root)
+function M.stage(get,root,options)
+  options=options or {}
   root=root or M.root
-  local manifest=assert(codec.decode(get("manifest.dat",65536)),"Cannot decode manifest")
+  local manifest=options.manifest or assert(codec.decode(get("manifest.dat",65536)),"Cannot decode manifest")
   local bytes=M.validate(manifest)
   assert(storage.mkdir(root.."/releases"))
   local proxy=fs.get(root)
@@ -84,9 +85,12 @@ function M.stage(get,root)
   local stage=root.."/releases/.stage-"..uuid.next()
   assert(storage.mkdir(stage))
   for i,file in ipairs(manifest.files) do
-    io.write(string.format("[%02d/%02d] %s\n",i,#manifest.files,file.path))
+    if not options.quiet then io.write(string.format("[%02d/%02d] %s\n",i,#manifest.files,file.path)) end
+    if options.progress then options.progress(i,#manifest.files,file.path) end
     local data=get("src/"..file.path,file.size)
     assert(#data==file.size and crypto.equal(crypto.sha256(data),file.sha256),"Integrity failure: "..file.path)
+    local compiled,syntaxError=load(data,"=factoryos/update/"..file.path,"t",{})
+    assert(compiled,"Invalid Lua source: "..file.path..": "..tostring(syntaxError))
     assert(storage.write(stage.."/"..file.path,data))
     os.sleep(0)
   end
@@ -112,6 +116,9 @@ function M.install(base,cfg,root)
   assert(cfg.role=="server" or component.isAvailable("internet"),"Display needs temporary Internet Card or offline reinstall")
   local manifest=M.stage(M.source(base),root)
   M.activate(manifest,root)
+  -- Old releases do not have this helper; upgrading from them needs one CLI enable.
+  local ok,autostart=pcall(require,"core.autostart")
+  if ok then autostart.ensure(cfg.autoStart~=false) end
   return manifest
 end
 function M.rollback(root)

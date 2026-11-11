@@ -4,6 +4,7 @@ local hardware=require("core.hardware")
 local config=require("core.config")
 local storage=require("core.storage")
 local updater=require("core.updater")
+local autostart=require("core.autostart")
 local M={}
 local function ask(label,default)
   io.write(label..(default and (" ["..default.."]") or "")..": ")
@@ -66,12 +67,14 @@ function M.main(args,embedded)
   assert(config.save(c))
   assert(storage.atomic("/bin/factoryos.lua",updater.launcher))
   updater.activate(manifest)
+  autostart.ensure(c.autoStart)
   -- Read back installed settings and selected release before declaring installation complete.
   assert(config.load())
   assert(storage.read(updater.root.."/active",100)==manifest.release.."\n")
   print("FactoryOS "..manifest.release.." installed as "..role)
   print("Start: factoryos start --foreground\nBackground: factoryos start\nInspect: factoryos status / doctor / logs")
   print("Stop: factoryos stop\nUpdate: factoryos stop, then factoryos update HTTPS_BASE\nRollback: factoryos rollback")
+  print("Auto foreground startup enabled. Ctrl+C returns to shell. Updates: panel button.")
   print("Network and real AE2 behavior still require in-game acceptance tests (docs/testing.md).")
 end
 return M

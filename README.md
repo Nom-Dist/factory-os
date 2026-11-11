@@ -1,6 +1,6 @@
-# FactoryOS v0.2.0
+# FactoryOS v0.3.0
 
-Minecraft **1.12.2 / Enigmatica 2: Expert Skyblock / OpenComputers / OpenOS** için üç bilgisayarlı fabrika kontrol yazılımı. Lua 5.2 ve 5.3 hedeflenir. Sunucu ve iki ekranın kablosuz bağlantısı kullanıcı tarafından oyun içinde doğrulandı. **Yeni v0.2 arayüzü ve gerçek AE2 davranışı için oyun içi kabul bekleniyor.**
+Minecraft **1.12.2 / Enigmatica 2: Expert Skyblock / OpenComputers / OpenOS** için üç bilgisayarlı fabrika kontrol yazılımı. Lua 5.2 ve 5.3 hedeflenir. Sunucu ve iki ekranın kablosuz bağlantısı kullanıcı tarafından oyun içinde doğrulandı. **Yeni arayüz, otomatik açılış, kablosuz güncelleme ve gerçek AE2 davranışı için oyun içi kabul bekleniyor.**
 
 Sunucu, 8×5 ana ekran ve 4×5 yan ekran ayrı bilgisayarlardır. Her bilgisayar yalnızca kendi GPU ve ekranını kullanır. Ağ üzerinden GPU/bileşen çağrısı yapılmaz.
 
@@ -16,12 +16,15 @@ Sunucu, 8×5 ana ekran ve 4×5 yan ekran ayrı bilgisayarlardır. Her bilgisayar
 - Yan panel ayrı GPU/ekranla çalışır; GPU'ya yalnızca değişen hücreler yazılır.
 - AE2 Adapter üzerinden **salt okunur** stok, metadata/NBT belirsizlik işareti, crafting CPU doluluğu, AE enerji verileri.
 - OpenOS servis komutları, config yedeği, sınırlı log dosyası, SHA256 doğrulamalı aşamalı güncelleme ve geri dönüş.
+- Bilgisayar açılınca foreground panel; kullanıcı `.shrc` içeriği korunur. Ctrl+C ile komut satırına dönülür.
+- Sunucuda 15 dakikada bir GitHub sürüm kontrolü. Ana ekranda GUNCELLEMELER sayfası, sunucu/yan ekranda güncelleme düğmesi; F5 kontrol / F6 güncelleme.
+- Ekranlar dosyaları sunucudan kablosuz alır; sonraki güncellemelerde Internet Card gerekmez. Kullanıcı düğmeye bastığında dosyalar hash/sözdizimi kontrolünden geçer, uygulama kapanır ve yeni sürümle reboot edilir.
 
-**Henüz uygulanmayanlar:** otomatik stok hedefleri, crafting başlatma/takibi, Mekanism sürücüleri, RF/FE sürücüleri, reaktör kontrolü ve kablosuz güncelleme dağıtımı. İlgili ekranlar bunları `unsupported` veya devre dışı gösterir. CPU'nun `busy` olması mevcut işin ayrıntılarının okunabildiği anlamına gelmez.
+**Henüz uygulanmayanlar:** otomatik stok hedefleri, crafting başlatma/takibi, Mekanism sürücüleri, RF/FE sürücüleri ve reaktör kontrolü. İlgili ekranlar bunları `unsupported` veya devre dışı gösterir. CPU'nun `busy` olması mevcut işin ayrıntılarının okunabildiği anlamına gelmez.
 
 ## Hızlı başlangıç — GitHub gerektirmez
 
-1. [Proje ZIP'ini](https://github.com/Nom-Dist/factory-os/archive/refs/heads/main.zip) açın. `dist/factoryos-offline.lua` dosyasını bir OpenOS HDD/disketine aktarın. Bu tek dosya yaklaşık 120 KB'dir; standart disket kapasiteniz yetmiyorsa HDD veya geçici Internet Card kullanın. Boyut sürüme göre değişir.
+1. [Proje ZIP'ini](https://github.com/Nom-Dist/factory-os/archive/refs/heads/main.zip) açın. `dist/factoryos-offline.lua` dosyasını bir OpenOS HDD/disketine aktarın. Bu tek dosya yaklaşık 140 KB'dir; standart disket kapasiteniz yetmiyorsa HDD veya geçici Internet Card kullanın. Boyut sürüme göre değişir.
 2. Her bilgisayarda dosyanın bulunduğu konuma geçip çalıştırın:
 
 ```sh
@@ -44,7 +47,7 @@ Yukarıdaki iki adres alanı kendi bileşen adreslerinizle değiştirilmelidir. 
 factoryos start --foreground
 ```
 
-Sunucuyu önce açmanız gerekmez; istemciler bağlantıyı arar. İlk kayıt normal koşullarda yaklaşık 5–10 saniyedir; gerçek oyun gecikmesi kabul testinde ölçülmelidir. Foreground moddan Ctrl+C ile çıkılır. Arka plan için `factoryos start` kullanın; kabuk aynı ekranı paylaştığından görüntüyü bozabilir. Ekran bilgisayarlarında foreground önerilir.
+Sunucuyu önce açmanız gerekmez; istemciler bağlantıyı arar. İlk kayıt normal koşullarda yaklaşık 5–10 saniyedir; gerçek oyun gecikmesi kabul testinde ölçülmelidir. Sonraki açılışlarda panel otomatik foreground başlar. Ctrl+C ile kabuğa dönülür ve aynı boot içinde tekrar kendiliğinden açılmaz. Arka plan için `factoryos start` da kullanılabilir.
 
 ## GitHub kurulumu
 
@@ -69,9 +72,22 @@ factoryos config
 factoryos logs
 factoryos update
 factoryos rollback
+factoryos autostart enable
+factoryos autostart disable
 ```
 
-`update` için gerçek HTTPS kaynak adresi gerekir. Çalışan servis güncellenmez; önce durdurun. Güncelleme/geri dönüş sonrasında yeniden başlatın (`reboot`). Ayarlar `/etc/factoryos/config.dat`, log `/var/log/factoryos.log`, sürümler `/usr/lib/factoryos/releases/` altında tutulur. Otomatik açılış kurulmaz; yeniden başlatmada ayarlar korunur, servis elle başlatılır.
+CLI `update` için gerçek HTTPS kaynak adresi gerekir; önce servisi durdurun. Menüden güncelleme dosyaları arka planda hazırlanır ve doğrulanır; uygulama ancak etkinleştirme aşamasında kapanır. Ayarlar `/etc/factoryos/config.dat`, favoriler `/etc/factoryos/display.dat`, log `/var/log/factoryos.log`, sürümler `/usr/lib/factoryos/releases/` altında tutulur.
+
+**v0.2 ve öncesinden bir defalık geçiş:** önce sunucuda, sonra iki ekranda Ctrl+C ile kabuğa dönüp aşağıdakileri çalıştırın. Ekranların bu ilk indirmesi için geçici Internet Card veya çevrimdışı installer gerekir; bundan sonraki menü güncellemeleri kablosuzdur.
+
+```sh
+factoryos stop
+factoryos update https://raw.githubusercontent.com/Nom-Dist/factory-os/main
+factoryos autostart enable
+reboot
+```
+
+Sonraki güncellemelerde ana ekranda **GUNCELLEMELER → SIMDI KONTROL ET → GUNCELLE / YENIDEN AC** kullanılır. Sunucu/yan ekranda alttaki düğme veya F5/F6 kullanılabilir. Otomatik kontrol yalnızca yeni sürümü bildirir; kendi kendine sürüm uygulamaz. AE2 CPU'ları meşgulse uygulama bekletilir.
 
 ## Geliştirme ve doğrulama
 
@@ -83,7 +99,7 @@ python tools/build.py
 python tests/run.py
 ```
 
-Test çalıştırıcısı Lua 5.2 **ve** 5.3'te kaynakları/üretilen installer'ları derler ve 29 senaryoyu çalıştırır. Testler gerçek Lua yürütür; modem, GPU, filesystem, zaman, HTTP ve OpenOS thread/event çevresi mock'tur. OC 1.8.3 gibi modem metotları çağrılabilir tablolardır ve `maxPacketSize` metodu yoktur; paket kapasitesi device info'dan okunur. Oyun gecikmesini, Java mod sürücülerini ve gerçek üretimi doğrulamaz. [Oyun içi kabul adımları](docs/testing.md) ve [salt okunur prob](tools/ingame_probe.lua) ayrıca sağlanmıştır.
+Test çalıştırıcısı Lua 5.2 **ve** 5.3'te kaynakları/üretilen installer'ları derler ve 40 senaryoyu çalıştırır. Testler gerçek Lua yürütür; modem, GPU, filesystem, zaman, HTTP ve OpenOS thread/event çevresi mock'tur. İki ekranın küçük paket sınırında eşzamanlı kablosuz güncellenmesi de sınanır. Oyun gecikmesini, gerçek OpenOS boot/thread scheduler'ını ve Java mod sürücülerini doğrulamaz. [Oyun içi kabul adımları](docs/testing.md) ve [salt okunur prob](tools/ingame_probe.lua) ayrıca sağlanmıştır.
 
 GPU tamponundan örnek verilerle oluşturulan [ana panel](docs/previews/main-overview.png), [depo](docs/previews/main-stocks.png), [arama klavyesi](docs/previews/main-search.png) ve [küçük çözünürlük](docs/previews/main-compact.png) önizlemeleri vardır. Bunlar oyun ekran görüntüsü veya gerçek fabrika verisi değildir. Host'ta yeniden üretmek için `python tools/preview.py` çalıştırın; Pillow ve Lupa gerekir.
 
@@ -96,6 +112,7 @@ v0.2.0 ana ekran tasarımını yeniler. Sıralama ve tarifli/favori filtreleri i
 ## Dokümanlar
 
 - [Kurulum, güncelleme ve kurtarma](docs/installation.md)
+- [Otomatik açılış ve kablosuz güncelleme](docs/updates.md)
 - [Donanım ve üç bilgisayarlı bağlantı](docs/hardware.md)
 - [Mimari ve kapsam](docs/architecture.md)
 - [Mesaj protokolü ve güvenlik sınırları](docs/protocol.md)

@@ -32,7 +32,9 @@ Hiçbir ekran istemcisi AE2 proxy'si almaz. Sunucu yalnızca veri yanıtlar; ist
 
 Heartbeat varsayılan 5 saniye, bağlantı kaybı 18 saniye, AE2 snapshot aralığı 10 saniyedir. Ana ekran yalnızca depo sayfası açıkken stok verisini ister; CPU özetini sağ sütun/ana panel için 10 saniyede bir alır. Aynı türdeki periyodik istek sürerken yenisi biriktirilmez. Arama taslağı onaylanana kadar ağ isteği gönderilmez; eski sorguya ait gecikmiş yanıtlar yeni görünümü değiştirmez. Yan ekran yalnızca heartbeat telemetrisini kullanır. Push/subscription protokolü bu sürümde uygulanmaz.
 
-Bir bilgisayarda yalnızca bir FactoryOS servisi başlatılır. Arka plan OpenOS `thread.create(...):detach()` ile çalışır; `stop` döngüye durma bayrağı verir, temizlik için 8 saniyeye kadar bekler. Aktif servis varken config/güncelleme reddedilir. `status`, yerel süreç belleğindeki servis kaydını kontrol eder; eski diskteki PID dosyasına güvenmez. Reboot sonrası eski servis kaydı yoktur; config kalıcıdır.
+Bir bilgisayarda yalnızca bir FactoryOS servisi başlatılır. Arka plan OpenOS `thread.create(...):detach()` ile çalışır; `stop` döngüye durma bayrağı verir, temizlik için 8 saniyeye kadar bekler. Aktif servis varken CLI config/güncelleme reddedilir; menü kontrollü bir hazırlama/kapanış akışı kullanır. `status`, yerel süreç belleğindeki servis kaydını kontrol eder; eski diskteki PID dosyasına güvenmez. Reboot sonrası eski servis kaydı yoktur; config kalıcıdır.
+
+v0.3.0 açılışta `.shrc` üzerinden foreground başlatır. Güncelleme menüsü HTTP/dosya işini bağlı bir OpenOS worker thread'ine verir; ağ ve GPU döngüsü devam eder. Server 15 dakikada bir yalnızca manifest kontrol eder. İstemciler açık kullanıcı eylemiyle sunucunun cache'inden 1024 baytlık parçalar alır; tam hash/sözdizimi doğrulaması ve idle kontrolünden sonra runtime modem/GUI'yi kapatır, pointer'ı değiştirir ve reboot eder. [Açılış/güncelleme tasarımı](updates.md).
 
 ## Kaynak sınırları
 
@@ -50,7 +52,7 @@ Saf Lua SHA256 yalnızca kurulum/güncelleme dosya bütünlüğünde kullanılı
 
 ## Aşamaların gerçek durumu
 
-Phase 1'in sunucu ve iki ekran arasındaki kablosuz bağlantısı kullanıcı tarafından oyun içinde doğrulandı. Uzun süreli dayanıklılık ve v0.2.0'ın yeni ana ekranı için kabul beklenir. Phase 2'de salt okunur AE2 sürücüsü/arayüzü hazırdır; gerçek Adapter ve AE2 güvenlik/enerji kanalı kontrolü beklenir. Phase 3–5 otomasyonu uygulanmadı.
+Phase 1'in sunucu ve iki ekran arasındaki kablosuz bağlantısı kullanıcı tarafından oyun içinde doğrulandı. Yeni arayüz, otomatik açılış ve kablosuz güncelleme için oyun kabulü beklenir. Phase 2'de salt okunur AE2 sürücüsü/arayüzü hazırdır; gerçek Adapter ve AE2 güvenlik/enerji kanalı kontrolü beklenir. Phase 3/4 üretim ve reaktör sürücüleri uygulanmadı; Phase 5'in kablosuz yazılım dağıtımı eklendi.
 
 İleride autocrafting eklendiğinde ayrı stok kimliği, dayanıklı istek günlüğü, in-flight miktarlar, CPU sınırları, kaynak eksiği backoff'u ve sunucu yeniden başlatması sonrası belirsiz işlerin uzlaştırılması gerekir. Mevcut 60 saniyelik ağ tekrar önbelleği **kalıcı exactly-once üretim garantisi değildir**; bu yüzden v0.1'de hiçbir üretim komutu açılmaz.
 

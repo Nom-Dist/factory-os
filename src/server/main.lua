@@ -7,8 +7,13 @@ function M.new(cfg,clock,log)
   function self:status()
     local clients={}
     for address,c in pairs(self.clients) do clients[#clients+1]={address=address,role=c.role,age=math.floor(clock()-c.lastSeen)} end
-    return {version="0.2.0",uptime=math.floor(clock()-self.started),ae2=self.ae2:summary(),clients=clients,
-      power=energy.status(self.ae2),automation=false,crafting="disabled_pending_ingame_validation",reactors="read_only_unsupported"}
+    return {version="0.3.0",uptime=math.floor(clock()-self.started),ae2=self.ae2:summary(),clients=clients,
+      power=energy.status(self.ae2),automation=false,crafting="disabled_pending_ingame_validation",reactors="read_only_unsupported",
+      update=self.updates and self.updates:public() or nil}
+  end
+  function self:canUpdate()
+    for _,cpu in ipairs(self.ae2.cpus or {}) do if cpu.busy then return false,"Uretim CPU'lari mesgul; sonra tekrar deneyin" end end
+    return true
   end
   function self:dispatch(command,args)
     if command=="HEARTBEAT" or command=="GET_SERVER_STATUS" then return self:status() end
@@ -16,6 +21,7 @@ function M.new(cfg,clock,log)
     if command=="GET_CRAFTING_JOBS" then return self.ae2:jobs() end
     if command=="GET_POWER_STATUS" then return energy.status(self.ae2) end
     if command=="GET_MACHINE_STATUS" then return machines.status() end
+    if (command=="GET_UPDATE_INFO" or command=="GET_UPDATE_FILE") and self.updates then return self.updates:serve(command,args) end
     return nil,"UNSUPPORTED_COMMAND"
   end
   function self:tick()

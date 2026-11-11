@@ -2,9 +2,9 @@
 
 ## Gerçekte çalıştırılanlar
 
-11 Kasım 2026'da Lupa 2.8'in **gerçek Lua 5.2 ve Lua 5.3 yorumlayıcılarında** 29 senaryo çalıştırıldı: her yorumlayıcıda 29/29 geçti. Bütün Lua dosyaları, üretilen online/offline installer ve oyun içi prob dahil sözdizimsel olarak derlendi.
+11 Kasım 2026'da Lupa 2.8'in **gerçek Lua 5.2 ve Lua 5.3 yorumlayıcılarında** 40 senaryo çalıştırıldı: her yorumlayıcıda 40/40 geçti. Bütün Lua dosyaları, üretilen online/offline installer ve oyun içi prob dahil sözdizimsel olarak derlendi.
 
-Modem/GPU/HTTP/filesystem/thread/event/zaman çevresi mock'tur. Bilgisayarlar arası haberleşme uygulaması ve tüm modüller gerçek Lua koduyla yürütüldü. Kullanıcı sunucu ve iki ekranın kablosuz bağlantısının oyunda çalıştığını ayrıca doğruladı. **Yeni v0.2 arayüzü ve AE2 gerçek stokları için oyun içi kabul bekleniyor**; otomatik sonuçlar bunun yerine geçmez.
+Modem/GPU/HTTP/filesystem/thread/event/zaman çevresi mock'tur. Bilgisayarlar arası haberleşme uygulaması ve tüm modüller gerçek Lua koduyla yürütüldü. Kullanıcı sunucu ve iki ekranın kablosuz bağlantısının oyunda çalıştığını ayrıca doğruladı. **Yeni arayüz, otomatik boot, kablosuz sürüm aktarımı ve AE2 gerçek stokları için oyun içi kabul bekleniyor**; otomatik sonuçlar bunun yerine geçmez.
 
 Yerel OC 1.8.3 JAR içindeki OpenOS kaynakları incelenerek mock'lar şu davranışlara uyarlandı: `package.preload` olmaması, mevcut dizinde makeDirectory hatası, close'un boş dönüşü ve term.read cursor/newline seçenekleri. Gerçek Java filesystem, Lua mimarisi/GPU bütçeleri ve OpenOS thread scheduler'ı yine oyun içinde doğrulanmalı.
 
@@ -45,6 +45,17 @@ ARTEMIS `mobile_diagnose(attempt_fix=true)` çalıştırıldı; ADB'de bağlı A
 | 27 | Küçük çözünürlükte 24'lük sayfanın bütün satırlarını dolaşma, ağ sayfaları arasında ileri/geri geçiş |
 | 28 | OFFLINE sırasında stok/CPU cache temizliği, eski callback reddi, yeniden bağlantıda iki verinin yenilenmesi |
 | 29 | Üç satırlı dokunma alanı, modal klavyede arkadaki düğmelere basılmaması, offline/AE2 kaybında eski miktarların gizlenmesi |
+| 30 | Kullanıcı .shrc içeriğini koruma, idempotent hook, boot başına tek foreground başlatma ve disable |
+| 31 | Eski config'e otomatik açılış/900 saniyelik kontrol ekleme, adresleri koruma, aralık doğrulama |
+| 32 | Periyodik kontrol yalnızca manifest indirir; dosya/active değişikliği yapmaz |
+| 33 | İki ekranın Internet kullanmadan server cache'inden hash doğrulamalı staging yapması; keyfi yol/offset/release reddi |
+| 34 | Bozuk kablosuz parçada hash reddi, eski active korunması |
+| 35 | Bağlantı kaybı ve açık iptalde eski active korunması |
+| 36 | Başlangıçta ve indirme sonunda meşgul üretim kontrolü; ready manifest yayımlanmaması |
+| 37 | Gerçek FactoryOS protokolü + 1024 bayt modem limitiyle iki eşzamanlı istemci aktarımı; RPC cache dolmaması |
+| 38 | Daha önce kontrol yapılmışken heartbeat'in yeni sürümü yeniden bildirmesi |
+| 39 | Modem/GUI kapandıktan sonra activate ve reboot; Ctrl+C iptali, activation hatasında reboot olmaması |
+| 40 | Hash'i doğru olsa bile geçersiz Lua sözdiziminin staging'de reddi |
 
 Host'ta tekrar çalıştırma:
 
@@ -68,7 +79,7 @@ Probun çıktısında stok satırı bulunması üretim testi değildir. Şu ana 
 
 ## Üç bilgisayarlı kabul sırası
 
-Önce [donanım](hardware.md) ve [kurulum](installation.md) adımlarını tamamlayın. Sunucu ve ana ekranda v0.2.0, doğru modem allowlist, aynı wireless port, yüklü chunk ve yeterli güç kullanın. Yan ekran protokol v2 ile bağımsız çalışır. Şifre gerekmez. Aşağıdaki süreler varsayılan konfigürasyon içindir; oyun lag'i nedeniyle gözlemi birkaç saniye uzatabilirsiniz. Otomatik testte süreler sanal saatle deterministiktir.
+Önce [donanım](hardware.md), [kurulum](installation.md) ve [otomatik açılış/güncelleme](updates.md) adımlarını tamamlayın. Bütün cihazlarda v0.3.0, doğru modem allowlist, aynı wireless port, yüklü chunk ve yeterli güç kullanın. Şifre gerekmez. Aşağıdaki süreler varsayılan konfigürasyon içindir; oyun lag'i nedeniyle gözlemi birkaç saniye uzatabilirsiniz. Otomatik testte süreler sanal saatle deterministiktir.
 
 | Senaryo | Oyunda yapılacak işlem | Kabul ölçütü |
 |---|---|---|
@@ -94,6 +105,10 @@ Probun çıktısında stok satırı bulunması üretim testi değildir. Şu ana 
 | Favori kalıcılığı | Satırdaki + işaretine basın, ekranı yeniden başlatın, FAVORILER'i açın | Seçilen varyant korunur; belirsiz NBT varyantı eklenmez |
 | Yeni panel | ANA PANEL'i açın, gerçek AE2 bağlantısını ayırıp geri takın | Uyarılar ve özet kartları gerçek bağlantı durumuna göre değişir; bilinmeyen değerler -- olur |
 | GPU kararlılığı | İki paneli 10 dakika açık tutun | GPU ekranlar arasında geçiş yapmaz; gereksiz tam ekran temizleme/titreme yok |
+| Otomatik boot | Üç bilgisayarı kapatıp açın | Her rol foreground panelini otomatik açar; Ctrl+C ile kabukta kalır |
+| Menü kontrolü | Ana ekranda GUNCELLEMELER, diğerlerinde alttaki düğme/F5 | Kontrol sonucu GUI'de görünür; hata olsa da haberleşme devam eder |
+| Kablosuz güncelleme | İstemcinin Internet Card'ını çıkarın; gerçek yeni sürümde GUNCELLE / YENIDEN AC seçin | Server cache'inden alır, doğrular, reboot eder ve aynı modem izinleriyle geri bağlanır |
+| Üretim kilidi | AE2 CPU meşgulken güncelleme deneyin | Dosyalar uygulamaya alınmaz; bekleme nedeni görünür |
 
 ## Crafting API kabulü — sonraki aşamanın ön koşulu
 
@@ -103,4 +118,4 @@ Reaktör kontrolü test kapsamı dışındadır; otomasyon kapalıdır. Önce sa
 
 ## Görsel önizlemeler
 
-`python tools/preview.py`, gerçek `ui.renderer` GPU hücre tamponunu örnek verilerle PNG'ye dönüştürür. [Ana panel](previews/main-overview.png), [depo](previews/main-stocks.png), [arama](previews/main-search.png), [offline](previews/main-offline.png) ve [80×25](previews/main-compact.png) görüntüleri görsel olarak incelendi. Görüntü başlıkları örnek veri olduğunu belirtir; bunlar Minecraft'tan alınan ekran görüntüsü değildir. 40×12, 50×16, 80×25 ve 160×50 boyutları ayrıca bütün sekmeler ve arama klavyesiyle GPU sınır testinden geçti.
+`python tools/preview.py`, gerçek `ui.renderer` GPU hücre tamponunu örnek verilerle PNG'ye dönüştürür. [Ana panel](previews/main-overview.png), [depo](previews/main-stocks.png), [arama](previews/main-search.png), [offline](previews/main-offline.png), [80×25](previews/main-compact.png), [güncelleme sayfası](previews/main-updates.png), [aktarım](previews/main-update-progress.png), [sunucu düğmesi](previews/server-updates.png) ve [yan ekran düğmesi](previews/side-updates.png) görsel olarak incelendi. Görüntü başlıkları örnek veri olduğunu belirtir; bunlar Minecraft'tan alınan ekran görüntüsü değildir. 40×12, 50×16, 80×25 ve 160×50 boyutları ayrıca dokuz sekme ve arama klavyesiyle GPU sınır testinden geçti.

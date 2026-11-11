@@ -10,7 +10,7 @@ local M={}
 function M.run(cfg,service)
   local hw,err=hardware.check(cfg)
   if not hw then service.running=false; service.error=err; logger.log("ERROR",err); return nil,err end
-  local net,view
+  local net,view,updates
   local oldW,oldH=hw.gpu.getResolution()
   local oldFg,oldBg=hw.gpu.getForeground(),hw.gpu.getBackground()
   local oldDepth=hw.gpu.getDepth()
@@ -21,6 +21,8 @@ function M.run(cfg,service)
     local server=cfg.role=="server" and require("server.main").new(cfg,clock,log) or nil
     net=protocol.new(cfg,hw.modem,clock,nonce,server and function(cmd,args) return server:dispatch(cmd,args) end,log)
     if server then server.clients=net.clients end
+    updates=require("core.updates").new(cfg,net,clock,service,{log=log,isIdle=server and function() return server:canUpdate() end or nil})
+    if server then server.updates=updates end
     local state=cfg.role=="main" and require("client.main_display").new(net,clock) or require("client.side_display").new()
     state.context={modem=hw.modem.address,screen=hw.screen.address,port=cfg.port,serverAddress=cfg.serverAddress,poll=cfg.poll}
     view=renderer.new(hw.gpu,hw.screen,cfg.role)
@@ -30,6 +32,8 @@ function M.run(cfg,service)
     while not service.stop do
       net:tick()
       if server then server:tick(); state.serverStatus=server:status() else state:tick() end
+      updates:tick(); state.update=updates:public()
+      if updates.readyManifest and not updates.busy and updates.phase=="ready" then service.applyUpdate=updates.readyManifest; service.stop=true end
       if clock()-lastDraw>=1 then
         screens.draw(view,cfg.role,net,state,clock)
         lastDraw=clock()
@@ -39,12 +43,20 @@ function M.run(cfg,service)
       if e[1]=="modem_message" then
         -- Signal layout: name, local modem, remote modem, port, distance, payload...
         net:receive(e[2],e[3],e[4],e[6],e[7])
-      elseif e[1]=="touch" then state:touch(view:touch(e[2],e[3],e[4])); lastDraw=-math.huge
-      elseif e[1]=="key_down" and state.key then state:key(e[3],e[4]); lastDraw=-math.huge
+      elseif e[1]=="touch" then
+        local id=view:touch(e[2],e[3],e[4])
+        if id and id:match("^update:") then updates:touch(id) else state:touch(id) end
+        lastDraw=-math.huge
+      elseif e[1]=="key_down" then
+        if not state.editing and e[4]==63 then updates:touch("update:check")
+        elseif not state.editing and e[4]==64 then updates:touch("update:apply")
+        elseif state.key then state:key(e[3],e[4]) end
+        lastDraw=-math.huge
       elseif e[1]=="clipboard" and state.paste then state:paste(e[3]); lastDraw=-math.huge
-      elseif e[1]=="interrupted" then service.stop=true end
+      elseif e[1]=="interrupted" then service.stop=true; service.applyUpdate=nil end
     end
   end,debug.traceback)
+  if updates then updates:close() end
   if net then pcall(net.close,net) end
   pcall(function()
     hw.gpu.setDepth(oldDepth); hw.gpu.setResolution(oldW,oldH)
@@ -53,6 +65,15 @@ function M.run(cfg,service)
   service.running=false
   if not ok then service.error=tostring(reason); logger.log("ERROR",reason) end
   logger.log("INFO","Stopped "..cfg.role)
+  if ok and service.applyUpdate then
+    local applied,why=pcall(function()
+      require("core.autostart").ensure(cfg.autoStart)
+      require("core.updater").activate(service.applyUpdate)
+      logger.log("INFO","Activated "..service.applyUpdate.release.."; rebooting")
+      computer.shutdown(true)
+    end)
+    if not applied then service.error=tostring(why); logger.log("ERROR",why); return nil,why end
+  end
   return ok,reason
 end
 return M

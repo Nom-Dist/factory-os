@@ -254,11 +254,16 @@ local M={path="/etc/factoryos/config.dat"}
 function M.defaults(role)
   return {schema=2,role=role or "server",port=34100,strength=64,serverAddress="",
     modem="",gpu="",screen="",allowedClients={},heartbeat=5,offlineAfter=18,poll=10,
-    ae2Address="",ae2Enabled=true,updateBase=""}
+    ae2Address="",ae2Enabled=true,updateBase="https://raw.githubusercontent.com/Nom-Dist/factory-os/main",
+    autoStart=true,updateAutoCheck=true,updateCheckInterval=900}
 end
 function M.upgrade(c)
   if type(c)=="table" and (c.schema==1 or c.schema==2) then
     c.schema=2; c.key=nil
+    if c.autoStart==nil then c.autoStart=true end
+    if c.updateAutoCheck==nil then c.updateAutoCheck=true end
+    if c.updateCheckInterval==nil then c.updateCheckInterval=900 end
+    if c.updateBase=="" then c.updateBase=M.defaults().updateBase end
   end
   return c
 end
@@ -274,6 +279,8 @@ function M.validate(c)
     if type(c[k])~="string" or #c[k]>512 then return nil,"invalid "..k end
   end
   if type(c.ae2Enabled)~="boolean" then return nil,"invalid feature flags" end
+  if type(c.autoStart)~="boolean" or type(c.updateAutoCheck)~="boolean" then return nil,"invalid startup/update flags" end
+  if type(c.updateCheckInterval)~="number" or c.updateCheckInterval%1~=0 or c.updateCheckInterval<60 or c.updateCheckInterval>86400 then return nil,"invalid update check interval" end
   if type(c.allowedClients)~="table" then return nil,"invalid client allowlist" end
   local count=0
   for address,role in pairs(c.allowedClients) do
@@ -300,6 +307,40 @@ function M.save(c)
     assert(fs.rename(M.path,M.path..".corrupt"))
   end
   return storage.save(M.path,c)
+end
+return M
+]]
+sources[ [[
+core.autostart]] ]=[[
+local fs=require("filesystem")
+local storage=require("core.storage")
+local M={path="/home/.shrc",first="# BEGIN FACTORYOS AUTOSTART",last="# END FACTORYOS AUTOSTART"}
+M.launcher="/usr/lib/factoryos/autostart.lua"
+M.script=[=[if package.loaded["factoryos.autostart_once"] then return end
+package.loaded["factoryos.autostart_once"]=true
+local ok,reason=pcall(function() return assert(loadfile("/bin/factoryos.lua"))("start","--foreground") end)
+if not ok then io.stderr:write("FactoryOS startup failed: "..tostring(reason).."\n") end
+]=]
+function M.ensure(enabled)
+  if enabled and storage.read(M.launcher)~=M.script then assert(storage.atomic(M.launcher,M.script)) end
+  local original=""
+  if fs.exists(M.path) then original=assert(storage.read(M.path,65536)) end
+  local first=original:find(M.first,1,true)
+  local last=original:find(M.last,1,true)
+  assert((first==nil)==(last==nil) and (not first or last>first),"Incomplete FactoryOS .shrc block; original preserved")
+  local text=original
+  if first then
+    local finish=last+#M.last
+    if text:sub(finish,finish)=="\r" then finish=finish+1 end
+    if text:sub(finish,finish)=="\n" then finish=finish+1 end
+    text=text:sub(1,first-1)..text:sub(finish)
+  end
+  if enabled then
+    if #text>0 and text:sub(-1)~="\n" then text=text.."\n" end
+    text=text..M.first.."\n"..M.launcher.."\n"..M.last.."\n"
+  end
+  if text~=original then assert(storage.atomic(M.path,text)) end
+  return true
 end
 return M
 ]]
@@ -378,9 +419,10 @@ function M.source(base)
   end
   error("Updates require HTTPS; offline installer accepts --local PATH")
 end
-function M.stage(get,root)
+function M.stage(get,root,options)
+  options=options or {}
   root=root or M.root
-  local manifest=assert(codec.decode(get("manifest.dat",65536)),"Cannot decode manifest")
+  local manifest=options.manifest or assert(codec.decode(get("manifest.dat",65536)),"Cannot decode manifest")
   local bytes=M.validate(manifest)
   assert(storage.mkdir(root.."/releases"))
   local proxy=fs.get(root)
@@ -391,9 +433,12 @@ function M.stage(get,root)
   local stage=root.."/releases/.stage-"..uuid.next()
   assert(storage.mkdir(stage))
   for i,file in ipairs(manifest.files) do
-    io.write(string.format("[%02d/%02d] %s\n",i,#manifest.files,file.path))
+    if not options.quiet then io.write(string.format("[%02d/%02d] %s\n",i,#manifest.files,file.path)) end
+    if options.progress then options.progress(i,#manifest.files,file.path) end
     local data=get("src/"..file.path,file.size)
     assert(#data==file.size and crypto.equal(crypto.sha256(data),file.sha256),"Integrity failure: "..file.path)
+    local compiled,syntaxError=load(data,"=factoryos/update/"..file.path,"t",{})
+    assert(compiled,"Invalid Lua source: "..file.path..": "..tostring(syntaxError))
     assert(storage.write(stage.."/"..file.path,data))
     os.sleep(0)
   end
@@ -419,6 +464,9 @@ function M.install(base,cfg,root)
   assert(cfg.role=="server" or component.isAvailable("internet"),"Display needs temporary Internet Card or offline reinstall")
   local manifest=M.stage(M.source(base),root)
   M.activate(manifest,root)
+  -- Old releases do not have this helper; upgrading from them needs one CLI enable.
+  local ok,autostart=pcall(require,"core.autostart")
+  if ok then autostart.ensure(cfg.autoStart~=false) end
   return manifest
 end
 function M.rollback(root)
@@ -445,6 +493,7 @@ local hardware=require("core.hardware")
 local config=require("core.config")
 local storage=require("core.storage")
 local updater=require("core.updater")
+local autostart=require("core.autostart")
 local M={}
 local function ask(label,default)
   io.write(label..(default and (" ["..default.."]") or "")..": ")
@@ -507,12 +556,14 @@ function M.main(args,embedded)
   assert(config.save(c))
   assert(storage.atomic("/bin/factoryos.lua",updater.launcher))
   updater.activate(manifest)
+  autostart.ensure(c.autoStart)
   -- Read back installed settings and selected release before declaring installation complete.
   assert(config.load())
   assert(storage.read(updater.root.."/active",100)==manifest.release.."\n")
   print("FactoryOS "..manifest.release.." installed as "..role)
   print("Start: factoryos start --foreground\nBackground: factoryos start\nInspect: factoryos status / doctor / logs")
   print("Stop: factoryos stop\nUpdate: factoryos stop, then factoryos update HTTPS_BASE\nRollback: factoryos rollback")
+  print("Auto foreground startup enabled. Ctrl+C returns to shell. Updates: panel button.")
   print("Network and real AE2 behavior still require in-game acceptance tests (docs/testing.md).")
 end
 return M
@@ -531,7 +582,7 @@ end
 local payload={}
 payload[ [[
 manifest.dat]] ]=[[
-m4:s5:filesm27:n1:1m3:s4:paths8:boot.luas4:sizen4:1330s6:sha256s64:ce3e050c5d1c702baff8489b30c5c0d80084ac3362d1cdf28ccac88fe9076727n1:2m3:s4:paths23:client/main_display.luas4:sizen4:7776s6:sha256s64:22a78855594646b5ac37df50b85edac576fd84ae88c8b45bc5168268ed8663a9n1:3m3:s4:paths22:client/preferences.luas4:sizen3:879s6:sha256s64:e1d9ec86fc051e57ed8b5ac78f3b1eedf3c5fe5ecb76a5127b62e7467ce8191fn1:4m3:s4:paths23:client/side_display.luas4:sizen3:159s6:sha256s64:7e94ff8c85f4be8b2c65786376ec1ff19ea17807310b3940a3e5f2aea31ecdc3n1:5m3:s4:paths12:core/cli.luas4:sizen4:3967s6:sha256s64:2ab1f3bc4e5c258ebdf6e58a906c90b9fd0bc2a4e5548bd2c831b9047beacdf6n1:6m3:s4:paths14:core/codec.luas4:sizen4:2990s6:sha256s64:d99f7fcbec5e1419877fba9e17a6bd673047dfbd55d4369890f0b8cbe436614dn1:7m3:s4:paths15:core/config.luas4:sizen4:2606s6:sha256s64:a12366ba1683a19d0884389b404effc15049daea545e29e756982ba2252b0c6en1:8m3:s4:paths15:core/crypto.luas4:sizen4:2958s6:sha256s64:c58b3b3fc70204fdc85ccd9b2c3ffdceba8516376f94110a700f070eb7b6ed95n1:9m3:s4:paths17:core/hardware.luas4:sizen4:1853s6:sha256s64:f40a399b003f0f137e11c488d79eb6d7f46c4d60dc01d1b3f14a087d7863330an2:10m3:s4:paths18:core/installer.luas4:sizen4:4054s6:sha256s64:27b5fe92bb39eee1fdaef1d8a97e9033a5774ab527b4f924ce7c58c11a5c2f08n2:11m3:s4:paths14:core/items.luas4:sizen3:449s6:sha256s64:e736f06f45d682fc14911a502a0d638e929c1a43bb1f29de56ea0f8f1ff5a589n2:12m3:s4:paths15:core/logger.luas4:sizen3:719s6:sha256s64:773349ed6f72655c34f5499b8a2363b4c38a0844c51ffcb8a2bc855e8e98d81cn2:13m3:s4:paths16:core/runtime.luas4:sizen4:2850s6:sha256s64:e5909e6ddc6e9a9b911e146dc8267e2b930b51e30e92acbf33cb6b5770c9bbf6n2:14m3:s4:paths16:core/storage.luas4:sizen4:1553s6:sha256s64:2cc1a5775cd064c10aebfc1967e24fe3764c09af5d19dfc0c985973d61071f94n2:15m3:s4:paths16:core/updater.luas4:sizen4:6226s6:sha256s64:31c4ee78cd0cc4e9e44896a78d7673d89067ff554437f6d1412015387b9e6f7en2:16m3:s4:paths20:network/messages.luas4:sizen3:457s6:sha256s64:1ca3305de58feef04c86df64c451bfa354735f3c990ce65548ec76561d8766f0n2:17m3:s4:paths17:network/modem.luas4:sizen4:4235s6:sha256s64:79d685360eb05d38dc2797f812341df5b898fb0e189565a965ddfb7f5581bc2dn2:18m3:s4:paths20:network/protocol.luas4:sizen4:6388s6:sha256s64:be00ca71a2ac6d677af4a826295cfcc93b26f7e9f75d1eaf4966b2a41faf340an2:19m3:s4:paths14:server/ae2.luas4:sizen4:5713s6:sha256s64:40270bf39f08e84431df83016944e1d75dbb9dcfad32880d5939e9734e388292n2:20m3:s4:paths17:server/energy.luas4:sizen3:156s6:sha256s64:1bcc2fd9ea9f8950d91a63065913fc089ef87750d5ef9e3d206ed044e5aa3ff6n2:21m3:s4:paths19:server/machines.luas4:sizen3:269s6:sha256s64:861aeeec2cb4fd1f7c21cd5529ae724846a15ab4fd3111b07333071ef0ba1e3bn2:22m3:s4:paths15:server/main.luas4:sizen4:1649s6:sha256s64:82153b05a92b14697099d1cc9cff5fb07f99f824ccebb428b192130c17c9b30fn2:23m3:s4:paths13:ui/format.luas4:sizen4:1186s6:sha256s64:49e6419be127eb4fd3ce51574d769579c6332a4d955dc72c6162592162b65f5fn2:24m3:s4:paths18:ui/main_screen.luas4:sizen5:20631s6:sha256s64:7edbf6e407e1561ef8eaa4ad9be5f0ace636353064a26cc9dd649101a09ea1cen2:25m3:s4:paths15:ui/renderer.luas4:sizen4:3323s6:sha256s64:a7232bae7243ab279e2740e145918e9b2bc3e24cf08ab3ec2044c2ab44ec7eeen2:26m3:s4:paths14:ui/screens.luas4:sizen4:1991s6:sha256s64:defa801bc195ae6879aaa2b29277de120d9a7a8b0269573249eac5df13631c14n2:27m3:s4:paths14:ui/widgets.luas4:sizen4:1334s6:sha256s64:71642d816aebbc63a1fad5e54bf825361010233897ee848902fadb6b178a4652s6:scheman1:1s7:releases18:0.2.0-217db455e8f2s7:versions5:0.2.0]]
+m4:s5:filesm30:n1:1m3:s4:paths8:boot.luas4:sizen4:1375s6:sha256s64:7c5b2ea41201dc92f43b50aaad9c06f633e5dfd707783cd243376f16845a90bdn1:2m3:s4:paths23:client/main_display.luas4:sizen4:7776s6:sha256s64:01bd6ff817538ba5a44d6ef4caff48b85cbe642f6271f6947b38c2e1572dbc35n1:3m3:s4:paths22:client/preferences.luas4:sizen3:879s6:sha256s64:e1d9ec86fc051e57ed8b5ac78f3b1eedf3c5fe5ecb76a5127b62e7467ce8191fn1:4m3:s4:paths23:client/side_display.luas4:sizen3:159s6:sha256s64:7e94ff8c85f4be8b2c65786376ec1ff19ea17807310b3940a3e5f2aea31ecdc3n1:5m3:s4:paths18:core/autostart.luas4:sizen4:1456s6:sha256s64:954eaf256cb6b89d8092de49b6963927b39b37b4203052bd24071aa1fefe0b85n1:6m3:s4:paths12:core/cli.luas4:sizen4:4865s6:sha256s64:4af2ef01e324ea70cb2a8d5ba7a02787cf1c90bd1c1d0c51ff7d9df4503de7f3n1:7m3:s4:paths14:core/codec.luas4:sizen4:2990s6:sha256s64:d99f7fcbec5e1419877fba9e17a6bd673047dfbd55d4369890f0b8cbe436614dn1:8m3:s4:paths15:core/config.luas4:sizen4:3287s6:sha256s64:08044ececad5c3a115c28e27179582d06d9370e60ebd117c441cf0a71f48cc41n1:9m3:s4:paths15:core/crypto.luas4:sizen4:2958s6:sha256s64:c58b3b3fc70204fdc85ccd9b2c3ffdceba8516376f94110a700f070eb7b6ed95n2:10m3:s4:paths17:core/hardware.luas4:sizen4:1853s6:sha256s64:f40a399b003f0f137e11c488d79eb6d7f46c4d60dc01d1b3f14a087d7863330an2:11m3:s4:paths18:core/installer.luas4:sizen4:4220s6:sha256s64:6e61458610f4d4f821a2e6d581d083cff19ae5615cef3c56109812f150f84080n2:12m3:s4:paths14:core/items.luas4:sizen3:449s6:sha256s64:e736f06f45d682fc14911a502a0d638e929c1a43bb1f29de56ea0f8f1ff5a589n2:13m3:s4:paths15:core/logger.luas4:sizen3:719s6:sha256s64:773349ed6f72655c34f5499b8a2363b4c38a0844c51ffcb8a2bc855e8e98d81cn2:14m3:s4:paths16:core/runtime.luas4:sizen4:4004s6:sha256s64:4b5f3e7d965e40d05720902b17871e4e27554b007f3157bc3e3a71011c8936can2:15m3:s4:paths16:core/storage.luas4:sizen4:1553s6:sha256s64:2cc1a5775cd064c10aebfc1967e24fe3764c09af5d19dfc0c985973d61071f94n2:16m3:s4:paths16:core/updater.luas4:sizen4:6746s6:sha256s64:921ab0c29a6f36c2409dd8c5fa28d5d707e81a6445f15bfd6b86d8da0593b4e3n2:17m3:s4:paths16:core/updates.luas4:sizen5:11440s6:sha256s64:4b0d0c01f3a5c65f38062b0d92f16592efdb4984ebe0171162f6475b03b3aeffn2:18m3:s4:paths20:network/messages.luas4:sizen3:499s6:sha256s64:bf9ee1b1ef6f6dc8522d39f40bacd9b473fcb4e0ef20e5a0a96d492957947dean2:19m3:s4:paths17:network/modem.luas4:sizen4:4235s6:sha256s64:79d685360eb05d38dc2797f812341df5b898fb0e189565a965ddfb7f5581bc2dn2:20m3:s4:paths20:network/protocol.luas4:sizen4:6583s6:sha256s64:5a3f96e81fe121e9ec186d6a3659e163694d81eac0312f0260b988d4ad4b9ed3n2:21m3:s4:paths14:server/ae2.luas4:sizen4:5713s6:sha256s64:40270bf39f08e84431df83016944e1d75dbb9dcfad32880d5939e9734e388292n2:22m3:s4:paths17:server/energy.luas4:sizen3:156s6:sha256s64:1bcc2fd9ea9f8950d91a63065913fc089ef87750d5ef9e3d206ed044e5aa3ff6n2:23m3:s4:paths19:server/machines.luas4:sizen3:269s6:sha256s64:861aeeec2cb4fd1f7c21cd5529ae724846a15ab4fd3111b07333071ef0ba1e3bn2:24m3:s4:paths15:server/main.luas4:sizen4:2024s6:sha256s64:526f4bff39c6ce74cfe19db1e56dcf0518aa0a345a0b896d9b369d0bca9a8ae5n2:25m3:s4:paths13:ui/format.luas4:sizen4:1186s6:sha256s64:49e6419be127eb4fd3ce51574d769579c6332a4d955dc72c6162592162b65f5fn2:26m3:s4:paths18:ui/main_screen.luas4:sizen5:20768s6:sha256s64:16821670f242080cbd3fcb7aef0d1ac7e8febd78327d0dda7fcbce2d73e3dac3n2:27m3:s4:paths15:ui/renderer.luas4:sizen4:3323s6:sha256s64:a7232bae7243ab279e2740e145918e9b2bc3e24cf08ab3ec2044c2ab44ec7eeen2:28m3:s4:paths14:ui/screens.luas4:sizen4:2405s6:sha256s64:369044a91c7b7cf96551a509309f5fd2cef64e83319e853ac14ff625ba5b2d35n2:29m3:s4:paths14:ui/updates.luas4:sizen4:2905s6:sha256s64:f70bc0f1e961c46f9841f9d5037d298aeccd8e4f3da5c0d1e6e6f39999c09d8fn2:30m3:s4:paths14:ui/widgets.luas4:sizen4:1334s6:sha256s64:71642d816aebbc63a1fad5e54bf825361010233897ee848902fadb6b178a4652s6:scheman1:1s7:releases18:0.3.0-a25a5d62199es7:versions5:0.3.0]]
 payload[ [[
 src/boot.lua]] ]=[[
 -- Loaded afresh by /bin/factoryos.lua; active pointer selects an immutable release.
@@ -546,9 +597,9 @@ local release=root.."/releases/"..version
 if not package.loaded["factoryos.service"] or not package.loaded["factoryos.service"].running then
   -- OpenOS itself owns many core.* modules. Clear only FactoryOS's exact names.
   local names={"core.cli","core.codec","core.config","core.crypto","core.hardware","core.installer",
-    "core.logger","core.runtime","core.storage","core.updater","core.items","network.modem","network.messages",
+    "core.logger","core.runtime","core.storage","core.updater","core.items","core.autostart","core.updates","network.modem","network.messages",
     "network.protocol","server.ae2","server.energy","server.machines","server.main",
-    "client.main_display","client.side_display","client.preferences","ui.renderer","ui.screens","ui.main_screen","ui.widgets","ui.format"}
+    "client.main_display","client.side_display","client.preferences","ui.renderer","ui.screens","ui.main_screen","ui.widgets","ui.format","ui.updates"}
   for _,name in ipairs(names) do package.loaded[name]=nil end
 end
 package.path=release.."/?.lua;"..release.."/?/init.lua;"..package.path
@@ -655,8 +706,8 @@ function M.new(net,clock)
     if self.editing then if key then self:edit(key) end; return end
     local tab=id:match("^tab:(%d)$")
     if tab or id=="tabprev" or id=="tabnext" then
-      local nextTab=tab and tonumber(tab) or id=="tabnext" and self.tab%8+1 or (self.tab+6)%8+1
-      if nextTab<1 or nextTab>8 then return end
+      local nextTab=tab and tonumber(tab) or id=="tabnext" and self.tab%9+1 or (self.tab+7)%9+1
+      if nextTab<1 or nextTab>9 then return end
       local changed=nextTab~=self.tab; self.tab=nextTab
       if changed and nextTab==2 then self:clearStocks(); self:refreshStocks(true) end
       self:refreshJobs(); return
@@ -737,6 +788,40 @@ src/client/side_display.lua]] ]=[[
 return {new=function() return {tick=function() end,touch=function() end} end}
 ]]
 payload[ [[
+src/core/autostart.lua]] ]=[[
+local fs=require("filesystem")
+local storage=require("core.storage")
+local M={path="/home/.shrc",first="# BEGIN FACTORYOS AUTOSTART",last="# END FACTORYOS AUTOSTART"}
+M.launcher="/usr/lib/factoryos/autostart.lua"
+M.script=[=[if package.loaded["factoryos.autostart_once"] then return end
+package.loaded["factoryos.autostart_once"]=true
+local ok,reason=pcall(function() return assert(loadfile("/bin/factoryos.lua"))("start","--foreground") end)
+if not ok then io.stderr:write("FactoryOS startup failed: "..tostring(reason).."\n") end
+]=]
+function M.ensure(enabled)
+  if enabled and storage.read(M.launcher)~=M.script then assert(storage.atomic(M.launcher,M.script)) end
+  local original=""
+  if fs.exists(M.path) then original=assert(storage.read(M.path,65536)) end
+  local first=original:find(M.first,1,true)
+  local last=original:find(M.last,1,true)
+  assert((first==nil)==(last==nil) and (not first or last>first),"Incomplete FactoryOS .shrc block; original preserved")
+  local text=original
+  if first then
+    local finish=last+#M.last
+    if text:sub(finish,finish)=="\r" then finish=finish+1 end
+    if text:sub(finish,finish)=="\n" then finish=finish+1 end
+    text=text:sub(1,first-1)..text:sub(finish)
+  end
+  if enabled then
+    if #text>0 and text:sub(-1)~="\n" then text=text.."\n" end
+    text=text..M.first.."\n"..M.launcher.."\n"..M.last.."\n"
+  end
+  if text~=original then assert(storage.atomic(M.path,text)) end
+  return true
+end
+return M
+]]
+payload[ [[
 src/core/cli.lua]] ]=[[
 local config=require("core.config")
 local storage=require("core.storage")
@@ -751,6 +836,23 @@ local function live()
 end
 function M.main(args,root)
   local cmd=args[1] or "status"
+  if cmd=="autostart-run" then
+    if package.loaded["factoryos.autostart_once"] then return end
+    package.loaded["factoryos.autostart_once"]=true
+    local c=config.load()
+    if c and c.autoStart and not live() then return M.main({"start","--foreground"},root) end
+    return
+  end
+  if cmd=="autostart" then
+    assert(not live(),"Stop FactoryOS before changing startup")
+    local c=assert(config.load())
+    if args[2] then
+      assert(args[2]=="enable" or args[2]=="disable","autostart enable|disable")
+      c.autoStart=args[2]=="enable"; assert(config.save(c))
+    end
+    require("core.autostart").ensure(c.autoStart)
+    print("Foreground autostart: "..(c.autoStart and "ENABLED" or "DISABLED")); return
+  end
   if cmd=="logs" then print(logger.read()); return end
   if cmd=="doctor" then
     print(hardware.describe())
@@ -771,7 +873,7 @@ function M.main(args,root)
   if cmd=="stop" or cmd=="restart" then
     local running,s=live()
     if running then
-      s.stop=true
+      s.stop=true; s.applyUpdate=nil
       local deadline=computer.uptime()+8
       repeat os.sleep(0.1) until not s.running or computer.uptime()>=deadline
       if s.running then error("Graceful stop timed out; update blocked. Check logs.") end
@@ -799,7 +901,9 @@ function M.main(args,root)
       elseif type(c[k])=="boolean" then assert(v=="true" or v=="false","true|false required"); v=v=="true" end
       c[k]=v
     end
-    assert(config.save(c)); print("Configuration saved; restart to apply."); return
+    assert(config.save(c))
+    if k=="autoStart" then require("core.autostart").ensure(c.autoStart) end
+    print("Configuration saved; restart to apply."); return
   end
   if cmd=="update" or cmd=="rollback" then
     assert(not live(),"Stop FactoryOS before updating; runtime must be idle")
@@ -814,6 +918,7 @@ function M.main(args,root)
   if cmd=="start" then
     assert(not live(),"FactoryOS already running")
     local c,err=config.load(); assert(c,err)
+    require("core.autostart").ensure(c.autoStart)
     if err then logger.log("WARN",err) end
     local hw,why=hardware.check(c); assert(hw,why)
     local s={running=false,stop=false,role=c.role}; package.loaded["factoryos.service"]=s
@@ -827,7 +932,7 @@ function M.main(args,root)
     end
     return
   end
-  error("Commands: start [--foreground], stop, restart, status, doctor, config, logs, update [HTTPS_BASE], rollback")
+  error("Commands: start [--foreground], stop, restart, status, doctor, config, logs, update [HTTPS_BASE], rollback, autostart enable|disable")
 end
 return M
 ]]
@@ -927,11 +1032,16 @@ local M={path="/etc/factoryos/config.dat"}
 function M.defaults(role)
   return {schema=2,role=role or "server",port=34100,strength=64,serverAddress="",
     modem="",gpu="",screen="",allowedClients={},heartbeat=5,offlineAfter=18,poll=10,
-    ae2Address="",ae2Enabled=true,updateBase=""}
+    ae2Address="",ae2Enabled=true,updateBase="https://raw.githubusercontent.com/Nom-Dist/factory-os/main",
+    autoStart=true,updateAutoCheck=true,updateCheckInterval=900}
 end
 function M.upgrade(c)
   if type(c)=="table" and (c.schema==1 or c.schema==2) then
     c.schema=2; c.key=nil
+    if c.autoStart==nil then c.autoStart=true end
+    if c.updateAutoCheck==nil then c.updateAutoCheck=true end
+    if c.updateCheckInterval==nil then c.updateCheckInterval=900 end
+    if c.updateBase=="" then c.updateBase=M.defaults().updateBase end
   end
   return c
 end
@@ -947,6 +1057,8 @@ function M.validate(c)
     if type(c[k])~="string" or #c[k]>512 then return nil,"invalid "..k end
   end
   if type(c.ae2Enabled)~="boolean" then return nil,"invalid feature flags" end
+  if type(c.autoStart)~="boolean" or type(c.updateAutoCheck)~="boolean" then return nil,"invalid startup/update flags" end
+  if type(c.updateCheckInterval)~="number" or c.updateCheckInterval%1~=0 or c.updateCheckInterval<60 or c.updateCheckInterval>86400 then return nil,"invalid update check interval" end
   if type(c.allowedClients)~="table" then return nil,"invalid client allowlist" end
   local count=0
   for address,role in pairs(c.allowedClients) do
@@ -1096,6 +1208,7 @@ local hardware=require("core.hardware")
 local config=require("core.config")
 local storage=require("core.storage")
 local updater=require("core.updater")
+local autostart=require("core.autostart")
 local M={}
 local function ask(label,default)
   io.write(label..(default and (" ["..default.."]") or "")..": ")
@@ -1158,12 +1271,14 @@ function M.main(args,embedded)
   assert(config.save(c))
   assert(storage.atomic("/bin/factoryos.lua",updater.launcher))
   updater.activate(manifest)
+  autostart.ensure(c.autoStart)
   -- Read back installed settings and selected release before declaring installation complete.
   assert(config.load())
   assert(storage.read(updater.root.."/active",100)==manifest.release.."\n")
   print("FactoryOS "..manifest.release.." installed as "..role)
   print("Start: factoryos start --foreground\nBackground: factoryos start\nInspect: factoryos status / doctor / logs")
   print("Stop: factoryos stop\nUpdate: factoryos stop, then factoryos update HTTPS_BASE\nRollback: factoryos rollback")
+  print("Auto foreground startup enabled. Ctrl+C returns to shell. Updates: panel button.")
   print("Network and real AE2 behavior still require in-game acceptance tests (docs/testing.md).")
 end
 return M
@@ -1216,7 +1331,7 @@ local M={}
 function M.run(cfg,service)
   local hw,err=hardware.check(cfg)
   if not hw then service.running=false; service.error=err; logger.log("ERROR",err); return nil,err end
-  local net,view
+  local net,view,updates
   local oldW,oldH=hw.gpu.getResolution()
   local oldFg,oldBg=hw.gpu.getForeground(),hw.gpu.getBackground()
   local oldDepth=hw.gpu.getDepth()
@@ -1227,6 +1342,8 @@ function M.run(cfg,service)
     local server=cfg.role=="server" and require("server.main").new(cfg,clock,log) or nil
     net=protocol.new(cfg,hw.modem,clock,nonce,server and function(cmd,args) return server:dispatch(cmd,args) end,log)
     if server then server.clients=net.clients end
+    updates=require("core.updates").new(cfg,net,clock,service,{log=log,isIdle=server and function() return server:canUpdate() end or nil})
+    if server then server.updates=updates end
     local state=cfg.role=="main" and require("client.main_display").new(net,clock) or require("client.side_display").new()
     state.context={modem=hw.modem.address,screen=hw.screen.address,port=cfg.port,serverAddress=cfg.serverAddress,poll=cfg.poll}
     view=renderer.new(hw.gpu,hw.screen,cfg.role)
@@ -1236,6 +1353,8 @@ function M.run(cfg,service)
     while not service.stop do
       net:tick()
       if server then server:tick(); state.serverStatus=server:status() else state:tick() end
+      updates:tick(); state.update=updates:public()
+      if updates.readyManifest and not updates.busy and updates.phase=="ready" then service.applyUpdate=updates.readyManifest; service.stop=true end
       if clock()-lastDraw>=1 then
         screens.draw(view,cfg.role,net,state,clock)
         lastDraw=clock()
@@ -1245,12 +1364,20 @@ function M.run(cfg,service)
       if e[1]=="modem_message" then
         -- Signal layout: name, local modem, remote modem, port, distance, payload...
         net:receive(e[2],e[3],e[4],e[6],e[7])
-      elseif e[1]=="touch" then state:touch(view:touch(e[2],e[3],e[4])); lastDraw=-math.huge
-      elseif e[1]=="key_down" and state.key then state:key(e[3],e[4]); lastDraw=-math.huge
+      elseif e[1]=="touch" then
+        local id=view:touch(e[2],e[3],e[4])
+        if id and id:match("^update:") then updates:touch(id) else state:touch(id) end
+        lastDraw=-math.huge
+      elseif e[1]=="key_down" then
+        if not state.editing and e[4]==63 then updates:touch("update:check")
+        elseif not state.editing and e[4]==64 then updates:touch("update:apply")
+        elseif state.key then state:key(e[3],e[4]) end
+        lastDraw=-math.huge
       elseif e[1]=="clipboard" and state.paste then state:paste(e[3]); lastDraw=-math.huge
-      elseif e[1]=="interrupted" then service.stop=true end
+      elseif e[1]=="interrupted" then service.stop=true; service.applyUpdate=nil end
     end
   end,debug.traceback)
+  if updates then updates:close() end
   if net then pcall(net.close,net) end
   pcall(function()
     hw.gpu.setDepth(oldDepth); hw.gpu.setResolution(oldW,oldH)
@@ -1259,6 +1386,15 @@ function M.run(cfg,service)
   service.running=false
   if not ok then service.error=tostring(reason); logger.log("ERROR",reason) end
   logger.log("INFO","Stopped "..cfg.role)
+  if ok and service.applyUpdate then
+    local applied,why=pcall(function()
+      require("core.autostart").ensure(cfg.autoStart)
+      require("core.updater").activate(service.applyUpdate)
+      logger.log("INFO","Activated "..service.applyUpdate.release.."; rebooting")
+      computer.shutdown(true)
+    end)
+    if not applied then service.error=tostring(why); logger.log("ERROR",why); return nil,why end
+  end
   return ok,reason
 end
 return M
@@ -1384,9 +1520,10 @@ function M.source(base)
   end
   error("Updates require HTTPS; offline installer accepts --local PATH")
 end
-function M.stage(get,root)
+function M.stage(get,root,options)
+  options=options or {}
   root=root or M.root
-  local manifest=assert(codec.decode(get("manifest.dat",65536)),"Cannot decode manifest")
+  local manifest=options.manifest or assert(codec.decode(get("manifest.dat",65536)),"Cannot decode manifest")
   local bytes=M.validate(manifest)
   assert(storage.mkdir(root.."/releases"))
   local proxy=fs.get(root)
@@ -1397,9 +1534,12 @@ function M.stage(get,root)
   local stage=root.."/releases/.stage-"..uuid.next()
   assert(storage.mkdir(stage))
   for i,file in ipairs(manifest.files) do
-    io.write(string.format("[%02d/%02d] %s\n",i,#manifest.files,file.path))
+    if not options.quiet then io.write(string.format("[%02d/%02d] %s\n",i,#manifest.files,file.path)) end
+    if options.progress then options.progress(i,#manifest.files,file.path) end
     local data=get("src/"..file.path,file.size)
     assert(#data==file.size and crypto.equal(crypto.sha256(data),file.sha256),"Integrity failure: "..file.path)
+    local compiled,syntaxError=load(data,"=factoryos/update/"..file.path,"t",{})
+    assert(compiled,"Invalid Lua source: "..file.path..": "..tostring(syntaxError))
     assert(storage.write(stage.."/"..file.path,data))
     os.sleep(0)
   end
@@ -1425,6 +1565,9 @@ function M.install(base,cfg,root)
   assert(cfg.role=="server" or component.isAvailable("internet"),"Display needs temporary Internet Card or offline reinstall")
   local manifest=M.stage(M.source(base),root)
   M.activate(manifest,root)
+  -- Old releases do not have this helper; upgrading from them needs one CLI enable.
+  local ok,autostart=pcall(require,"core.autostart")
+  if ok then autostart.ensure(cfg.autoStart~=false) end
   return manifest
 end
 function M.rollback(root)
@@ -1444,9 +1587,225 @@ end
 return M
 ]]
 payload[ [[
+src/core/updates.lua]] ]=[[
+-- Periodic metadata checks and user-requested, verified updates. Never auto-applies.
+local updater=require("core.updater")
+local storage=require("core.storage")
+local codec=require("core.codec")
+local thread=require("thread")
+local M={cacheRoot="/var/lib/factoryos/update-cache",chunkSize=1024}
+function M.new(cfg,net,clock,service,options)
+  options=options or {}
+  local root=options.root or updater.root
+  local cacheRoot=options.cacheRoot or M.cacheRoot
+  local self={phase="idle",message="Henuz kontrol edilmedi",busy=false,closed=false,progress=0,total=0,
+    current=(storage.read(root.."/active",100) or "unknown"):gsub("[\r\n]+$",""),nextCheck=clock()+15,epoch=0}
+  local function idle()
+    if not options.isIdle then return true end
+    local ok,allowed,reason=pcall(options.isIdle)
+    if not ok then return false,"Uretim durumu okunamadi" end
+    return allowed,reason
+  end
+  local function assertIdle()
+    local allowed,reason=idle(); assert(allowed,reason or "Uretim CPU'lari mesgul; sonra tekrar deneyin")
+  end
+  local function checkAlive() assert(not self.closed,"Update cancelled") end
+  function self:public()
+    local allowed,reason=idle()
+    if cfg.role~="server" then
+      local remote=(net.status or {}).update
+      if not net.online then allowed=false; reason="Sunucu baglantisi yok"
+      elseif remote and remote.canApply==false then allowed=false; reason=remote.reason end
+    end
+    return {phase=self.phase,message=self.message,busy=self.busy,currentRelease=self.current,
+      release=self.manifest and self.manifest.release or self.remoteRelease or "",
+      version=self.manifest and (self.manifest.version or self.manifest.release) or self.remoteVersion or "",
+      available=(self.manifest and self.manifest.release or self.remoteRelease or self.current)~=self.current,
+      progress=self.progress,total=self.total,file=self.file or "",autoStart=cfg.autoStart,
+      automatic=cfg.updateAutoCheck,interval=cfg.updateCheckInterval,role=cfg.role,
+      canApply=allowed==true,reason=reason or "",lastCheck=self.lastCheck or 0}
+  end
+  function self:spawn(fn)
+    if self.busy or self.closed then return false end
+    self.busy=true; self.epoch=self.epoch+1
+    local epoch=self.epoch
+    self.worker=thread.create(function()
+      local ok,err=xpcall(fn,debug.traceback)
+      if self.closed or self.epoch~=epoch then return end
+      self.busy=false
+      if not ok then
+        self.phase="error"; self.message=tostring(err):match("[^\r\n]+") or "Guncelleme basarisiz"
+        if options.log then options.log("ERROR","Update: "..tostring(err)) end
+      end
+    end)
+    return true
+  end
+  function self:accept(manifest)
+    updater.validate(manifest); self.manifest=manifest; self.lastCheck=clock()
+    self.phase=manifest.release==self.current and "current" or "available"
+    self.message=self.phase=="current" and "En guncel surum kullaniliyor" or "Yeni surum hazir"
+  end
+  function self:checkNow()
+    checkAlive(); self.phase="checking"; self.message="GitHub kontrol ediliyor"
+    local manifest=assert(codec.decode(updater.source(cfg.updateBase)("manifest.dat",65536)),"Invalid update manifest")
+    checkAlive(); self:accept(manifest)
+  end
+  function self:prepareNow()
+    if not self.manifest then self:checkNow() end
+    local manifest=self.manifest
+    if self.cachedManifest and self.cachedManifest.release==manifest.release then return manifest end
+    self.phase="downloading"; self.message="Sunucu dosyalari hazirliyor"
+    self.cachedManifest=updater.stage(updater.source(cfg.updateBase),cacheRoot,{manifest=manifest,quiet=true,
+      progress=function(i,n,path) checkAlive(); self.progress=i; self.total=n; self.file=path end})
+    self.cacheFiles={}
+    for _,file in ipairs(manifest.files) do self.cacheFiles[file.path]=file end
+    self.phase=manifest.release==self.current and "current" or "available"
+    self.message="Kablosuz guncelleme paketi hazir"
+    return manifest
+  end
+  function self:rpc(command,args)
+    checkAlive(); assert(net.online,"Sunucu baglantisi yok")
+    local done,result,reason=false,nil,nil
+    local id,err=net:request(command,args,function(data,why) result=data; reason=why; done=true end)
+    assert(id,err)
+    local deadline=clock()+20
+    while not done do checkAlive(); assert(clock()<deadline,"Kablosuz guncelleme zaman asimi"); os.sleep(0.05) end
+    assert(result,reason or "Guncelleme yaniti alinamadi")
+    return result
+  end
+  function self:remoteInfo(args,waitReady)
+    local result=self:rpc("GET_UPDATE_INFO",args)
+    local deadline=clock()+600
+    while result.busy or waitReady and not result.ready do
+      assert(result.info and result.info.phase~="error",result.info and result.info.message or "Sunucu guncelleme hatasi")
+      checkAlive(); assert(clock()<deadline,"Sunucu paketi hazirlayamadi")
+      self.message=result.info.message or "Sunucu bekleniyor"
+      self.progress=result.info.progress or 0; self.total=result.info.total or 0; self.file=result.info.file
+      os.sleep(1)
+      result=self:rpc("GET_UPDATE_INFO",{})
+      if not result.busy and not result.ready and waitReady then error(result.info.message or "Guncelleme paketi hazir degil") end
+    end
+    assert(result.info and result.info.phase~="error",result.info and result.info.message or "Sunucu guncelleme hatasi")
+    if result.manifest then updater.validate(result.manifest) end
+    return result
+  end
+  function self:check()
+    if self.busy then return end
+    self.phase="checking"; self.message=cfg.role=="server" and "GitHub kontrol ediliyor" or "Sunucudan kontrol isteniyor"
+    self.nextCheck=clock()+cfg.updateCheckInterval
+    return self:spawn(function()
+      if cfg.role=="server" then self:checkNow()
+      else
+        local result=self:remoteInfo({check=true})
+        assert(result.manifest,"Sunucuda guncelleme bilgisi yok; sunucuyu guncelleyin")
+        self:accept(result.manifest)
+      end
+    end)
+  end
+  function self:apply()
+    if self.busy then return end
+    self.phase="downloading"; self.message="Guncelleme hazirlaniyor"
+    return self:spawn(function()
+      local prepared
+      assertIdle()
+      if cfg.role=="server" then
+        self:checkNow()
+        if self.manifest.release==self.current then return end
+        local manifest=self:prepareNow()
+        local base=cacheRoot.."/releases/"..manifest.release
+        prepared=updater.stage(function(path,limit) checkAlive(); return assert(storage.read(base.."/"..path:gsub("^src/",""),limit)) end,
+          root,{manifest=manifest,quiet=true,progress=function(i,n,path) self.progress=i; self.total=n; self.file=path end})
+      else
+        local result=self:remoteInfo({})
+        if not result.manifest then result=self:remoteInfo({check=true}) end
+        assert(result.manifest,"Sunucuda guncelleme paketi yok")
+        self:accept(result.manifest)
+        if self.manifest.release==self.current then return end
+        assert(result.info.canApply,result.info.reason or "Uretim mesgul")
+        local manifest=self.manifest
+        result=self:remoteInfo({prepare=true,release=manifest.release},true)
+        assert(result.manifest.release==manifest.release,"Guncelleme degisti; tekrar kontrol edin")
+        self.phase="downloading"; self.message="Dosyalar kablosuz aliniyor"
+        local index={}; for _,file in ipairs(manifest.files) do index["src/"..file.path]=file end
+        prepared=updater.stage(function(path,limit)
+          local file=assert(index[path],"Unknown update file")
+          local chunks,offset={},0
+          while offset<file.size do
+            checkAlive()
+            local chunk=self:rpc("GET_UPDATE_FILE",{release=manifest.release,path=file.path,offset=offset})
+            assert(chunk.release==manifest.release and chunk.path==file.path and chunk.offset==offset and chunk.size==file.size,"Invalid update chunk")
+            assert(type(chunk.data)=="string" and #chunk.data>0 and #chunk.data<=M.chunkSize and offset+#chunk.data<=limit,"Invalid update chunk size")
+            chunks[#chunks+1]=chunk.data; offset=offset+#chunk.data; os.sleep(0)
+          end
+          return table.concat(chunks)
+        end,root,{manifest=manifest,quiet=true,progress=function(i,n,path) self.progress=i; self.total=n; self.file=path end})
+        result=self:remoteInfo({}); assert(result.info.canApply,result.info.reason or "Uretim mesgul")
+      end
+      assertIdle(); checkAlive()
+      self.readyManifest=prepared
+      self.phase="ready"; self.message="Dogrulandi; yeniden baslatiliyor"
+    end)
+  end
+  function self:serve(command,args)
+    assert(cfg.role=="server","Server only")
+    if command=="GET_UPDATE_INFO" then
+      if args.check then self:check() end
+      if args.prepare then
+        if not self.manifest or args.release~=self.manifest.release then return nil,"UPDATE_CHANGED" end
+        if not self.busy and (not self.cachedManifest or self.cachedManifest.release~=args.release) then
+          self.phase="downloading"; self.message="Paket hazirlaniyor"; self:spawn(function() self:prepareNow() end)
+        end
+      end
+      return {info=self:public(),manifest=self.manifest,busy=self.busy,
+        ready=self.cachedManifest~=nil and self.manifest~=nil and self.cachedManifest.release==self.manifest.release}
+    end
+    if command=="GET_UPDATE_FILE" then
+      if not self.cachedManifest or args.release~=self.cachedManifest.release then return nil,"UPDATE_NOT_READY" end
+      local file=type(args.path)=="string" and self.cacheFiles and self.cacheFiles[args.path]
+      local offset=args.offset
+      if not file or type(offset)~="number" or offset%1~=0 or offset<0 or offset>=file.size then return nil,"INVALID_UPDATE_FILE" end
+      local data,err=storage.read(cacheRoot.."/releases/"..args.release.."/"..file.path,file.size)
+      if not data then return nil,err end
+      return {data=data:sub(offset+1,offset+M.chunkSize),offset=offset,size=file.size,path=file.path,release=args.release}
+    end
+    return nil,"UNSUPPORTED_COMMAND"
+  end
+  function self:touch(id)
+    if id=="update:check" then self:check()
+    elseif id=="update:apply" then self:apply()
+    elseif id=="update:autostart" and not self.busy then
+      local previous=cfg.autoStart; cfg.autoStart=not previous
+      local ok,err=pcall(function() assert(require("core.config").save(cfg)); require("core.autostart").ensure(cfg.autoStart) end)
+      if not ok then cfg.autoStart=previous; self.phase="error"; self.message=tostring(err) end
+    end
+  end
+  function self:tick()
+    if cfg.role=="server" then
+      if cfg.updateAutoCheck and clock()>=self.nextCheck and not self.busy then self:check() end
+    elseif net.online then
+      local remote=(net.status or {}).update
+      if remote and type(remote.release)=="string" and remote.release~="" and not self.busy then
+        self.remoteRelease=remote.release; self.remoteVersion=remote.version
+        if self.manifest and self.manifest.release~=remote.release then self.manifest=nil; self.phase="idle" end
+        if not self.manifest and self.phase=="idle" then
+          self.phase=remote.release==self.current and "current" or "available"
+          self.message=self.phase=="current" and "En guncel surum kullaniliyor" or "Sunucuda yeni surum var"
+        end
+      end
+    end
+  end
+  function self:close()
+    self.closed=true; self.epoch=self.epoch+1
+    if self.worker and self.worker.kill then pcall(self.worker.kill,self.worker) end
+  end
+  return self
+end
+return M
+]]
+payload[ [[
 src/network/messages.lua]] ]=[[
 local M={}
-M.read={HEARTBEAT=true,GET_SERVER_STATUS=true,GET_AE2_STOCKS=true,GET_CRAFTING_JOBS=true,GET_POWER_STATUS=true,GET_MACHINE_STATUS=true}
+M.read={HEARTBEAT=true,GET_SERVER_STATUS=true,GET_AE2_STOCKS=true,GET_CRAFTING_JOBS=true,GET_POWER_STATUS=true,GET_MACHINE_STATUS=true,GET_UPDATE_INFO=true,GET_UPDATE_FILE=true}
 function M.authorize(role,command)
   if not M.read[command] then return nil,"UNSUPPORTED_COMMAND" end
   if role~="main" and role~="side" then return nil,"FORBIDDEN" end
@@ -1610,13 +1969,15 @@ function M.new(cfg,modem,clock,nonce,dispatch,log)
       c.lastSeen=now
       local key=remote..":"..m.id
       local fingerprint=codec.encode(m.body)
-      local old=self.seen[key]
+      -- Immutable chunk reads are idempotent and must not exhaust the RPC replay cache.
+      local cacheable=m.body.command~="GET_UPDATE_FILE"
+      local old=cacheable and self.seen[key]
       if old then
         if old.fingerprint==fingerprint then send(remote,"RESPONSE",old.body,m.boot,m.id) end
         return
       end
       -- Cache never evicts an unexpired request: refuse additional work under load.
-      if size(self.seen)>=128 then return end
+      if cacheable and size(self.seen)>=128 then return end
       local allowed,err=messages.authorize(c.role,m.body.command)
       local value
       if allowed and type(m.body.args)=="table" then
@@ -1624,7 +1985,7 @@ function M.new(cfg,modem,clock,nonce,dispatch,log)
         if ok then value,err=result,why else err="INTERNAL_ERROR"; log("ERROR",result) end
       elseif allowed then err="INVALID_ARGUMENTS" end
       local body={ok=err==nil,data=value or {},error=err or ""}
-      self.seen[key]={body=body,at=now,fingerprint=fingerprint}
+      if cacheable then self.seen[key]={body=body,at=now,fingerprint=fingerprint} end
       send(remote,"RESPONSE",body,m.boot,m.id)
     else
       if m.target~=self.boot then return end
@@ -1817,8 +2178,13 @@ function M.new(cfg,clock,log)
   function self:status()
     local clients={}
     for address,c in pairs(self.clients) do clients[#clients+1]={address=address,role=c.role,age=math.floor(clock()-c.lastSeen)} end
-    return {version="0.2.0",uptime=math.floor(clock()-self.started),ae2=self.ae2:summary(),clients=clients,
-      power=energy.status(self.ae2),automation=false,crafting="disabled_pending_ingame_validation",reactors="read_only_unsupported"}
+    return {version="0.3.0",uptime=math.floor(clock()-self.started),ae2=self.ae2:summary(),clients=clients,
+      power=energy.status(self.ae2),automation=false,crafting="disabled_pending_ingame_validation",reactors="read_only_unsupported",
+      update=self.updates and self.updates:public() or nil}
+  end
+  function self:canUpdate()
+    for _,cpu in ipairs(self.ae2.cpus or {}) do if cpu.busy then return false,"Uretim CPU'lari mesgul; sonra tekrar deneyin" end end
+    return true
   end
   function self:dispatch(command,args)
     if command=="HEARTBEAT" or command=="GET_SERVER_STATUS" then return self:status() end
@@ -1826,6 +2192,7 @@ function M.new(cfg,clock,log)
     if command=="GET_CRAFTING_JOBS" then return self.ae2:jobs() end
     if command=="GET_POWER_STATUS" then return energy.status(self.ae2) end
     if command=="GET_MACHINE_STATUS" then return machines.status() end
+    if (command=="GET_UPDATE_INFO" or command=="GET_UPDATE_FILE") and self.updates then return self.updates:serve(command,args) end
     return nil,"UNSUPPORTED_COMMAND"
   end
   function self:tick()
@@ -1880,7 +2247,7 @@ local C=require("ui.renderer").colors
 local W=require("ui.widgets")
 local F=require("ui.format")
 local identity=require("core.items")
-local M={tabs={"ANA PANEL","AE2 DEPOSU","STOK HEDEFLERI","URETIM","ENERJI","MAKINELER","ALARMLAR","AYARLAR"}}
+local M={tabs={"ANA PANEL","AE2 DEPOSU","STOK HEDEFLERI","URETIM","ENERJI","MAKINELER","ALARMLAR","AYARLAR","GUNCELLEMELER"}}
 local function time(clock) return type(clock)=="function" and clock() or 0 end
 local function favorite(state,item)
   local key=identity.key(item)
@@ -1935,15 +2302,12 @@ local function navigation(r,l,state)
   W.panel(r,2,6,l.nav,r.h-7,"KONTROL PANELI")
   local height=r.h>=42 and 3 or 1
   local step=height+1
-  local top=r.h>=42 and 9 or 8
+  local top=r.h>=42 and 9 or 7
   for i,label in ipairs(M.tabs) do
-    if r.h<42 then label=({"PANEL","DEPO","STOK HEDEF","URETIM","ENERJI","MAKINELER","ALARMLAR","AYARLAR"})[i] end
+    if r.h<42 then label=({"PANEL","DEPO","STOK HEDEF","URETIM","ENERJI","MAKINELER","ALARMLAR","AYARLAR","GUNCELLEME"})[i] end
+    if i==9 and (state.update or {}).available then label=label.." *" end
     local y=top+(i-1)*step
     r:button(3,y,l.nav-2,string.format("%02d ",i)..label,"tab:"..i,state.tab==i,height)
-  end
-  if r.h>=42 then
-    W.text(r,4,r.h-8,l.nav-4,"OTOMATIK URETIM",C.muted)
-    W.text(r,4,r.h-6,l.nav-4,"PASIF / IZLEME",C.warn)
   end
   if r.h>=32 then r:button(3,r.h-4,l.nav-2,"VERIYI YENILE","refresh",false,r.h>=42 and 2 or 1) end
 end
@@ -2185,7 +2549,7 @@ local function content(r,l,net,state,alerts)
       W.text(r,l.x+2,y,l.w-4,pair[1],C.muted)
       W.text(r,l.x+2,y+1,l.w-4,pair[2] and pair[2]~="" and pair[2] or "Otomatik kesif / bilinmiyor",C.text)
     end
-    if l.bottom-l.y>29 then line(28,"Favoriler bu ekranin diskinde saklanir. Uretim kontrolu pasiftir.",C.muted) end
+    if l.bottom-l.y>29 then r:button(l.x+2,l.y+28,math.min(30,l.w-4),"YAZILIM / GUNCELLEMELER","tab:9",false,2) end
   end
 end
 local function keyboard(r,l,state)
@@ -2218,14 +2582,15 @@ end
 function M.draw(r,net,state,clock)
   local now=time(clock); local l=M.layout(r); local alerts=M.alerts(net,state)
   r:begin(); header(r,net,state,now); navigation(r,l,state)
-  if not net.online and state.tab~=8 and state.tab~=7 then offline(r,l,net)
+  if not net.online and state.tab~=8 and state.tab~=7 and state.tab~=9 then offline(r,l,net)
   elseif state.tab==1 then overview(r,l,net,state)
   elseif state.tab==2 then stocks(r,l,net,state,now)
+  elseif state.tab==9 then require("ui.updates").draw(r,l.x,l.y,l.w,l.bottom-l.y+1,state.update)
   else content(r,l,net,state,alerts) end
   rail(r,l,net,state,now,alerts)
   r:fill(1,r.h,r.w,1,C.raised)
   local notice=state.message and now-state.message.at<6 and state.message
-  W.text(r,2,r.h,r.w-2,notice and notice.text or state.editing and "Arama: dokun / yaz | Enter: ara | Esc: iptal" or "DISPLAY 01 / v0.2.0 | "..(net.online and "CANLI IZLEME" or "YENIDEN BAGLANIYOR"),notice and notice.kind=="warn" and C.warn or C.muted,C.raised)
+  W.text(r,2,r.h,r.w-2,notice and notice.text or state.editing and "Arama: dokun / yaz | Enter: ara | Esc: iptal" or "DISPLAY 01 / v0.3.0 | "..((state.update or {}).available and "GUNCELLEME VAR" or net.online and "CANLI IZLEME" or "YENIDEN BAGLANIYOR"),notice and notice.kind=="warn" and C.warn or C.muted,C.raised)
   keyboard(r,l,state)
   r:flush()
 end
@@ -2325,12 +2690,15 @@ function M.draw(r,role,net,state,clock)
   r:fill(1,1,r.w,3,C.panel)
   r:text(3,2,"FACTORY OS / "..(role=="side" and "TELEMETRY" or "SERVER"),C.accent,C.panel)
   r:text(math.max(3,r.w-10),2,online and "ONLINE" or "OFFLINE",online and C.good or C.bad,C.panel)
-  r:text(2,r.h,"v0.2.0 | "..(online and "wireless network" or "searching / reconnecting"),C.muted)
+  r:text(2,r.h,"v0.3.0 | F5: check / F6: update",C.muted)
   if role=="server" then
     r:panel(2,5,r.w-2,r.h-6,"SYSTEM CONSOLE")
     r:text(3,7,"Clients: "..#(status.clients or {}),nil,C.panel)
     r:text(3,9,"AE2: "..(ae.online and "ONLINE" or "OFFLINE"),ae.online and C.good or C.bad,C.panel)
-    r:text(3,11,"factoryos stop / status / logs",C.muted,C.panel)
+    local updates=require("ui.updates")
+    r:text(3,11,updates.label(state.update):sub(1,r.w-4),C.muted,C.panel)
+    if state.update then r:text(3,12,(state.update.canApply==false and state.update.reason or state.update.phase=="error" and state.update.message or ""):sub(1,r.w-4),C.warn,C.panel) end
+    updates.action(r,3,13,r.w-4,state.update)
   else
     local y,width=6,r.w-3
     r:panel(2,y,width,r.h-y-1,"ENERGY / FACTORY")
@@ -2348,8 +2716,58 @@ function M.draw(r,role,net,state,clock)
       else line(4,"AE2 energy unavailable",C.muted) end
       line(12,"RF/FE: unsupported driver",C.muted); line(14,"Reactors: read only / unavailable",C.muted)
     end
+    if r.h>=24 then r:text(3,r.h-4,require("ui.updates").label(state.update):sub(1,r.w-4),C.muted,C.panel) end
+    require("ui.updates").action(r,3,r.h-2,r.w-4,state.update)
   end
   r:flush()
+end
+return M
+]]
+payload[ [[
+src/ui/updates.lua]] ]=[[
+local C=require("ui.renderer").colors
+local W=require("ui.widgets")
+local M={}
+local labels={idle="KONTROL BEKLENIYOR",checking="GUNCELLEME KONTROL EDILIYOR",available="YENI SURUM VAR",current="SISTEM GUNCEL",downloading="DOSYALAR HAZIRLANIYOR",ready="YENIDEN BASLATILIYOR",error="ISLEM TAMAMLANAMADI"}
+function M.label(info) return labels[(info or {}).phase] or labels.idle end
+function M.action(r,x,y,width,info)
+  info=info or {}
+  local apply=info.available and not info.busy
+  local label=info.busy and "GUNCELLEME ISLEMI SURUYOR" or apply and info.canApply==false and "URETIM MESGUL / SONRA DENE" or apply and "GUNCELLE / YENIDEN AC" or "GUNCELLEME KONTROL ET"
+  r:button(x,y,width,label,apply and "update:apply" or "update:check",apply,1,not info.busy and (not apply or info.canApply~=false))
+end
+function M.draw(r,x,y,w,h,info)
+  info=info or {phase="idle"}
+  W.panel(r,x,y,w,h,"YAZILIM / GUNCELLEMELER")
+  local color=info.phase=="error" and C.warn or info.phase=="current" and C.good or info.available and C.accent or C.muted
+  if h<16 then
+    W.text(r,x+1,y+1,w-2,M.label(info),color)
+    if h>=6 then W.text(r,x+1,y+3,w-2,info.message or "",C.muted) end
+    M.action(r,x+1,math.min(y+h-1,r.h-2),w-2,info)
+    return
+  end
+  W.text(r,x+2,y+3,w-4,M.label(info),color)
+  W.text(r,x+2,y+6,w-4,"KURULU SURUM",C.muted)
+  W.text(r,x+2,y+7,w-4,info.currentRelease or "--",C.text)
+  W.text(r,x+2,y+10,w-4,"GITHUB / SUNUCUDAKI SURUM",C.muted)
+  W.text(r,x+2,y+11,w-4,info.version and info.version~="" and info.version or "Henuz kontrol edilmedi",C.accent)
+  if h>=30 then
+    W.wrap(r,x+2,y+14,w-4,3,info.message or "",info.phase=="error" and C.warn or C.muted)
+    if (info.total or 0)>0 then
+      r:bar(x+2,y+18,w-4,(info.progress or 0)/info.total)
+      W.text(r,x+2,y+20,w-4,(info.progress or 0).." / "..info.total.."  "..(info.file or ""),C.muted)
+    end
+    W.wrap(r,x+2,y+23,w-4,2,info.role=="server" and (info.automatic and "GitHub her "..math.floor((info.interval or 900)/60).." dakikada kontrol edilir. Uygulamak icin dugmeye basin." or "Otomatik kontrol kapali. Simdi kontrol et dugmesini kullanabilirsiniz.") or "Guncelleme sunucudan kablosuz alinir. Bu ekranda Internet Card gerekmez.",C.muted)
+  end
+  local buttonY=y+h-11
+  if h<30 then buttonY=y+h-5 end
+  local width=math.floor((w-6)/2)
+  r:button(x+2,buttonY,width,"SIMDI KONTROL ET","update:check",false,2,not info.busy)
+  r:button(x+width+4,buttonY,w-width-6,"GUNCELLE / YENIDEN AC","update:apply",true,2,not info.busy and info.available==true and info.canApply~=false)
+  if h>=30 then
+    r:button(x+2,y+h-6,math.min(36,w-4),"OTOMATIK ACILIS: "..(info.autoStart and "ACIK" or "KAPALI"),"update:autostart",info.autoStart,2,not info.busy)
+    W.text(r,x+2,y+h-2,w-4,info.canApply==false and info.reason or "Ayarlar korunur. Dosyalar dogrulanir, sonra yeniden acilir.",info.canApply==false and C.warn or C.muted)
+  end
 end
 return M
 ]]

@@ -23,7 +23,7 @@ Büyük ekranları bilgisayarlar arasında OC kablosuyla ortak bileşen ağına 
 
 Sunucudaki Adapter'ı tercihen AE2 ME Interface'e komşu yerleştirin; OC yerel kablosuyla sunucuya bağlayın. Driver `me_interface` veya `me_controller` gibi bir bileşen sunmalıdır. AE2 ağının enerjisi/kanalı/güvenlik yetkileri hazır olmalıdır. Birden fazla AE2 bileşeni görünüyorsa `factoryos config ae2Address TAM_ADRES` ile seçin; sadece `adapter` metotları beklenmez.
 
-İlk kurulum için istemcilere geçici Internet Card takılabilir veya HDD/disket içeriği aktarılabilir. Günlük çalışmada Internet Card gerekmez. Sunucunun çevrimiçi güncellemeleri için kendi Internet Card'ı bulunmalıdır; v0.1 istemcilere kablosuz dosya dağıtmaz.
+İlk kurulum için istemcilere geçici Internet Card takılabilir veya HDD/disket içeriği aktarılabilir. Günlük çalışmada Internet Card gerekmez. v0.3.0 sonrasında ekranlar güncellemeleri sunucudan kablosuz alır; Internet Card yalnızca sunucuda gerekir. Tier 1 konsolda dokunma desteklenmiyorsa F5/F6 kısayolları veya CLI kullanılabilir.
 
 Varsayılan wireless strength 64'tür; kart/modpack ayarları gerçek mesafeyi sınırlayabilir. Aynı boyut, yüklü chunk'lar ve yeterli OC enerjisiyle başlayın. Güç artırmak:
 

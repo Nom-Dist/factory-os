@@ -34,7 +34,7 @@ Boot/challenge değerleri OpenOS `uuid.next()` ile üretilir. Bu alanlar eski ot
 
 Kayıtlı istemci REQUEST gönderir; body `command` ve `args` içerir. RESPONSE aynı istek kimliğini taşır, doğru uzak modem/sunucu boot'u ve hedef istemci boot'u ile eşleştirilir. Yanıt `{ok,data,error}` içerir.
 
-4 saniye yanıtsız kalan istek aynı uygulama kimliğiyle tekrar gönderilir; toplam 3 deneme, ardından TIMEOUT. Yeni taşıma kimliği kullanılır. Sunucu `(modem,requestId)` için 60 saniyelik bounded önbellek tutar; aynı body tekrarında eski yanıtı yollar, farklı body ile kimlik tekrarını reddeder. Önbellek doluysa yeni işi yürütmez. Bu pencere dışında veya sunucu reboot'unda **kalıcı exactly-once garantisi yoktur**. v0.1 bütün durum değiştiren ağ komutlarını reddeder.
+4 saniye yanıtsız kalan istek aynı uygulama kimliğiyle tekrar gönderilir; toplam 3 deneme, ardından TIMEOUT. Yeni taşıma kimliği kullanılır. Sunucu `(modem,requestId)` için 60 saniyelik bounded önbellek tutar; aynı body tekrarında eski yanıtı yollar, farklı body ile kimlik tekrarını reddeder. Önbellek doluysa yeni işi yürütmez. Salt okunur ve sürüme sabitlenmiş `GET_UPDATE_FILE` parçaları idempotent olduğundan bu önbelleğe alınmaz; iki istemcinin dosya akışı normal RPC önbelleğini doldurmaz. Bu pencere dışında veya sunucu reboot'unda **kalıcı exactly-once garantisi yoktur**. Üretim/reaktör komutları reddedilir.
 
 5 saniyede bir HEARTBEAT, sunucu genel durumu/enerji/AE2 özeti/istemci listesini getirir. 18 saniye uygun oturumdan yanıt yoksa istemci OFFLINE olur; eski telemetri güncel gösterilmez. Sunucu istemciyi de zaman aşımıyla siler. Keşif yeniden başlar. Yerel saatler senkronize edilmez; aralıklar `computer.uptime()` ile hesaplanır.
 
@@ -47,9 +47,13 @@ Kayıtlı istemci REQUEST gönderir; body `command` ve `args` içerir. RESPONSE 
 | GET_CRAFTING_JOBS | evet | hayır | CPU doluluğu; mevcut iş ayrıntıları unsupported |
 | GET_POWER_STATUS | evet | evet | AE birimli AE2 enerjisi, diğer sürücüler unsupported |
 | GET_MACHINE_STATUS | evet | evet | Henüz doğrulanmış sürücü olmadığı bilgisi |
+| GET_UPDATE_INFO | evet | evet | Güncelleme durumu/manifest, isteğe bağlı GitHub kontrolü ve cache hazırlığı |
+| GET_UPDATE_FILE | evet | evet | Manifestte izinli dosyadan en fazla 1024 bayt salt okunur parça |
 | REQUEST_CRAFT, SUBSCRIBE_UPDATES, UPDATE_AVAILABLE, diğerleri | hayır | hayır | UNSUPPORTED_COMMAND |
 
 v0.2.0 stok args alanları: `page`, `query`, `sort="name"|"amount"`, `filter="all"|"craftable"|"favorites"`. Favori filtresinde en fazla 32 adet, her biri en fazla 1024 bayt olan `favoriteKeys` string dizisi gönderilir. Anahtarlar `core.items` içindeki canonical `name/damage/hasTag/tag` temsilidir; üretim yetkisi taşımaz. Filtreleme ve sıralama sayfalamadan önce uygulanır. Yanıt `filter` ve `sort` alanlarını yankılar; eski sunucu bu alanları desteklemiyorsa ana ekran özel filtre/sıra sonucunu göstermez ve güncelleme gerektiğini bildirir. Wire protokolü v2 kalır; eski salt okunur istemciler varsayılan name/all sorgularıyla çalışabilir.
+
+v0.3.0 `GET_UPDATE_INFO` args: `check=true` manifest kontrolünü, `prepare=true,release=...` doğrulanmış server cache hazırlığını ister. Yanıt `{info,manifest,busy,ready}`; `info` heartbeat durumuna da eklenir. Hazırlık asenkron olduğundan istemci yeni istek kimlikleriyle durumu tekrar okur. `GET_UPDATE_FILE` args `{release,path,offset}`; yanıt `{release,path,offset,size,data}`. Release ve path cache manifestiyle tam eşleşmelidir; config/başka dosyalar okunmaz. Kaynak metinleri ağdan direkt çalıştıran komut yoktur. İstemci ancak yerel kullanıcının güncelleme eyleminden sonra tam dosyaları staging alanına alır, SHA256/sözdizimi doğrular ve kendi bilgisayarını yeniden başlatır. [Güncelleme akışı](updates.md).
 
 ## Çalışma modeli
 

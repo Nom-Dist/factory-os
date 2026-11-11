@@ -10,12 +10,15 @@ function M.draw(r,role,net,state,clock)
   r:fill(1,1,r.w,3,C.panel)
   r:text(3,2,"FACTORY OS / "..(role=="side" and "TELEMETRY" or "SERVER"),C.accent,C.panel)
   r:text(math.max(3,r.w-10),2,online and "ONLINE" or "OFFLINE",online and C.good or C.bad,C.panel)
-  r:text(2,r.h,"v0.2.0 | "..(online and "wireless network" or "searching / reconnecting"),C.muted)
+  r:text(2,r.h,"v0.3.0 | F5: check / F6: update",C.muted)
   if role=="server" then
     r:panel(2,5,r.w-2,r.h-6,"SYSTEM CONSOLE")
     r:text(3,7,"Clients: "..#(status.clients or {}),nil,C.panel)
     r:text(3,9,"AE2: "..(ae.online and "ONLINE" or "OFFLINE"),ae.online and C.good or C.bad,C.panel)
-    r:text(3,11,"factoryos stop / status / logs",C.muted,C.panel)
+    local updates=require("ui.updates")
+    r:text(3,11,updates.label(state.update):sub(1,r.w-4),C.muted,C.panel)
+    if state.update then r:text(3,12,(state.update.canApply==false and state.update.reason or state.update.phase=="error" and state.update.message or ""):sub(1,r.w-4),C.warn,C.panel) end
+    updates.action(r,3,13,r.w-4,state.update)
   else
     local y,width=6,r.w-3
     r:panel(2,y,width,r.h-y-1,"ENERGY / FACTORY")
@@ -33,6 +36,8 @@ function M.draw(r,role,net,state,clock)
       else line(4,"AE2 energy unavailable",C.muted) end
       line(12,"RF/FE: unsupported driver",C.muted); line(14,"Reactors: read only / unavailable",C.muted)
     end
+    if r.h>=24 then r:text(3,r.h-4,require("ui.updates").label(state.update):sub(1,r.w-4),C.muted,C.panel) end
+    require("ui.updates").action(r,3,r.h-2,r.w-4,state.update)
   end
   r:flush()
 end

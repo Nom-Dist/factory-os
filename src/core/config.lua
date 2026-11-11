@@ -4,11 +4,16 @@ local M={path="/etc/factoryos/config.dat"}
 function M.defaults(role)
   return {schema=2,role=role or "server",port=34100,strength=64,serverAddress="",
     modem="",gpu="",screen="",allowedClients={},heartbeat=5,offlineAfter=18,poll=10,
-    ae2Address="",ae2Enabled=true,updateBase=""}
+    ae2Address="",ae2Enabled=true,updateBase="https://raw.githubusercontent.com/Nom-Dist/factory-os/main",
+    autoStart=true,updateAutoCheck=true,updateCheckInterval=900}
 end
 function M.upgrade(c)
   if type(c)=="table" and (c.schema==1 or c.schema==2) then
     c.schema=2; c.key=nil
+    if c.autoStart==nil then c.autoStart=true end
+    if c.updateAutoCheck==nil then c.updateAutoCheck=true end
+    if c.updateCheckInterval==nil then c.updateCheckInterval=900 end
+    if c.updateBase=="" then c.updateBase=M.defaults().updateBase end
   end
   return c
 end
@@ -24,6 +29,8 @@ function M.validate(c)
     if type(c[k])~="string" or #c[k]>512 then return nil,"invalid "..k end
   end
   if type(c.ae2Enabled)~="boolean" then return nil,"invalid feature flags" end
+  if type(c.autoStart)~="boolean" or type(c.updateAutoCheck)~="boolean" then return nil,"invalid startup/update flags" end
+  if type(c.updateCheckInterval)~="number" or c.updateCheckInterval%1~=0 or c.updateCheckInterval<60 or c.updateCheckInterval>86400 then return nil,"invalid update check interval" end
   if type(c.allowedClients)~="table" then return nil,"invalid client allowlist" end
   local count=0
   for address,role in pairs(c.allowedClients) do

@@ -97,8 +97,8 @@ function M.new(net,clock)
     if self.editing then if key then self:edit(key) end; return end
     local tab=id:match("^tab:(%d)$")
     if tab or id=="tabprev" or id=="tabnext" then
-      local nextTab=tab and tonumber(tab) or id=="tabnext" and self.tab%8+1 or (self.tab+6)%8+1
-      if nextTab<1 or nextTab>8 then return end
+      local nextTab=tab and tonumber(tab) or id=="tabnext" and self.tab%9+1 or (self.tab+7)%9+1
+      if nextTab<1 or nextTab>9 then return end
       local changed=nextTab~=self.tab; self.tab=nextTab
       if changed and nextTab==2 then self:clearStocks(); self:refreshStocks(true) end
       self:refreshJobs(); return

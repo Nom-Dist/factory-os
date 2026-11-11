@@ -337,7 +337,7 @@ test("GPU bounds, role layouts, unchanged frame writes zero cells, screen-filter
       local state={tab=1,serverStatus=status}
       screens.draw(r,role,n,state); local writes=gpu.writes()
       screens.draw(r,role,n,state); eq(gpu.writes(),writes)
-      for tab=1,8 do
+      for tab=1,9 do
         state.tab=tab; screens.draw(r,role,n,state)
         if role=="main" and tab==2 then state.editing=true; state.draft="alloy"; screens.draw(r,role,n,state); state.editing=false end
       end
@@ -634,4 +634,238 @@ test("Installed launcher recovers active.bak and preserves OpenOS core modules",
   assert(env.package.path:find(active:match("([^\n]+)"),1,true))
   files[root.."/active"]=active
 end)
+test("Foreground autostart preserves user shell setup, is idempotent and runs once per boot",function()
+  local startup=require("core.autostart")
+  files[startup.path]="echo existing-user-command\n"
+  startup.ensure(true); local installed=files[startup.path]
+  assert(installed:sub(1,27)=="echo existing-user-command\n")
+  startup.ensure(true); eq(files[startup.path],installed)
+  local count=0
+  local env=setmetatable({package={loaded={}},loadfile=function(path)
+    eq(path,"/bin/factoryos.lua")
+    return function(cmd,mode) eq(cmd,"start"); eq(mode,"--foreground"); count=count+1 end
+  end},{__index=_ENV})
+  local boot=assert(load(files[startup.launcher],"=startup","t",env))
+  boot(); boot(); eq(count,1)
+  startup.ensure(false); eq(files[startup.path],"echo existing-user-command\n")
+  files[startup.path]="echo keep\n"..startup.first.."\npartial"
+  assert(not pcall(startup.ensure,true)); eq(files[startup.path],"echo keep\n"..startup.first.."\npartial")
+  files[startup.path]=""
+end)
+test("Legacy configuration enables foreground startup and periodic checks without losing addresses",function()
+  local cfg=config.defaults("main")
+  cfg.autoStart=nil; cfg.updateAutoCheck=nil; cfg.updateCheckInterval=nil; cfg.updateBase=""; cfg.screen="kept-screen"
+  files[config.path]=codec.encode(cfg)
+  local migrated=assert(config.load())
+  eq(migrated.autoStart,true); eq(migrated.updateAutoCheck,true); eq(migrated.updateCheckInterval,900)
+  eq(migrated.screen,"kept-screen"); assert(migrated.updateBase:match("^https://"))
+  migrated.updateCheckInterval=0; assert(not config.validate(migrated))
+end)
+
+-- Cooperative worker scheduler. Update code is real Lua; HTTP/disk/modems remain mocks.
+local savedThread,savedSleep=package.loaded.thread,os.sleep
+package.loaded.thread={create=function(fn)
+  local t={co=coroutine.create(fn),killed=false}
+  function t:status() return self.killed and "dead" or coroutine.status(self.co)=="dead" and "dead" or "running" end
+  function t:kill() self.killed=true end
+  return t
+end}
+package.loaded["core.updates"]=nil
+local Updates=require("core.updates")
+os.sleep=function(delay)
+  local _,mainThread=coroutine.running()
+  if not mainThread then return coroutine.yield(delay or 0) end
+  now=now+(delay or 0)
+end
+local sourceOriginal=updater.source
+local httpPayload,httpReads,actor,corruptWire,disconnectWire,activeClient
+local wake={}
+updater.source=function()
+  assert(actor=="server","Display attempted to use Internet instead of wireless")
+  return function(path,limit)
+    httpReads[path]=(httpReads[path] or 0)+1
+    local data=assert(httpPayload[path],"HTTP connection lost")
+    assert(#data<=limit); return data
+  end
+end
+local function updatePayload(version)
+  local payload,manifest=release(version)
+  for _,file in ipairs(manifest.files) do
+    if file.path=="core/cli.lua" then
+      local s=string.rep("-- network transfer fixture\n",160).."return {}\n"
+      payload["src/"..file.path]=s; file.size=#s; file.sha256=crypto.sha256(s)
+    end
+  end
+  manifest.version="0.3.1"; payload["manifest.dat"]=codec.encode(manifest)
+  return payload,manifest
+end
+local function setupUpdates(label,realNetwork)
+  httpPayload=updatePayload(label.."-new"); httpReads={}; corruptWire=false; disconnectWire=false
+  local cfgS=config.defaults("server"); cfgS.updateAutoCheck=false
+  local cfgC=config.defaults("main"); local cfgD=config.defaults("side")
+  local serverManager,clientManager,sideManager
+  local serverNet,clientNet,sideNet
+  local serverRoot,clientRoot,sideRoot="/test-updates/"..label.."/server","/test-updates/"..label.."/main","/test-updates/"..label.."/side"
+  for _,root in ipairs({serverRoot,clientRoot,sideRoot}) do files[root.."/active"]=label.."-old\n" end
+  if realNetwork then
+    bus={}; nodes={}
+    cfgS.allowedClients={["update-main"]="main",["update-side"]="side"}
+    serverNet=protocol.new(cfgS,modem("update-server",1024),function() return now end,nonce,function(command,args)
+      if command=="GET_UPDATE_INFO" or command=="GET_UPDATE_FILE" then return serverManager:serve(command,args) end
+      return {update=serverManager:public()}
+    end)
+    clientNet=protocol.new(cfgC,modem("update-main",1024),function() return now end,nonce,function() return {} end)
+    sideNet=protocol.new(cfgD,modem("update-side",1024),function() return now end,nonce,function() return {} end)
+    nodes={["update-server"]=serverNet,["update-main"]=clientNet,["update-side"]=sideNet}
+  else
+    serverNet={online=true}
+    local function request(self,command,args,fn)
+      actor="server"
+      local data,err=serverManager:serve(command,args)
+      actor=nil
+      if command=="GET_UPDATE_FILE" and corruptWire then data.data="!"..data.data:sub(2); corruptWire=false end
+      if command=="GET_UPDATE_FILE" and disconnectWire then self.online=false end
+      fn(data,err); return nonce()
+    end
+    clientNet={online=true,status={},request=request}; sideNet={online=true,status={},request=request}
+  end
+  local productionBusy=false
+  serverManager=Updates.new(cfgS,serverNet,function() return now end,{}, {root=serverRoot,cacheRoot="/test-cache/"..label,isIdle=function() return not productionBusy,"CPU mesgul" end})
+  clientManager=Updates.new(cfgC,clientNet,function() return now end,{}, {root=clientRoot})
+  sideManager=Updates.new(cfgD,sideNet,function() return now end,{}, {root=sideRoot})
+  local managers={serverManager,clientManager,sideManager}
+  local function drive(done,seconds)
+    local deadline=now+(seconds or 120)
+    while not done() do
+      assert(now<deadline,"Update scheduler timeout")
+      for _,m in ipairs(managers) do
+        local worker=m.worker
+        if worker and worker:status()~="dead" and now>=(wake[worker.co] or 0) then
+          actor=m==serverManager and "server" or "display"
+          local ok,delay=coroutine.resume(worker.co); assert(ok,delay)
+          wake[worker.co]=now+(tonumber(delay) or 0); actor=nil
+        end
+      end
+      if realNetwork then step(0.13) else now=now+0.05 end
+    end
+  end
+  return {server=serverManager,main=clientManager,side=sideManager,serverNet=serverNet,mainNet=clientNet,sideNet=sideNet,drive=drive,
+    serverRoot=serverRoot,mainRoot=clientRoot,sideRoot=sideRoot,cfg=cfgS,busy=function(v) productionBusy=v end}
+end
+test("Periodic GitHub checks download metadata only and never activate an update",function()
+  local t=setupUpdates("periodic")
+  t.cfg.updateAutoCheck=true; now=t.server.nextCheck+1; t.server:tick()
+  t.drive(function() return not t.server.busy end)
+  eq(httpReads["manifest.dat"],1); eq(t.server.phase,"available"); eq(t.server.readyManifest,nil)
+  eq(files[t.serverRoot.."/active"],"periodic-old\n")
+  for path in pairs(httpReads) do eq(path,"manifest.dat") end
+  t.server:tick(); eq(t.server.busy,false)
+  now=t.server.nextCheck+1; t.server:tick(); t.drive(function() return not t.server.busy end)
+  eq(httpReads["manifest.dat"],2); eq(t.server.readyManifest,nil)
+end)
+test("Displays stage verified updates over wireless without Internet or activating before shutdown",function()
+  local t=setupUpdates("wireless")
+  t.server:check(); t.drive(function() return not t.server.busy end)
+  t.main:check(); t.drive(function() return not t.main.busy end)
+  eq(t.main.phase,"available")
+  t.main:apply(); t.drive(function() return not t.main.busy end)
+  assert(t.main.readyManifest,t.main.message); eq(t.main.phase,"ready")
+  eq(files[t.mainRoot.."/active"],"wireless-old\n"); eq(files[t.serverRoot.."/active"],"wireless-old\n")
+  t.side:apply(); t.drive(function() return not t.side.busy end)
+  assert(t.side.readyManifest,t.side.message)
+  eq(httpReads["src/core/cli.lua"],1) -- Server cache shared by both displays.
+  local mf=t.main.readyManifest
+  for _,file in ipairs(mf.files) do eq(crypto.sha256(files[t.mainRoot.."/releases/"..mf.release.."/"..file.path]),file.sha256) end
+  assert(not t.server:serve("GET_UPDATE_FILE",{release=mf.release,path="../config.dat",offset=0}))
+  assert(not t.server:serve("GET_UPDATE_FILE",{release=mf.release,path="core/cli.lua",offset=-1}))
+  assert(not t.server:serve("GET_UPDATE_FILE",{release="other",path="core/cli.lua",offset=0}))
+end)
+test("A corrupt wireless chunk fails integrity and keeps the installed release",function()
+  local t=setupUpdates("corrupt")
+  t.server:check(); t.drive(function() return not t.server.busy end)
+  corruptWire=true; t.main:apply(); t.drive(function() return not t.main.busy end)
+  eq(t.main.phase,"error"); eq(t.main.readyManifest,nil); eq(files[t.mainRoot.."/active"],"corrupt-old\n")
+end)
+test("Lost wireless connection and explicit cancellation preserve the previous release",function()
+  local t=setupUpdates("disconnect")
+  t.server:check(); t.drive(function() return not t.server.busy end)
+  disconnectWire=true; t.main:apply(); t.drive(function() return not t.main.busy end)
+  eq(t.main.phase,"error"); eq(t.main.readyManifest,nil); eq(files[t.mainRoot.."/active"],"disconnect-old\n")
+  disconnectWire=false; t.mainNet.online=true; t.main:apply()
+  t.drive(function() return t.main.total>0 end); t.main:close()
+  eq(files[t.mainRoot.."/active"],"disconnect-old\n"); eq(t.main.readyManifest,nil); assert(t.main.closed)
+end)
+test("Busy production blocks apply and a late busy state cannot publish a ready manifest",function()
+  local t=setupUpdates("busy")
+  t.busy(true); t.server:apply(); t.drive(function() return not t.server.busy end)
+  eq(t.server.phase,"error"); eq(t.server.readyManifest,nil); eq(next(httpReads),nil)
+  t.busy(false); t.server:apply()
+  t.drive(function() return t.server.progress>=3 end)
+  t.busy(true); t.drive(function() return not t.server.busy end)
+  eq(t.server.phase,"error"); eq(t.server.readyManifest,nil); eq(files[t.serverRoot.."/active"],"busy-old\n")
+end)
+test("Two displays update through the real protocol and 1024-byte packet budget",function()
+  local t=setupUpdates("transport",true)
+  t.drive(function() return t.mainNet.online and t.sideNet.online end,60)
+  t.server:check(); t.drive(function() return not t.server.busy end)
+  t.main:apply(); t.side:apply()
+  t.drive(function() return not t.main.busy and not t.side.busy end,240)
+  assert(t.main.readyManifest,t.main.message); assert(t.side.readyManifest,t.side.message)
+  eq(files[t.mainRoot.."/active"],"transport-old\n"); eq(files[t.sideRoot.."/active"],"transport-old\n")
+  local cached=0; for _ in pairs(t.serverNet.seen) do cached=cached+1 end; assert(cached<128)
+  for _,entry in pairs(t.serverNet.seen) do assert(not entry.fingerprint:find("GET_UPDATE_FILE",1,true)) end
+end)
+test("Heartbeat advertises a newer release after a previous successful client check",function()
+  local t=setupUpdates("newer")
+  t.server:check(); t.drive(function() return not t.server.busy end)
+  t.main:check(); t.drive(function() return not t.main.busy end)
+  local old=t.main.manifest.release
+  t.mainNet.status={update={release="next-release",version="0.4.0",canApply=true}}
+  t.main.phase="current"; t.main:tick()
+  eq(t.main.manifest,nil); eq(t.main.phase,"available"); eq(t.main:public().release,"next-release")
+  assert(t.main:public().release~=old)
+end)
+test("Runtime closes modem and GUI before activating a verified release and rebooting",function()
+  local payload,manifest=release("runtime-ready")
+  updater.stage(function(path) return payload[path] end,updater.root,{quiet=true})
+  local originalNew,originalActivate=Updates.new,updater.activate
+  local computer=require("computer"); local originalShutdown=computer.shutdown
+  local event=require("event"); local originalPull=event.pull
+  local originalFill=components["gpu-address"].fill
+  local savedActive=files[updater.root.."/active"]
+  local service={stop=false}; local closed,filled,activated,rebooted=false,false,false,false
+  Updates.new=function() return {phase="ready",busy=false,readyManifest=manifest,
+    tick=function() end,public=function() return {phase="ready",busy=true} end,close=function() closed=true end} end
+  components["gpu-address"].fill=callback(function() filled=true end)
+  event.pull=function() return nil end
+  updater.activate=function(m,root)
+    assert(not service.running and closed and filled)
+    assert(not components["local-modem"].isOpen(34100))
+    originalActivate(m,root); activated=true
+  end
+  computer.shutdown=function(reboot) assert(reboot and activated and closed); rebooted=true end
+  local ok,err=require("core.runtime").run(config.defaults("side"),service)
+  assert(ok,err); assert(rebooted); eq(files[updater.root.."/active"],manifest.release.."\n")
+  service={stop=false}; closed=false; filled=false; activated=false; rebooted=false
+  event.pull=function() return "interrupted" end
+  local stopped,why=require("core.runtime").run(config.defaults("side"),service)
+  assert(stopped,why); eq(service.applyUpdate,nil); eq(rebooted,false)
+  service={stop=false}; event.pull=function() return nil end
+  updater.activate=function() error("activation rejected") end
+  local failed,reason=require("core.runtime").run(config.defaults("side"),service)
+  assert(not failed and tostring(reason):find("activation rejected",1,true)); eq(rebooted,false)
+  Updates.new=originalNew; updater.activate=originalActivate; computer.shutdown=originalShutdown
+  event.pull=originalPull; components["gpu-address"].fill=originalFill; files[updater.root.."/active"]=savedActive
+end)
+test("A hash-correct update with invalid Lua syntax is rejected before activation",function()
+  local payload,manifest=release("invalid-syntax")
+  local bad="function this is not valid Lua"
+  payload["src/core/cli.lua"]=bad
+  for _,f in ipairs(manifest.files) do if f.path=="core/cli.lua" then f.size=#bad; f.sha256=crypto.sha256(bad) end end
+  payload["manifest.dat"]=codec.encode(manifest)
+  local root="/test-updates/syntax"; files[root.."/active"]="previous\n"
+  local ok,err=pcall(updater.stage,function(path) return payload[path] end,root,{quiet=true})
+  assert(not ok and tostring(err):find("Invalid Lua source",1,true)); eq(files[root.."/active"],"previous\n")
+end)
+updater.source=sourceOriginal; os.sleep=savedSleep; package.loaded.thread=savedThread
 print("TOTAL "..passed.." passed")

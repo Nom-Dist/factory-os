@@ -4,7 +4,7 @@
 
 Projenin GitHub adresi [Nom-Dist/factory-os](https://github.com/Nom-Dist/factory-os). Kaynaklar, manifest ve tek dosyalı çevrimdışı installer depoda tutulur. Yerel `tools/build.py` ayrıca tam teslimat ZIP'ini üretir; bu üretilen ZIP Git'e eklenmez.
 
-En hızlı yol `dist/factoryos-offline.lua` dosyasını OpenOS HDD/disketine koymaktır. Bu dosya tüm kaynakları ve hash manifestini taşır; Internet Card gerektirmez. Kapasiteyi kontrol edin; tek dosya yaklaşık 120 KB'dir. Mevcut dosya boyutunu host bilgisayarda doğrulayın. Küçük disketlerde yer yetmezse HDD aktarımı veya aşağıdaki HTTPS yolu kullanılmalıdır.
+En hızlı yol `dist/factoryos-offline.lua` dosyasını OpenOS HDD/disketine koymaktır. Bu dosya tüm kaynakları ve hash manifestini taşır; Internet Card gerektirmez. Kapasiteyi kontrol edin; tek dosya yaklaşık 140 KB'dir. Mevcut dosya boyutunu host bilgisayarda doğrulayın. Küçük disketlerde yer yetmezse HDD aktarımı veya aşağıdaki HTTPS yolu kullanılmalıdır.
 
 ## Çevrimdışı tek dosya
 
@@ -48,7 +48,7 @@ wget https://raw.githubusercontent.com/Nom-Dist/factory-os/main/install.lua inst
 
 Sabit sürüm kurulumu için iki URL'de de `main` yerine aynı gerçek commit SHA'sını kullanın. Varsayılan kaynak gömülü değildir; URL parametresi verilmezse installer HTTPS adresini sorar. Dal adresi kullanılırken eşzamanlı yayımlama sırasında hash kontrolü kurulumu güvenle durdurabilir.
 
-İstemcilerde ilk yükleme için geçici Internet Card takılabilir; çalışma sırasında çıkarılabilir. Sunucu bu sürümde istemcilere yazılım dağıtmaz.
+İstemcilerde ilk yükleme için geçici Internet Card takılabilir; çalışma sırasında çıkarılabilir. v0.3.0'dan sonraki menü güncellemeleri sunucudan kablosuz alınır.
 
 ## İlk eşleştirme
 
@@ -84,7 +84,7 @@ factoryos logs
 factoryos stop
 ```
 
-Arka planda kabuk ve panel aynı ekranı paylaşır. Komut çıktısı paneli bozabilir; ekran bilgisayarlarında foreground önerilir. `restart` arka plan servisini yeniden başlatır. `doctor` yerel donanım denetimidir, uçtan uca ağ testi değildir. Otomatik boot servisi bu sürümde kurulmaz.
+Arka planda kabuk ve panel aynı ekranı paylaşır. Komut çıktısı paneli bozabilir; ekran bilgisayarlarında foreground önerilir. `restart` arka plan servisini yeniden başlatır. `doctor` yerel donanım denetimidir, uçtan uca ağ testi değildir. v0.3.0 yeni kurulumlarda foreground açılışını `.shrc` üzerinden kurar; Ctrl+C ile kabuğa dönülür. Eski sürüm geçişi için [otomatik açılış kılavuzuna](updates.md) bakın.
 
 ```sh
 factoryos stop
@@ -97,22 +97,22 @@ Config dosyası veri formatıdır, Lua dosyası değildir; `edit` ile rastgele d
 
 ## Güncelleme
 
-v0.2.0 ana ekranını kullanmak için **önce sunucuyu, sonra ana ekranı** aşağıdaki komutlarla güncelleyin. Foreground panel açıksa Ctrl+C ile kabuğa dönün. Ana ekranda indirme sırasında geçici Internet Card gerekir; kurulumdan sonra çıkarılabilir. Yan ekranın yerleşimi aynı kalır ve eski protokol v2 sürümüyle çalışabilir. Modem adreslerini/izinlerini yeniden girmeniz gerekmez.
+v0.3.0 için **önce sunucuyu, sonra iki ekranı** bir defa güncelleyin. Foreground panel açıksa Ctrl+C ile kabuğa dönün. İlk indirmede ekranlara geçici Internet Card veya HDD aktarımı gerekir. Sonraki güncellemeler ekrandaki düğmeyle kablosuz alınır. Modem adreslerini/izinlerini yeniden girmeniz gerekmez.
 
 v0.1.1 sunucusu açılışta `maxPacketSize` hatası verdiyse istemci adreslerini doldurmanız gerekmez; v0.1.2'ye geçin. Hata sonrası servis durmuş olduğundan aşağıdaki güncelleme akışı kullanılabilir. Sunucu ayarları korunur. v0.1.1 ve v0.1.2 aynı ağ protokolündedir.
 
-Çalışan servis varken güncelleme/geri dönüş reddedilir. v0.1 üretim/reaktör komutu vermediği için aktif otomasyon işi yoktur. İleri sürümlerde bu kilide kalıcı iş günlüğü ve idle doğrulaması eklenmeden üretim sırasında güncelleme açılmamalıdır.
+CLI güncellemesi/geri dönüş için servis durdurulur. Menü güncellemesi dosyaları arka planda hazırlayıp yalnızca doğrulamadan sonra uygulamayı kapatır; AE2 CPU'ları meşgulse uygulama engellenir.
 
 ```sh
 factoryos stop
 factoryos update https://raw.githubusercontent.com/Nom-Dist/factory-os/main
+factoryos autostart enable
 reboot
-factoryos start --foreground
 ```
 
 Sabit bir güncelleme için `main` yerine hedef commit SHA'sını kullanın. İlk online kurulumun URL'si config'te saklanır; `factoryos update` parametresiz o adresi kullanır. Sabit commit kullanılmışsa yeni sürüm için yeni commit adresi girin veya durduktan sonra `updateBase` ayarlayın.
 
-İndirme/HTTP/SHA256 hatası aktif pointer'ı değiştirmez. Eski sürüm korunur. Config güncelleme tarafından değiştirilmez. Başarısız staging dizinleri inceleme için kalabilir; depolama alanını kontrol edin. SHA256 bozulmayı yakalar; manifest de aynı HTTPS kaynaktan gelir ve bağımsız sürüm imzası değildir. Yalnızca güvendiğiniz depoyu kullanın.
+İndirme/HTTP/SHA256/Lua sözdizimi hatası aktif pointer'ı değiştirmez. Eski sürüm korunur. Config ve favoriler korunur. Başarısız staging dizinleri inceleme için kalabilir; depolama alanını kontrol edin. SHA256 bozulmayı yakalar; manifest de aynı HTTPS kaynaktan gelir ve bağımsız sürüm imzası değildir. Ayrıntılı [güncelleme akışı](updates.md).
 
 Çevrimdışı yeni sürüme geçmek için yeni `factoryos-offline.lua` dosyasını aktarın, servisi durdurun, aynı rolü tekrar kurun. Var olan rol/modem/ekran ayarları korunur; installer adres alanlarını yeniden sorabilir. **v0.1.1 protokol v2 kullanır; üç bilgisayarı da aynı sürüme geçirin.** Eski installer dosyası kendiliğinden güncellenmez; yeni dosyayı indirmeniz gerekir.
 

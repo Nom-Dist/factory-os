@@ -2,7 +2,7 @@ local C=require("ui.renderer").colors
 local W=require("ui.widgets")
 local F=require("ui.format")
 local identity=require("core.items")
-local M={tabs={"ANA PANEL","AE2 DEPOSU","STOK HEDEFLERI","URETIM","ENERJI","MAKINELER","ALARMLAR","AYARLAR"}}
+local M={tabs={"ANA PANEL","AE2 DEPOSU","STOK HEDEFLERI","URETIM","ENERJI","MAKINELER","ALARMLAR","AYARLAR","GUNCELLEMELER"}}
 local function time(clock) return type(clock)=="function" and clock() or 0 end
 local function favorite(state,item)
   local key=identity.key(item)
@@ -57,15 +57,12 @@ local function navigation(r,l,state)
   W.panel(r,2,6,l.nav,r.h-7,"KONTROL PANELI")
   local height=r.h>=42 and 3 or 1
   local step=height+1
-  local top=r.h>=42 and 9 or 8
+  local top=r.h>=42 and 9 or 7
   for i,label in ipairs(M.tabs) do
-    if r.h<42 then label=({"PANEL","DEPO","STOK HEDEF","URETIM","ENERJI","MAKINELER","ALARMLAR","AYARLAR"})[i] end
+    if r.h<42 then label=({"PANEL","DEPO","STOK HEDEF","URETIM","ENERJI","MAKINELER","ALARMLAR","AYARLAR","GUNCELLEME"})[i] end
+    if i==9 and (state.update or {}).available then label=label.." *" end
     local y=top+(i-1)*step
     r:button(3,y,l.nav-2,string.format("%02d ",i)..label,"tab:"..i,state.tab==i,height)
-  end
-  if r.h>=42 then
-    W.text(r,4,r.h-8,l.nav-4,"OTOMATIK URETIM",C.muted)
-    W.text(r,4,r.h-6,l.nav-4,"PASIF / IZLEME",C.warn)
   end
   if r.h>=32 then r:button(3,r.h-4,l.nav-2,"VERIYI YENILE","refresh",false,r.h>=42 and 2 or 1) end
 end
@@ -307,7 +304,7 @@ local function content(r,l,net,state,alerts)
       W.text(r,l.x+2,y,l.w-4,pair[1],C.muted)
       W.text(r,l.x+2,y+1,l.w-4,pair[2] and pair[2]~="" and pair[2] or "Otomatik kesif / bilinmiyor",C.text)
     end
-    if l.bottom-l.y>29 then line(28,"Favoriler bu ekranin diskinde saklanir. Uretim kontrolu pasiftir.",C.muted) end
+    if l.bottom-l.y>29 then r:button(l.x+2,l.y+28,math.min(30,l.w-4),"YAZILIM / GUNCELLEMELER","tab:9",false,2) end
   end
 end
 local function keyboard(r,l,state)
@@ -340,14 +337,15 @@ end
 function M.draw(r,net,state,clock)
   local now=time(clock); local l=M.layout(r); local alerts=M.alerts(net,state)
   r:begin(); header(r,net,state,now); navigation(r,l,state)
-  if not net.online and state.tab~=8 and state.tab~=7 then offline(r,l,net)
+  if not net.online and state.tab~=8 and state.tab~=7 and state.tab~=9 then offline(r,l,net)
   elseif state.tab==1 then overview(r,l,net,state)
   elseif state.tab==2 then stocks(r,l,net,state,now)
+  elseif state.tab==9 then require("ui.updates").draw(r,l.x,l.y,l.w,l.bottom-l.y+1,state.update)
   else content(r,l,net,state,alerts) end
   rail(r,l,net,state,now,alerts)
   r:fill(1,r.h,r.w,1,C.raised)
   local notice=state.message and now-state.message.at<6 and state.message
-  W.text(r,2,r.h,r.w-2,notice and notice.text or state.editing and "Arama: dokun / yaz | Enter: ara | Esc: iptal" or "DISPLAY 01 / v0.2.0 | "..(net.online and "CANLI IZLEME" or "YENIDEN BAGLANIYOR"),notice and notice.kind=="warn" and C.warn or C.muted,C.raised)
+  W.text(r,2,r.h,r.w-2,notice and notice.text or state.editing and "Arama: dokun / yaz | Enter: ara | Esc: iptal" or "DISPLAY 01 / v0.3.0 | "..((state.update or {}).available and "GUNCELLEME VAR" or net.online and "CANLI IZLEME" or "YENIDEN BAGLANIYOR"),notice and notice.kind=="warn" and C.warn or C.muted,C.raised)
   keyboard(r,l,state)
   r:flush()
 end

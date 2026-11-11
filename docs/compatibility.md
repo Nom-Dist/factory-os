@@ -42,6 +42,7 @@ OC JAR içindeki `mcmod.info` ayrıca **OpenComputers 1.8.3 / Minecraft 1.12.2**
 | Installer satır düzeni | JAR `lib/term.lua` ve oyun ekranı | Her soruda yeni `term.read({dobreak=false})` cursor'u; ardından açık `io.write("\n")`. Şifre adımı kaldırıldı. |
 | Lua bit işlemleri | Yerel config Lua 5.3 varsayılanı; gerçek Lua 5.2/5.3 testleri | 5.2 bit32; 5.3'te yoksa yerel sabit bit-op fallback. Ağdan derlenen kod yoktur. |
 | Thread yaşam döngüsü | JAR `lib/thread.lua` | create, detach, status ve graceful stop. Oyun içi thread zamanlaması ayrıca test edilmelidir. |
+| Foreground açılışı | Yerel JAR `etc/profile.lua`, `bin/sh.lua`, `home/.shrc` | Profil `.shrc` dosyasını etkileşimli kabukta çalıştırır. İşaretli blok + kalıcı launcher kullanılır; Ctrl+C sonrası aynı boot içinde tekrar açılmaz. |
 | GPU | [Orijinal GPU dokümanı](https://ocdoc.cil.li/component:gpu) | bind/maxResolution/setResolution/setDepth/set; 1.8 VRAM/bitblt zorunlu değil. |
 | Modem paket sınırı | [Kurulu 1.8.3 commit'indeki NetworkCard.scala](https://github.com/MightyPirates/OpenComputers/blob/274990f/src/main/scala/li/cil/oc/server/component/NetworkCard.scala) | `maxPacketSize` callback'i yok; kapasite `computer.getDeviceInfo()[modem.address].capacity` üzerinden okunur. Güncel wiki'deki callback bu sürüme varsayılmadı. |
 | Component callback tipi | Yerel JAR `assets/opencomputers/lua/machine.lua`, `componentCallback.__call` | Proxy metotları çağrılabilir table olabilir. AE2/prob kontrolleri yalnızca `type == function` şartına bağlanmaz. Modem/GPU/AE2 testleri callable table ile yürütülür. |
@@ -74,3 +75,5 @@ Mekanism makineleri için tek tip OC component/metot varlığı varsayılmadı. 
 Web dokümanları zaman içinde güncellenebildiği için kritik OpenOS davranışları ayrıca **yerel JAR kaynaklarıyla** karşılaştırılmıştır. Bu çalışma gerçek Minecraft kabul testlerinin yerine geçmez.
 
 Kullanıcı v0.1.1 sunucu kurulumunun tamamlandığını bildirdi; foreground başlangıcında `maxPacketSize` hatası ekran görüntüsüyle görüldü. v0.1.2 bu hatayı yukarıdaki 1.8.3 kaynaklarına göre düzeltir; kullanıcı sunucu açılışını ve iki ekranın bağlandığını doğruladı. v0.2.0'ın yeni ana ekranı mock GPU çıktısıyla kontrol edildi; yeni yerleşimin ve gerçek AE2 verilerinin oyun içi kabulü bekleniyor.
+
+v0.3.0'da otomatik başlangıç ve iki istemcinin kablosuz güncellenmesi gerçek Lua/modem mock'larında sınandı. OpenOS thread ve bilgisayar reboot davranışının gerçek dünyadaki kabulü henüz yapılmadı.
