@@ -31,8 +31,8 @@ state.rules={page=1,pages=2,total=6,revision=8,paused=false,error="",rules={
   {id=2,item=data[5],label="Basic Control Circuit",minimum=1024,target=2048,stock=840,inFlight=0,enabled=true,state="TEKRAR BEKLENIYOR",retryIn=57,error="request failed (missing resources?)"},
   {id=3,item=data[3],label="Fluix Crystal",minimum=1024,target=4096,stock=2840,inFlight=0,enabled=true,state="STOK YETERLI",retryIn=0,error=""},
   {id=4,item=data[7],label="Copper Ingot",minimum=8192,target=16384,stock=28400,inFlight=0,enabled=false,state="KAPALI",retryIn=0,error=""}}}
-state.update={phase="available",message="Sunucuda yeni surum hazir",currentRelease="0.5.0-ornek",version="0.5.1",release="0.5.1-ornek",available=true,busy=false,autoStart=true,automatic=true,interval=900,role="main",canApply=true}
-net={online=true,lastSeen=9998,server="33333333-3333-4333-8333-333333333333",status={version="0.5.0",crafting="manual",automation=true,uptime=12587,
+state.update={phase="available",message="Sunucuda yeni surum hazir",currentRelease="0.6.1-ornek",version="0.6.2",release="0.6.2-ornek",available=true,busy=false,autoStart=true,automatic=true,interval=900,role="main",canApply=true}
+net={online=true,lastSeen=9998,server="33333333-3333-4333-8333-333333333333",status={version="0.6.1",crafting="manual",automation=true,uptime=12587,
   ae2={online=true,itemTypes=1834,revision=45},power={ae2={supported=true,unit="AE",stored=782000,capacity=1000000,injection=129,usage=121}},
   clients={{role="main",address=state.context.modem,age=2},{role="side",address="44444444-4444-4444-8444-444444444444",age=1}}}}
 '''
@@ -104,3 +104,7 @@ if __name__ == "__main__":
     render("main-stock-rule-editor", 160, 50, rule_modal)
     render("main-stock-rule-editor-compact", 80, 25, rule_modal)
     render("main-stock-rule-editor-small", 40, 12, rule_modal)
+    web_menu = 'state.serverStatus=net.status; state.webMenu=true; state.editing=true; state.field="url"; state.webStatus={phase="online"}; state.draft={url="https://panel.factory.example",token=string.rep("a",64),control=true}'
+    render("server-web-settings", 50, 16, web_menu, role="server")
+    render("server-web-settings-small", 40, 12, web_menu, role="server")
+    render("server-web-keyboard-small", 40, 12, web_menu+'; state.keyboard=true; state.field="token"', role="server")

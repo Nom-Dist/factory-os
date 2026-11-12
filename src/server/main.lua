@@ -9,7 +9,7 @@ function M.new(cfg,clock,log)
   function self:status()
     local clients={}
     for address,c in pairs(self.clients) do clients[#clients+1]={address=address,role=c.role,age=math.floor(clock()-c.lastSeen)} end
-    return {version="0.5.0",uptime=math.floor(clock()-self.started),ae2=self.ae2:summary(),clients=clients,
+    return {version="0.6.1",uptime=math.floor(clock()-self.started),ae2=self.ae2:summary(),clients=clients,
       power=energy.status(self.ae2),automation=self.stock:enabled(),crafting=self.crafting.blocked and "blocked" or "manual",reactors="read_only_unsupported",
       update=self.updates and self.updates:public() or nil}
   end

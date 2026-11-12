@@ -67,6 +67,8 @@ v0.5.0 `GET_STOCK_RULES {page=1..4}` yanıtı `{rules,page,pages,total,revision,
 
 ## Çalışma modeli
 
+v0.6.0 Internet Card web bridge'i modem ağından ayrıdır. HTTP uplink ve RFC6455 binary frame'leri `core.codec` biçiminde `{kind="telemetry",boot,controlEnabled,status,jobs,rules,rulesRevision,paused}`, `{kind="command",id,command,args}` ve `{kind="reply",id,ok,data,error}` taşır. HTTP boş yanıtı `{kind="idle"}` olur. Dış kaynaktan Lua kodu çalıştırılmaz. Dış komut allowlist'i stok/job/kural okumaları ve mevcut üretim/kural yazmalarıyla sınırlıdır; update/config/dosya okuma komutları kapalıdır. Ayrı bridge token ve panel oturumu yalnızca dış erişimi korur; yerel modem ağı şifresiz kalır. [Web akışı](https://github.com/Nom-Dist/factory-os-web-panel).
+
 Protokol, kullanıcının güvenilen Minecraft ağı için şifresiz çalışır. Modem adresi izin listesi ve oturum denetimleri korunur; kriptografik kimlik doğrulama ve şifreleme yoktur.
 
 Bozuk çerçeveler log taşmasına yol açmamak için sessiz reddedilir. Bağlantı geçişleri ve yazılım hataları loglanır. Ekran bağlantısının kesilmesi yeni bir komut oluşturmaz; sunucuda önceden açılmış stok kuralları çalışmaya devam eder. AE2 bağlantı kaybında otomatik üretim bekler.

@@ -10,7 +10,7 @@ local M={}
 function M.run(cfg,service)
   local hw,err=hardware.check(cfg)
   if not hw then service.running=false; service.error=err; logger.log("ERROR",err); return nil,err end
-  local net,view,updates
+  local net,view,updates,web
   local oldW,oldH=hw.gpu.getResolution()
   local oldFg,oldBg=hw.gpu.getForeground(),hw.gpu.getBackground()
   local oldDepth=hw.gpu.getDepth()
@@ -23,7 +23,18 @@ function M.run(cfg,service)
     if server then server.clients=net.clients end
     updates=require("core.updates").new(cfg,net,clock,service,{log=log,isIdle=server and function() return server:canUpdate() end or nil})
     if server then server.updates=updates end
-    local state=cfg.role=="main" and require("client.main_display").new(net,clock) or require("client.side_display").new()
+    if server then web=require("server.web").new(cfg,server,clock,log); server.web=web end
+    local function webCanApply()
+      if updates.busy or updates.readyManifest then return nil,"Guncelleme suruyor; sonra deneyin" end
+      return true
+    end
+    local function applyWeb(candidate)
+      if web then web:close() end
+      for _,key in ipairs({"webEnabled","webControl","webUrl","webToken","webInterval"}) do cfg[key]=candidate[key] end
+      web=require("server.web").new(cfg,server,clock,log); server.web=web
+    end
+    local state=cfg.role=="server" and require("client.server_console").new(cfg,clock,applyWeb,webCanApply) or
+      cfg.role=="main" and require("client.main_display").new(net,clock) or require("client.side_display").new()
     state.context={modem=hw.modem.address,screen=hw.screen.address,port=cfg.port,serverAddress=cfg.serverAddress,poll=cfg.poll}
     view=renderer.new(hw.gpu,hw.screen,cfg.role)
     local lastDraw=-math.huge
@@ -33,6 +44,7 @@ function M.run(cfg,service)
       net:tick()
       if server then server:tick(); state.serverStatus=server:status() else state:tick() end
       updates:tick(); state.update=updates:public()
+      if web then web:tick(); state.webStatus=web:public() end
       if updates.readyManifest and not updates.busy and updates.phase=="ready" then service.applyUpdate=updates.readyManifest; service.stop=true end
       if clock()-lastDraw>=1 then
         screens.draw(view,cfg.role,net,state,clock)
@@ -48,7 +60,8 @@ function M.run(cfg,service)
         if id and id:match("^update:") then updates:touch(id) else state:touch(id) end
         lastDraw=-math.huge
       elseif e[1]=="key_down" then
-        if not state.editing and not state.craft and not state.ruleEditor and e[4]==63 then updates:touch("update:check")
+        if cfg.role=="server" and not state.editing and e[4]==62 then state:touch("web:open")
+        elseif not state.editing and not state.craft and not state.ruleEditor and e[4]==63 then updates:touch("update:check")
         elseif not state.editing and not state.craft and not state.ruleEditor and e[4]==64 then updates:touch("update:apply")
         elseif state.key then state:key(e[3],e[4]) end
         lastDraw=-math.huge
@@ -57,6 +70,7 @@ function M.run(cfg,service)
     end
   end,debug.traceback)
   if updates then updates:close() end
+  if web then web:close() end
   if net then pcall(net.close,net) end
   pcall(function()
     hw.gpu.setDepth(oldDepth); hw.gpu.setResolution(oldW,oldH)

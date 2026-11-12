@@ -5,3 +5,4 @@ __pycache__/
 dist/*.zip
 factoryos.cfg
 *.log
+/web-panel/

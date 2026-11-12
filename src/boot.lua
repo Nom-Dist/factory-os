@@ -11,8 +11,8 @@ if not package.loaded["factoryos.service"] or not package.loaded["factoryos.serv
   -- OpenOS itself owns many core.* modules. Clear only FactoryOS's exact names.
   local names={"core.cli","core.codec","core.config","core.crypto","core.hardware","core.installer",
     "core.logger","core.runtime","core.storage","core.updater","core.items","core.autostart","core.updates","network.modem","network.messages",
-    "network.protocol","server.ae2","server.crafting","server.stock","server.energy","server.machines","server.main",
-    "client.main_display","client.crafting","client.stock","client.side_display","client.preferences","ui.renderer","ui.screens","ui.main_screen","ui.crafting","ui.stock","ui.widgets","ui.format","ui.updates"}
+    "network.protocol","network.websocket","server.web","server.ae2","server.crafting","server.stock","server.energy","server.machines","server.main",
+    "client.main_display","client.crafting","client.stock","client.server_console","client.side_display","client.preferences","ui.renderer","ui.screens","ui.server_console","ui.main_screen","ui.crafting","ui.stock","ui.widgets","ui.format","ui.updates"}
   for _,name in ipairs(names) do package.loaded[name]=nil end
 end
 package.path=release.."/?.lua;"..release.."/?/init.lua;"..package.path

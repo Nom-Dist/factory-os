@@ -15,9 +15,9 @@ for engine in (lua52, lua53):
     lua.globals().READ_PROJECT_FILE = lambda p: Path(p).read_text(encoding="utf-8")
     lua.execute('package.path=PROJECT_ROOT.."/src/?.lua;"..PROJECT_ROOT.."/tests/?.lua;"..package.path')
     # Compile every entry point without executing generated installers.
-    for path in sorted(ROOT.rglob("*.lua")):
-        if any(part.startswith(".") for part in path.relative_to(ROOT).parts):
-            continue
+    entries = [ROOT / "install.lua", ROOT / "dist" / "factoryos-offline.lua"]
+    entries += list((ROOT / "src").rglob("*.lua")) + list((ROOT / "tests").glob("*.lua")) + list((ROOT / "tools").glob("*.lua"))
+    for path in sorted(entries):
         loaded = lua.eval("load")(path.read_text(encoding="utf-8"), "@" + path.as_posix(), "t")
         if isinstance(loaded, tuple) and loaded[0] is None:
             raise AssertionError(loaded[1])

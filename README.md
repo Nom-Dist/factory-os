@@ -1,6 +1,6 @@
-# FactoryOS v0.5.0
+# FactoryOS v0.6.1
 
-v0.5.0 [minimum/hedef stokla otomatik üretim](docs/stock-automation.md) ekler: 16 kalıcı kural, başlangıçta kapalı kayıt, tümünü duraklatma, sırayla üretim ve hata sonrası artan bekleme. [Elle üretim, iş takibi ve iptal](docs/crafting.md) ile kalıcı tekrar engeli korunur. Yerel paket hazırdır; gerçek Minecraft üretim kabulü bekleniyor.
+v0.6.1, Factory Server'a **F4 → WEB PANELI** menüsünü ekler. Panel adresini ve gizli bağlantı tokenini buradan kaydedip yeniden başlatmadan bağlanabilirsiniz; uzaktan kontrol de bu menüden açılır. Ayrı [Next.js web paneli](https://github.com/Nom-Dist/factory-os-web-panel) artık şifreli giriş kullanır. Canlı stok/enerji/iş takibi, uzaktan üretim, iptal/arşivleme ve stok kuralı yönetimi bulunur. Oyun sunucusunda güvenilen ağ için WebSocket, public yayın için HTTPS uplink kullanılır; dış bağlantı ve uzaktan yazma varsayılan kapalıdır. [Minimum/hedef stok otomasyonu](docs/stock-automation.md) ve [kalıcı üretim kaydı](docs/crafting.md) korunur. VPS yayını ve gerçek Minecraft kabulü henüz yapılmadı.
 
 Minecraft **1.12.2 / Enigmatica 2: Expert Skyblock / OpenComputers / OpenOS** için üç bilgisayarlı fabrika kontrol yazılımı. Lua 5.2 ve 5.3 hedeflenir. Sunucu ve iki ekranın kablosuz bağlantısı kullanıcı tarafından oyun içinde doğrulandı. **Yeni arayüz, otomatik açılış, kablosuz güncelleme ve gerçek AE2 davranışı için oyun içi kabul bekleniyor.**
 
@@ -19,6 +19,7 @@ Sunucu, 8×5 ana ekran ve 4×5 yan ekran ayrı bilgisayarlardır. Her bilgisayar
 - AE2 Adapter üzerinden **salt okunur** stok, metadata/NBT belirsizlik işareti, crafting CPU doluluğu, AE enerji verileri.
 - Tarifli ürün için 1/8/16/64 kısayolları veya sayı girişi; otomatik/isimli CPU, üretim emri, gerçek iş durumu ve iptal. Son 32 emir, en fazla 8 aktif/belirsiz takip; reboot sonrası belirsizlikte otomatik tekrar yok.
 - Minimum/hedef stok için en fazla 16 kural; aynı ürünün bekleyen işi, meşgul CPU, eksik envanter veya belirsiz üretim varken yeni otomatik emir yok. Kural değişiklikleri ve emirler aynı journal'da tutulur.
+- `web-panel/` içinde bağımsız Next.js uygulaması ve Node relay; gizli bridge eşleştirmesi, oturumlu panel, 24 satırlık canlı stok sorgusu, 20 saniyede eski veriyi kaldırma ve kayıp emri otomatik tekrar göndermeme.
 - OpenOS servis komutları, config yedeği, sınırlı log dosyası, SHA256 doğrulamalı aşamalı güncelleme ve geri dönüş.
 - Bilgisayar açılınca foreground panel; kullanıcı `.shrc` içeriği korunur. Ctrl+C ile komut satırına dönülür.
 - Sunucuda 15 dakikada bir GitHub sürüm kontrolü. Ana ekranda GUNCELLEMELER sayfası, sunucu/yan ekranda güncelleme düğmesi; F5 kontrol / F6 güncelleme.

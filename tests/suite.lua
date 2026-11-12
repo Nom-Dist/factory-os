@@ -943,4 +943,9 @@ assert(load(READ_PROJECT_FILE(PROJECT_ROOT.."/tests/stock.lua"),"@tests/stock.lu
   test=test,eq=eq,callback=callback,files=files,displayFixture=displayFixture,stockPage=stockPage,mockGpu=mockGpu,
   setComponents=function(value) components=value end,setFailFlush=function(value) failFlush=value end,
   modem=modem,nonce=nonce,takeBus=function() local pending=bus; bus={}; return pending end})
+assert(load(READ_PROJECT_FILE(PROJECT_ROOT.."/tests/web.lua"),"@tests/web.lua"))({
+  test=test,eq=eq,callback=callback,setComponents=function(value) components=value end})
+assert(load(READ_PROJECT_FILE(PROJECT_ROOT.."/tests/server_console.lua"),"@tests/server_console.lua"))({
+  test=test,eq=eq,mockGpu=mockGpu,setFailFlush=function(value) failFlush=value end,
+  setComponents=function(value) components=value end,modem=modem,takeBus=function() local pending=bus; bus={}; return pending end})
 print("TOTAL "..passed.." passed")

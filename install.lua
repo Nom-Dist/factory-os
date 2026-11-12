@@ -150,6 +150,29 @@ function M.equal(a,c)
   for i=1,#a do diff=b.bor(diff,bxor(a:byte(i),c:byte(i))) end
   return diff==0
 end
+-- RFC 6455 handshake only. SHA-256 remains the release integrity algorithm.
+function M.sha1(s)
+  local len=#s
+  s=s.."\128"..string.rep("\0",(55-len)%64)..word(math.floor(len/536870912))..word((len*8)%4294967296)
+  local h={0x67452301,0xefcdab89,0x98badcfe,0x10325476,0xc3d2e1f0}
+  for offset=1,#s,64 do
+    local w={}
+    for i=0,15 do local a,c,d,e=s:byte(offset+i*4,offset+i*4+3); w[i]=((a*256+c)*256+d)*256+e end
+    for i=16,79 do w[i]=ror(bxor(bxor(w[i-3],w[i-8]),bxor(w[i-14],w[i-16])),31) end
+    local a,c,d,e,f=h[1],h[2],h[3],h[4],h[5]
+    for i=0,79 do
+      local fn,k
+      if i<20 then fn=b.bor(band(c,d),band(bnot(c),e)); k=0x5a827999
+      elseif i<40 then fn=bxor(c,d,e); k=0x6ed9eba1
+      elseif i<60 then fn=b.bor(b.bor(band(c,d),band(c,e)),band(d,e)); k=0x8f1bbcdc
+      else fn=bxor(c,d,e); k=0xca62c1d6 end
+      local t=(ror(a,27)+fn+f+k+w[i])%4294967296
+      f,e,d,c,a=e,d,ror(c,2),a,t
+    end
+    for i,v in ipairs({a,c,d,e,f}) do h[i]=(h[i]+v)%4294967296 end
+  end
+  local out={}; for i=1,5 do out[i]=word(h[i]) end; return table.concat(out)
+end
 return M
 ]]
 sources[ [[
@@ -255,7 +278,7 @@ function M.defaults(role)
   return {schema=2,role=role or "server",port=34100,strength=64,serverAddress="",
     modem="",gpu="",screen="",allowedClients={},heartbeat=5,offlineAfter=18,poll=10,
     ae2Address="",ae2Enabled=true,updateBase="https://raw.githubusercontent.com/Nom-Dist/factory-os/main",
-    autoStart=true,updateAutoCheck=true,updateCheckInterval=900}
+    autoStart=true,updateAutoCheck=true,updateCheckInterval=900,webEnabled=false,webControl=false,webUrl="",webToken="",webInterval=5}
 end
 function M.upgrade(c)
   if type(c)=="table" and (c.schema==1 or c.schema==2) then
@@ -263,6 +286,7 @@ function M.upgrade(c)
     if c.autoStart==nil then c.autoStart=true end
     if c.updateAutoCheck==nil then c.updateAutoCheck=true end
     if c.updateCheckInterval==nil then c.updateCheckInterval=900 end
+    for _,key in ipairs({"webEnabled","webControl","webUrl","webToken","webInterval"}) do if c[key]==nil then c[key]=M.defaults()[key] end end
     if c.updateBase=="" then c.updateBase=M.defaults().updateBase end
   end
   return c
@@ -279,6 +303,17 @@ function M.validate(c)
     if type(c[k])~="string" or #c[k]>512 then return nil,"invalid "..k end
   end
   if type(c.ae2Enabled)~="boolean" then return nil,"invalid feature flags" end
+  if type(c.webEnabled)~="boolean" or type(c.webControl)~="boolean" or type(c.webUrl)~="string" or #c.webUrl>512 or
+    type(c.webToken)~="string" or #c.webToken>128 or c.webToken:find("[^%w_%-]") or
+    type(c.webInterval)~="number" or c.webInterval%1~=0 or c.webInterval<2 or c.webInterval>10 then return nil,"invalid web configuration" end
+  if c.webEnabled then
+    if c.role~="server" or #c.webToken<32 then return nil,"Web bridge requires server role and a 32+ character token" end
+    local authority=c.webUrl:match("^ws://([^/]+)")
+    local host,port
+    if authority then host,port=authority:match("^([%w%.%-]+):(%d+)$"); host=host or authority:match("^([%w%.%-]+)$") end
+    local ws=host and (not port or tonumber(port)>=1 and tonumber(port)<=65535) and not c.webUrl:find("[%s%c#]")
+    if not c.webUrl:match("^https://[%w%.%-]+:?%d*/[^%s%c#]*$") and not ws then return nil,"Web URL must be HTTPS uplink or trusted-network ws://" end
+  end
   if type(c.autoStart)~="boolean" or type(c.updateAutoCheck)~="boolean" then return nil,"invalid startup/update flags" end
   if type(c.updateCheckInterval)~="number" or c.updateCheckInterval%1~=0 or c.updateCheckInterval<60 or c.updateCheckInterval>86400 then return nil,"invalid update check interval" end
   if type(c.allowedClients)~="table" then return nil,"invalid client allowlist" end

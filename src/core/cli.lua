@@ -29,6 +29,19 @@ function M.main(args,root)
     print("Foreground autostart: "..(c.autoStart and "ENABLED" or "DISABLED")); return
   end
   if cmd=="logs" then print(logger.read()); return end
+  if cmd=="web" then
+    assert(not live(),"Stop FactoryOS before changing web settings")
+    local c=assert(config.load()); assert(c.role=="server","Web bridge runs on Factory Server")
+    if args[2]=="pair" then
+      assert(type(args[3])=="string","factoryos web pair HTTPS_UPLINK_OR_WS_URL")
+      print("Bridge token (hidden; not the panel access key):")
+      local token=require("term").read(nil,true,nil,"*")
+      assert(token,"Pairing canceled"); c.webUrl=args[3]; c.webToken=token:gsub("%s+$",""); c.webEnabled=true
+      assert(config.save(c)); print("Web bridge paired. Remote control: "..tostring(c.webControl)..". Restart to connect.")
+    elseif args[2]=="disable" then c.webEnabled=false; c.webControl=false; assert(config.save(c)); print("Web bridge disabled")
+    else print("factoryos web pair URL | disable. HTTPS uplink recommended; ws:// is for trusted networks.") end
+    return
+  end
   if cmd=="ae2" then
     assert(not live(),"Stop FactoryOS before AE2 diagnostics")
     local c=assert(config.load())
@@ -86,7 +99,8 @@ function M.main(args,root)
     local c,err=config.load()
     if not c then error(err.." Re-run installer to configure.") end
     if not args[2] then
-      print(serialization.serialize(c))
+      local visible={}; for k,v in pairs(c) do visible[k]=k=="webToken" and (v~="" and "[configured]" or "") or v end
+      print(serialization.serialize(visible))
       print("Set: factoryos config KEY VALUE | allow ADDRESS main|side | deny ADDRESS")
       return
     end
@@ -132,6 +146,6 @@ function M.main(args,root)
     end
     return
   end
-  error("Commands: start [--foreground], stop, restart, status, doctor, ae2 [samples], config, logs, update [HTTPS_BASE], rollback, autostart enable|disable")
+  error("Commands: start [--foreground], stop, restart, status, doctor, ae2 [samples], config, logs, web pair URL|disable, update [HTTPS_BASE], rollback, autostart enable|disable")
 end
 return M

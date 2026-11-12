@@ -58,4 +58,27 @@ function M.equal(a,c)
   for i=1,#a do diff=b.bor(diff,bxor(a:byte(i),c:byte(i))) end
   return diff==0
 end
+-- RFC 6455 handshake only. SHA-256 remains the release integrity algorithm.
+function M.sha1(s)
+  local len=#s
+  s=s.."\128"..string.rep("\0",(55-len)%64)..word(math.floor(len/536870912))..word((len*8)%4294967296)
+  local h={0x67452301,0xefcdab89,0x98badcfe,0x10325476,0xc3d2e1f0}
+  for offset=1,#s,64 do
+    local w={}
+    for i=0,15 do local a,c,d,e=s:byte(offset+i*4,offset+i*4+3); w[i]=((a*256+c)*256+d)*256+e end
+    for i=16,79 do w[i]=ror(bxor(bxor(w[i-3],w[i-8]),bxor(w[i-14],w[i-16])),31) end
+    local a,c,d,e,f=h[1],h[2],h[3],h[4],h[5]
+    for i=0,79 do
+      local fn,k
+      if i<20 then fn=b.bor(band(c,d),band(bnot(c),e)); k=0x5a827999
+      elseif i<40 then fn=bxor(c,d,e); k=0x6ed9eba1
+      elseif i<60 then fn=b.bor(b.bor(band(c,d),band(c,e)),band(d,e)); k=0x8f1bbcdc
+      else fn=bxor(c,d,e); k=0xca62c1d6 end
+      local t=(ror(a,27)+fn+f+k+w[i])%4294967296
+      f,e,d,c,a=e,d,ror(c,2),a,t
+    end
+    for i,v in ipairs({a,c,d,e,f}) do h[i]=(h[i]+v)%4294967296 end
+  end
+  local out={}; for i=1,5 do out[i]=word(h[i]) end; return table.concat(out)
+end
 return M

@@ -150,6 +150,29 @@ function M.equal(a,c)
   for i=1,#a do diff=b.bor(diff,bxor(a:byte(i),c:byte(i))) end
   return diff==0
 end
+-- RFC 6455 handshake only. SHA-256 remains the release integrity algorithm.
+function M.sha1(s)
+  local len=#s
+  s=s.."\128"..string.rep("\0",(55-len)%64)..word(math.floor(len/536870912))..word((len*8)%4294967296)
+  local h={0x67452301,0xefcdab89,0x98badcfe,0x10325476,0xc3d2e1f0}
+  for offset=1,#s,64 do
+    local w={}
+    for i=0,15 do local a,c,d,e=s:byte(offset+i*4,offset+i*4+3); w[i]=((a*256+c)*256+d)*256+e end
+    for i=16,79 do w[i]=ror(bxor(bxor(w[i-3],w[i-8]),bxor(w[i-14],w[i-16])),31) end
+    local a,c,d,e,f=h[1],h[2],h[3],h[4],h[5]
+    for i=0,79 do
+      local fn,k
+      if i<20 then fn=b.bor(band(c,d),band(bnot(c),e)); k=0x5a827999
+      elseif i<40 then fn=bxor(c,d,e); k=0x6ed9eba1
+      elseif i<60 then fn=b.bor(b.bor(band(c,d),band(c,e)),band(d,e)); k=0x8f1bbcdc
+      else fn=bxor(c,d,e); k=0xca62c1d6 end
+      local t=(ror(a,27)+fn+f+k+w[i])%4294967296
+      f,e,d,c,a=e,d,ror(c,2),a,t
+    end
+    for i,v in ipairs({a,c,d,e,f}) do h[i]=(h[i]+v)%4294967296 end
+  end
+  local out={}; for i=1,5 do out[i]=word(h[i]) end; return table.concat(out)
+end
 return M
 ]]
 sources[ [[
@@ -255,7 +278,7 @@ function M.defaults(role)
   return {schema=2,role=role or "server",port=34100,strength=64,serverAddress="",
     modem="",gpu="",screen="",allowedClients={},heartbeat=5,offlineAfter=18,poll=10,
     ae2Address="",ae2Enabled=true,updateBase="https://raw.githubusercontent.com/Nom-Dist/factory-os/main",
-    autoStart=true,updateAutoCheck=true,updateCheckInterval=900}
+    autoStart=true,updateAutoCheck=true,updateCheckInterval=900,webEnabled=false,webControl=false,webUrl="",webToken="",webInterval=5}
 end
 function M.upgrade(c)
   if type(c)=="table" and (c.schema==1 or c.schema==2) then
@@ -263,6 +286,7 @@ function M.upgrade(c)
     if c.autoStart==nil then c.autoStart=true end
     if c.updateAutoCheck==nil then c.updateAutoCheck=true end
     if c.updateCheckInterval==nil then c.updateCheckInterval=900 end
+    for _,key in ipairs({"webEnabled","webControl","webUrl","webToken","webInterval"}) do if c[key]==nil then c[key]=M.defaults()[key] end end
     if c.updateBase=="" then c.updateBase=M.defaults().updateBase end
   end
   return c
@@ -279,6 +303,17 @@ function M.validate(c)
     if type(c[k])~="string" or #c[k]>512 then return nil,"invalid "..k end
   end
   if type(c.ae2Enabled)~="boolean" then return nil,"invalid feature flags" end
+  if type(c.webEnabled)~="boolean" or type(c.webControl)~="boolean" or type(c.webUrl)~="string" or #c.webUrl>512 or
+    type(c.webToken)~="string" or #c.webToken>128 or c.webToken:find("[^%w_%-]") or
+    type(c.webInterval)~="number" or c.webInterval%1~=0 or c.webInterval<2 or c.webInterval>10 then return nil,"invalid web configuration" end
+  if c.webEnabled then
+    if c.role~="server" or #c.webToken<32 then return nil,"Web bridge requires server role and a 32+ character token" end
+    local authority=c.webUrl:match("^ws://([^/]+)")
+    local host,port
+    if authority then host,port=authority:match("^([%w%.%-]+):(%d+)$"); host=host or authority:match("^([%w%.%-]+)$") end
+    local ws=host and (not port or tonumber(port)>=1 and tonumber(port)<=65535) and not c.webUrl:find("[%s%c#]")
+    if not c.webUrl:match("^https://[%w%.%-]+:?%d*/[^%s%c#]*$") and not ws then return nil,"Web URL must be HTTPS uplink or trusted-network ws://" end
+  end
   if type(c.autoStart)~="boolean" or type(c.updateAutoCheck)~="boolean" then return nil,"invalid startup/update flags" end
   if type(c.updateCheckInterval)~="number" or c.updateCheckInterval%1~=0 or c.updateCheckInterval<60 or c.updateCheckInterval>86400 then return nil,"invalid update check interval" end
   if type(c.allowedClients)~="table" then return nil,"invalid client allowlist" end
@@ -582,7 +617,7 @@ end
 local payload={}
 payload[ [[
 manifest.dat]] ]=[[
-m4:s5:filesm36:n1:1m3:s4:paths8:boot.luas4:sizen4:1466s6:sha256s64:09d223e84feeb00ccf1d5cf578d029ef18ecfe96b55d3dd0120710ec517ede66n1:2m3:s4:paths19:client/crafting.luas4:sizen4:3576s6:sha256s64:facebc295b3719fafa7c19fac12ea1d789cd34968e10ceef9d652a5752c7b7aan1:3m3:s4:paths23:client/main_display.luas4:sizen5:10192s6:sha256s64:a1e91ff4384cf2e6c30657dcb0075acb80a9c7ae2555f03bf85eb04d9d789fe8n1:4m3:s4:paths22:client/preferences.luas4:sizen3:879s6:sha256s64:e1d9ec86fc051e57ed8b5ac78f3b1eedf3c5fe5ecb76a5127b62e7467ce8191fn1:5m3:s4:paths23:client/side_display.luas4:sizen3:159s6:sha256s64:7e94ff8c85f4be8b2c65786376ec1ff19ea17807310b3940a3e5f2aea31ecdc3n1:6m3:s4:paths16:client/stock.luas4:sizen4:4760s6:sha256s64:25a92737b62ca68710208df19f434048ccefe8be7a48705914dcdb5b9c80d92dn1:7m3:s4:paths18:core/autostart.luas4:sizen4:1456s6:sha256s64:954eaf256cb6b89d8092de49b6963927b39b37b4203052bd24071aa1fefe0b85n1:8m3:s4:paths12:core/cli.luas4:sizen4:6327s6:sha256s64:35fe3bb25ff8f328d56dcd6fe6e5b4f733d751780d230b66d788b1f1918618f3n1:9m3:s4:paths14:core/codec.luas4:sizen4:2990s6:sha256s64:d99f7fcbec5e1419877fba9e17a6bd673047dfbd55d4369890f0b8cbe436614dn2:10m3:s4:paths15:core/config.luas4:sizen4:3287s6:sha256s64:08044ececad5c3a115c28e27179582d06d9370e60ebd117c441cf0a71f48cc41n2:11m3:s4:paths15:core/crypto.luas4:sizen4:2958s6:sha256s64:c58b3b3fc70204fdc85ccd9b2c3ffdceba8516376f94110a700f070eb7b6ed95n2:12m3:s4:paths17:core/hardware.luas4:sizen4:1853s6:sha256s64:f40a399b003f0f137e11c488d79eb6d7f46c4d60dc01d1b3f14a087d7863330an2:13m3:s4:paths18:core/installer.luas4:sizen4:4220s6:sha256s64:6e61458610f4d4f821a2e6d581d083cff19ae5615cef3c56109812f150f84080n2:14m3:s4:paths14:core/items.luas4:sizen3:523s6:sha256s64:350073205e1291bcf903130ebbe1f7de509ea5f4442f047e3e30d4ba8f96e690n2:15m3:s4:paths15:core/logger.luas4:sizen3:719s6:sha256s64:773349ed6f72655c34f5499b8a2363b4c38a0844c51ffcb8a2bc855e8e98d81cn2:16m3:s4:paths16:core/runtime.luas4:sizen4:4108s6:sha256s64:e20bab334c9a8b86f309365baa473ee833e7690a3dcbcb154e909629cb50f388n2:17m3:s4:paths16:core/storage.luas4:sizen4:1553s6:sha256s64:2cc1a5775cd064c10aebfc1967e24fe3764c09af5d19dfc0c985973d61071f94n2:18m3:s4:paths16:core/updater.luas4:sizen4:6746s6:sha256s64:921ab0c29a6f36c2409dd8c5fa28d5d707e81a6445f15bfd6b86d8da0593b4e3n2:19m3:s4:paths16:core/updates.luas4:sizen5:11440s6:sha256s64:4b0d0c01f3a5c65f38062b0d92f16592efdb4984ebe0171162f6475b03b3aeffn2:20m3:s4:paths20:network/messages.luas4:sizen3:730s6:sha256s64:098377703d6e65c14e794f2816042469662ead8fa3c2812e3d33d9d39640388an2:21m3:s4:paths17:network/modem.luas4:sizen4:4235s6:sha256s64:79d685360eb05d38dc2797f812341df5b898fb0e189565a965ddfb7f5581bc2dn2:22m3:s4:paths20:network/protocol.luas4:sizen4:6598s6:sha256s64:e14a88c4328dbf2b1c082d5d48436d5adc6c8a7aaa1a6720e9af01a70c346844n2:23m3:s4:paths14:server/ae2.luas4:sizen4:7333s6:sha256s64:3875fa59751a144f6b48e542aab05407c6a93fae528c342c270274957fceb093n2:24m3:s4:paths19:server/crafting.luas4:sizen5:12190s6:sha256s64:933334cc2085507a986144fa4401752e5cee82b75d36959fe9a64a82925ebf37n2:25m3:s4:paths17:server/energy.luas4:sizen3:156s6:sha256s64:1bcc2fd9ea9f8950d91a63065913fc089ef87750d5ef9e3d206ed044e5aa3ff6n2:26m3:s4:paths19:server/machines.luas4:sizen3:269s6:sha256s64:861aeeec2cb4fd1f7c21cd5529ae724846a15ab4fd3111b07333071ef0ba1e3bn2:27m3:s4:paths15:server/main.luas4:sizen4:3652s6:sha256s64:bb19fae3537dfa7668d42352907c6d1375ab9d9126fbb6e25bd7c5c755a803d6n2:28m3:s4:paths16:server/stock.luas4:sizen5:10376s6:sha256s64:ae1b20ad5a5a4c29c420b4d959f9971a430840c92b21381baca24cf4763f7a8bn2:29m3:s4:paths15:ui/crafting.luas4:sizen4:5104s6:sha256s64:9a4e6204769da593b8ee49c31a9a9ab41955ec6c567a22e0a5a1d2e88c9bfae8n2:30m3:s4:paths13:ui/format.luas4:sizen4:1186s6:sha256s64:49e6419be127eb4fd3ce51574d769579c6332a4d955dc72c6162592162b65f5fn2:31m3:s4:paths18:ui/main_screen.luas4:sizen5:20901s6:sha256s64:de10e217ababbf62e195a6a306132c866ede879c14157d881fde08d6360a83ebn2:32m3:s4:paths15:ui/renderer.luas4:sizen4:3323s6:sha256s64:a7232bae7243ab279e2740e145918e9b2bc3e24cf08ab3ec2044c2ab44ec7eeen2:33m3:s4:paths14:ui/screens.luas4:sizen4:2405s6:sha256s64:b67a04b80c5ef69de1bf28d11035913cc5884220cd9a47d884813d8780424632n2:34m3:s4:paths12:ui/stock.luas4:sizen4:4398s6:sha256s64:0cce57415bb99b387396b68a26d748eef48cd3559b77b609724d49000bda0340n2:35m3:s4:paths14:ui/updates.luas4:sizen4:2905s6:sha256s64:f70bc0f1e961c46f9841f9d5037d298aeccd8e4f3da5c0d1e6e6f39999c09d8fn2:36m3:s4:paths14:ui/widgets.luas4:sizen4:1334s6:sha256s64:71642d816aebbc63a1fad5e54bf825361010233897ee848902fadb6b178a4652s6:scheman1:1s7:releases18:0.5.0-43f4abbdf82cs7:versions5:0.5.0]]
+m4:s5:filesm40:n1:1m3:s4:paths8:boot.luas4:sizen4:1543s6:sha256s64:18d3d1c5865e50d35e454a91509b05c608ae8ee4a28e6a78935718a4aa4e203dn1:2m3:s4:paths19:client/crafting.luas4:sizen4:3576s6:sha256s64:facebc295b3719fafa7c19fac12ea1d789cd34968e10ceef9d652a5752c7b7aan1:3m3:s4:paths23:client/main_display.luas4:sizen5:10192s6:sha256s64:a1e91ff4384cf2e6c30657dcb0075acb80a9c7ae2555f03bf85eb04d9d789fe8n1:4m3:s4:paths22:client/preferences.luas4:sizen3:879s6:sha256s64:e1d9ec86fc051e57ed8b5ac78f3b1eedf3c5fe5ecb76a5127b62e7467ce8191fn1:5m3:s4:paths25:client/server_console.luas4:sizen4:4158s6:sha256s64:21438057a08ff11591a16768dd65164d2b59eda632940fd04c5130a8d3299ff9n1:6m3:s4:paths23:client/side_display.luas4:sizen3:159s6:sha256s64:7e94ff8c85f4be8b2c65786376ec1ff19ea17807310b3940a3e5f2aea31ecdc3n1:7m3:s4:paths16:client/stock.luas4:sizen4:4760s6:sha256s64:25a92737b62ca68710208df19f434048ccefe8be7a48705914dcdb5b9c80d92dn1:8m3:s4:paths18:core/autostart.luas4:sizen4:1456s6:sha256s64:954eaf256cb6b89d8092de49b6963927b39b37b4203052bd24071aa1fefe0b85n1:9m3:s4:paths12:core/cli.luas4:sizen4:7382s6:sha256s64:36c73fd331b9637b8cca0694ead9f542084d72926c89dc36004dce838343a7d8n2:10m3:s4:paths14:core/codec.luas4:sizen4:2990s6:sha256s64:d99f7fcbec5e1419877fba9e17a6bd673047dfbd55d4369890f0b8cbe436614dn2:11m3:s4:paths15:core/config.luas4:sizen4:4452s6:sha256s64:e87b2ce38b4bf12328d438244b5dd6c75aadba580ddf5b8e42cc98a90850bdd3n2:12m3:s4:paths15:core/crypto.luas4:sizen4:4033s6:sha256s64:6e032c472bd9ec9a226f808014a8001bc7199390f2ed66f241938eeac2754f78n2:13m3:s4:paths17:core/hardware.luas4:sizen4:1853s6:sha256s64:f40a399b003f0f137e11c488d79eb6d7f46c4d60dc01d1b3f14a087d7863330an2:14m3:s4:paths18:core/installer.luas4:sizen4:4220s6:sha256s64:6e61458610f4d4f821a2e6d581d083cff19ae5615cef3c56109812f150f84080n2:15m3:s4:paths14:core/items.luas4:sizen3:523s6:sha256s64:350073205e1291bcf903130ebbe1f7de509ea5f4442f047e3e30d4ba8f96e690n2:16m3:s4:paths15:core/logger.luas4:sizen3:719s6:sha256s64:773349ed6f72655c34f5499b8a2363b4c38a0844c51ffcb8a2bc855e8e98d81cn2:17m3:s4:paths16:core/runtime.luas4:sizen4:4932s6:sha256s64:40247177feabc5ddab1deec63e1176ee0549faed72b7b889af6a742384fd5966n2:18m3:s4:paths16:core/storage.luas4:sizen4:1553s6:sha256s64:2cc1a5775cd064c10aebfc1967e24fe3764c09af5d19dfc0c985973d61071f94n2:19m3:s4:paths16:core/updater.luas4:sizen4:6746s6:sha256s64:921ab0c29a6f36c2409dd8c5fa28d5d707e81a6445f15bfd6b86d8da0593b4e3n2:20m3:s4:paths16:core/updates.luas4:sizen5:11440s6:sha256s64:4b0d0c01f3a5c65f38062b0d92f16592efdb4984ebe0171162f6475b03b3aeffn2:21m3:s4:paths20:network/messages.luas4:sizen3:730s6:sha256s64:098377703d6e65c14e794f2816042469662ead8fa3c2812e3d33d9d39640388an2:22m3:s4:paths17:network/modem.luas4:sizen4:4235s6:sha256s64:79d685360eb05d38dc2797f812341df5b898fb0e189565a965ddfb7f5581bc2dn2:23m3:s4:paths20:network/protocol.luas4:sizen4:6598s6:sha256s64:e14a88c4328dbf2b1c082d5d48436d5adc6c8a7aaa1a6720e9af01a70c346844n2:24m3:s4:paths21:network/websocket.luas4:sizen4:6221s6:sha256s64:f7b3f775a9fcb01baa4f28600c7f7a4303a1885c11bde264289a5b2b8b2a5e86n2:25m3:s4:paths14:server/ae2.luas4:sizen4:7333s6:sha256s64:3875fa59751a144f6b48e542aab05407c6a93fae528c342c270274957fceb093n2:26m3:s4:paths19:server/crafting.luas4:sizen5:12190s6:sha256s64:933334cc2085507a986144fa4401752e5cee82b75d36959fe9a64a82925ebf37n2:27m3:s4:paths17:server/energy.luas4:sizen3:156s6:sha256s64:1bcc2fd9ea9f8950d91a63065913fc089ef87750d5ef9e3d206ed044e5aa3ff6n2:28m3:s4:paths19:server/machines.luas4:sizen3:269s6:sha256s64:861aeeec2cb4fd1f7c21cd5529ae724846a15ab4fd3111b07333071ef0ba1e3bn2:29m3:s4:paths15:server/main.luas4:sizen4:3652s6:sha256s64:557c1dae5293eaa809f30fa07ffe88faf2270819f3f688d048d2f6b188722442n2:30m3:s4:paths16:server/stock.luas4:sizen5:10376s6:sha256s64:ae1b20ad5a5a4c29c420b4d959f9971a430840c92b21381baca24cf4763f7a8bn2:31m3:s4:paths14:server/web.luas4:sizen4:5534s6:sha256s64:343166c58bd833f92421ec07ae4861dc63dfc04740da61f7265b41ed98ffdd67n2:32m3:s4:paths15:ui/crafting.luas4:sizen4:5104s6:sha256s64:9a4e6204769da593b8ee49c31a9a9ab41955ec6c567a22e0a5a1d2e88c9bfae8n2:33m3:s4:paths13:ui/format.luas4:sizen4:1186s6:sha256s64:49e6419be127eb4fd3ce51574d769579c6332a4d955dc72c6162592162b65f5fn2:34m3:s4:paths18:ui/main_screen.luas4:sizen5:20901s6:sha256s64:2cb38712ea6bedc9ee15cf39171113e1f8b84d08e3e3e6847ae4c15c6e9ad38en2:35m3:s4:paths15:ui/renderer.luas4:sizen4:3323s6:sha256s64:a7232bae7243ab279e2740e145918e9b2bc3e24cf08ab3ec2044c2ab44ec7eeen2:36m3:s4:paths14:ui/screens.luas4:sizen4:2494s6:sha256s64:65ae9b3a89c3e9d72df54a01b2bb9c53ace7570639ff77cb689e8e5c2419c74dn2:37m3:s4:paths21:ui/server_console.luas4:sizen4:3563s6:sha256s64:8af71311dee2d50feedc4647104057aeb041e20acf0297d3ba5b1255c8d95c43n2:38m3:s4:paths12:ui/stock.luas4:sizen4:4398s6:sha256s64:0cce57415bb99b387396b68a26d748eef48cd3559b77b609724d49000bda0340n2:39m3:s4:paths14:ui/updates.luas4:sizen4:2905s6:sha256s64:f70bc0f1e961c46f9841f9d5037d298aeccd8e4f3da5c0d1e6e6f39999c09d8fn2:40m3:s4:paths14:ui/widgets.luas4:sizen4:1334s6:sha256s64:71642d816aebbc63a1fad5e54bf825361010233897ee848902fadb6b178a4652s6:scheman1:1s7:releases18:0.6.1-d1bf1c21fcdcs7:versions5:0.6.1]]
 payload[ [[
 src/boot.lua]] ]=[[
 -- Loaded afresh by /bin/factoryos.lua; active pointer selects an immutable release.
@@ -598,8 +633,8 @@ if not package.loaded["factoryos.service"] or not package.loaded["factoryos.serv
   -- OpenOS itself owns many core.* modules. Clear only FactoryOS's exact names.
   local names={"core.cli","core.codec","core.config","core.crypto","core.hardware","core.installer",
     "core.logger","core.runtime","core.storage","core.updater","core.items","core.autostart","core.updates","network.modem","network.messages",
-    "network.protocol","server.ae2","server.crafting","server.stock","server.energy","server.machines","server.main",
-    "client.main_display","client.crafting","client.stock","client.side_display","client.preferences","ui.renderer","ui.screens","ui.main_screen","ui.crafting","ui.stock","ui.widgets","ui.format","ui.updates"}
+    "network.protocol","network.websocket","server.web","server.ae2","server.crafting","server.stock","server.energy","server.machines","server.main",
+    "client.main_display","client.crafting","client.stock","client.server_console","client.side_display","client.preferences","ui.renderer","ui.screens","ui.server_console","ui.main_screen","ui.crafting","ui.stock","ui.widgets","ui.format","ui.updates"}
   for _,name in ipairs(names) do package.loaded[name]=nil end
 end
 package.path=release.."/?.lua;"..release.."/?/init.lua;"..package.path
@@ -903,6 +938,84 @@ end
 return M
 ]]
 payload[ [[
+src/client/server_console.lua]] ]=[[
+local config=require("core.config")
+local M={}
+local fields={"webUrl","webToken","webEnabled","webControl","webInterval"}
+function M.new(cfg,clock,apply,canApply)
+  local self={editing=false,tokenConfigured=cfg.webToken~=""}
+  function self:open()
+    self.webMenu=true; self.editing=true; self.keyboard=false; self.shift=false; self.field="url"
+    self.draft={url=cfg.webUrl,token="",control=cfg.webControl}; self.error=nil; self.message=nil
+  end
+  function self:close()
+    self.webMenu=false; self.editing=false; self.keyboard=false; self.draft=nil; self.error=nil
+  end
+  function self:insert(text)
+    if not self.webMenu or type(text)~="string" then return end
+    local key=self.field=="token" and "token" or "url"
+    if text:find("[^ -~]") or key=="token" and text:find("[^%w_%-]") then self.error="Gecersiz karakter; adres veya tokeni kontrol edin"; return end
+    local limit=key=="token" and 128 or 512
+    if #self.draft[key]+#text>limit then self.error="Alan uzunluk siniri asildi"; return end
+    self.draft[key]=self.draft[key]..text; self.error=nil
+  end
+  function self:save(disconnect)
+    local allowed,why=canApply(); if not allowed then self.error=why; return end
+    local candidate={}; for k,v in pairs(cfg) do candidate[k]=v end
+    if disconnect then candidate.webEnabled=false; candidate.webControl=false
+    else
+      local url=self.draft.url:match("^%s*(.-)%s*$"):gsub("/+$","")
+      if url:match("^https://[%w%.%-]+:?%d*$") then url=url.."/bridge/ingest"
+      elseif url:match("^ws://[%w%.%-]+:?%d*$") then url=url.."/bridge/device" end
+      candidate.webUrl=url; candidate.webEnabled=true; candidate.webControl=self.draft.control
+      if self.draft.token~="" then candidate.webToken=self.draft.token end
+      if #candidate.webToken<32 then self.error="Baglanti tokeni en az 32 karakter olmali"; return end
+    end
+    local ok,err=config.validate(candidate); if not ok then self.error=err; return end
+    local safe,written,reason=pcall(config.save,candidate)
+    if not safe or not written then self.error="Ayarlar diske yazilamadi; baglanti degistirilmedi"; return end
+    -- Reconfigure only after the atomic disk write succeeded. No crafting call.
+    apply(candidate)
+    for _,key in ipairs(fields) do cfg[key]=candidate[key] end
+    self.tokenConfigured=candidate.webToken~=""
+    self.draft.token=""; self.draft.url=candidate.webUrl; self.draft.control=candidate.webControl
+    self.keyboard=false; self.error=nil
+    self.message=disconnect and "Baglanti kapatildi; mevcut AE2 isleri surer" or "Kaydedildi; baglanti kuruluyor"
+  end
+  function self:touch(id)
+    if id=="web:open" then self:open(); return end
+    if not self.webMenu then return end
+    if self.keyboard then
+      if id=="webkey:done" then self.keyboard=false
+      elseif id=="webkey:shift" then self.shift=not self.shift
+      elseif id=="webkey:back" then self.draft[self.field]=self.draft[self.field]:sub(1,-2)
+      elseif id=="webkey:clear" then self.draft[self.field]=""
+      else local letter=id and id:match("^webkey:char:(.)$"); if letter then self:insert(self.shift and letter:upper() or letter) end end
+      return
+    end
+    if id=="web:close" then self:close()
+    elseif id=="web:url" or id=="web:token" then self.field=id:sub(5); self.keyboard=true
+    elseif id=="web:control" then self.draft.control=not self.draft.control
+    elseif id=="web:save" then self:save(false)
+    elseif id=="web:disconnect" then self:save(true) end
+  end
+  function self:key(char,code)
+    if not self.webMenu then return end
+    if code==1 then if self.keyboard then self.keyboard=false else self:close() end
+    elseif code==15 then self.field=self.field=="url" and "token" or "url"
+    elseif code==28 or code==156 then if self.keyboard then self.keyboard=false else self:save(false) end
+    elseif code==14 then self.draft[self.field]=self.draft[self.field]:sub(1,-2)
+    elseif type(char)=="number" and char>=32 and char<=126 then self:insert(string.char(char)) end
+  end
+  function self:paste(text)
+    if type(text)=="string" then self:insert(text:match("^%s*(.-)%s*$")) end
+  end
+  function self:tick() end
+  return self
+end
+return M
+]]
+payload[ [[
 src/client/side_display.lua]] ]=[[
 -- Side display consumes only the status heartbeat; no stock traffic or control.
 return {new=function() return {tick=function() end,touch=function() end} end}
@@ -1062,6 +1175,19 @@ function M.main(args,root)
     print("Foreground autostart: "..(c.autoStart and "ENABLED" or "DISABLED")); return
   end
   if cmd=="logs" then print(logger.read()); return end
+  if cmd=="web" then
+    assert(not live(),"Stop FactoryOS before changing web settings")
+    local c=assert(config.load()); assert(c.role=="server","Web bridge runs on Factory Server")
+    if args[2]=="pair" then
+      assert(type(args[3])=="string","factoryos web pair HTTPS_UPLINK_OR_WS_URL")
+      print("Bridge token (hidden; not the panel access key):")
+      local token=require("term").read(nil,true,nil,"*")
+      assert(token,"Pairing canceled"); c.webUrl=args[3]; c.webToken=token:gsub("%s+$",""); c.webEnabled=true
+      assert(config.save(c)); print("Web bridge paired. Remote control: "..tostring(c.webControl)..". Restart to connect.")
+    elseif args[2]=="disable" then c.webEnabled=false; c.webControl=false; assert(config.save(c)); print("Web bridge disabled")
+    else print("factoryos web pair URL | disable. HTTPS uplink recommended; ws:// is for trusted networks.") end
+    return
+  end
   if cmd=="ae2" then
     assert(not live(),"Stop FactoryOS before AE2 diagnostics")
     local c=assert(config.load())
@@ -1119,7 +1245,8 @@ function M.main(args,root)
     local c,err=config.load()
     if not c then error(err.." Re-run installer to configure.") end
     if not args[2] then
-      print(serialization.serialize(c))
+      local visible={}; for k,v in pairs(c) do visible[k]=k=="webToken" and (v~="" and "[configured]" or "") or v end
+      print(serialization.serialize(visible))
       print("Set: factoryos config KEY VALUE | allow ADDRESS main|side | deny ADDRESS")
       return
     end
@@ -1165,7 +1292,7 @@ function M.main(args,root)
     end
     return
   end
-  error("Commands: start [--foreground], stop, restart, status, doctor, ae2 [samples], config, logs, update [HTTPS_BASE], rollback, autostart enable|disable")
+  error("Commands: start [--foreground], stop, restart, status, doctor, ae2 [samples], config, logs, web pair URL|disable, update [HTTPS_BASE], rollback, autostart enable|disable")
 end
 return M
 ]]
@@ -1266,7 +1393,7 @@ function M.defaults(role)
   return {schema=2,role=role or "server",port=34100,strength=64,serverAddress="",
     modem="",gpu="",screen="",allowedClients={},heartbeat=5,offlineAfter=18,poll=10,
     ae2Address="",ae2Enabled=true,updateBase="https://raw.githubusercontent.com/Nom-Dist/factory-os/main",
-    autoStart=true,updateAutoCheck=true,updateCheckInterval=900}
+    autoStart=true,updateAutoCheck=true,updateCheckInterval=900,webEnabled=false,webControl=false,webUrl="",webToken="",webInterval=5}
 end
 function M.upgrade(c)
   if type(c)=="table" and (c.schema==1 or c.schema==2) then
@@ -1274,6 +1401,7 @@ function M.upgrade(c)
     if c.autoStart==nil then c.autoStart=true end
     if c.updateAutoCheck==nil then c.updateAutoCheck=true end
     if c.updateCheckInterval==nil then c.updateCheckInterval=900 end
+    for _,key in ipairs({"webEnabled","webControl","webUrl","webToken","webInterval"}) do if c[key]==nil then c[key]=M.defaults()[key] end end
     if c.updateBase=="" then c.updateBase=M.defaults().updateBase end
   end
   return c
@@ -1290,6 +1418,17 @@ function M.validate(c)
     if type(c[k])~="string" or #c[k]>512 then return nil,"invalid "..k end
   end
   if type(c.ae2Enabled)~="boolean" then return nil,"invalid feature flags" end
+  if type(c.webEnabled)~="boolean" or type(c.webControl)~="boolean" or type(c.webUrl)~="string" or #c.webUrl>512 or
+    type(c.webToken)~="string" or #c.webToken>128 or c.webToken:find("[^%w_%-]") or
+    type(c.webInterval)~="number" or c.webInterval%1~=0 or c.webInterval<2 or c.webInterval>10 then return nil,"invalid web configuration" end
+  if c.webEnabled then
+    if c.role~="server" or #c.webToken<32 then return nil,"Web bridge requires server role and a 32+ character token" end
+    local authority=c.webUrl:match("^ws://([^/]+)")
+    local host,port
+    if authority then host,port=authority:match("^([%w%.%-]+):(%d+)$"); host=host or authority:match("^([%w%.%-]+)$") end
+    local ws=host and (not port or tonumber(port)>=1 and tonumber(port)<=65535) and not c.webUrl:find("[%s%c#]")
+    if not c.webUrl:match("^https://[%w%.%-]+:?%d*/[^%s%c#]*$") and not ws then return nil,"Web URL must be HTTPS uplink or trusted-network ws://" end
+  end
   if type(c.autoStart)~="boolean" or type(c.updateAutoCheck)~="boolean" then return nil,"invalid startup/update flags" end
   if type(c.updateCheckInterval)~="number" or c.updateCheckInterval%1~=0 or c.updateCheckInterval<60 or c.updateCheckInterval>86400 then return nil,"invalid update check interval" end
   if type(c.allowedClients)~="table" then return nil,"invalid client allowlist" end
@@ -1382,6 +1521,29 @@ function M.equal(a,c)
   local diff=0
   for i=1,#a do diff=b.bor(diff,bxor(a:byte(i),c:byte(i))) end
   return diff==0
+end
+-- RFC 6455 handshake only. SHA-256 remains the release integrity algorithm.
+function M.sha1(s)
+  local len=#s
+  s=s.."\128"..string.rep("\0",(55-len)%64)..word(math.floor(len/536870912))..word((len*8)%4294967296)
+  local h={0x67452301,0xefcdab89,0x98badcfe,0x10325476,0xc3d2e1f0}
+  for offset=1,#s,64 do
+    local w={}
+    for i=0,15 do local a,c,d,e=s:byte(offset+i*4,offset+i*4+3); w[i]=((a*256+c)*256+d)*256+e end
+    for i=16,79 do w[i]=ror(bxor(bxor(w[i-3],w[i-8]),bxor(w[i-14],w[i-16])),31) end
+    local a,c,d,e,f=h[1],h[2],h[3],h[4],h[5]
+    for i=0,79 do
+      local fn,k
+      if i<20 then fn=b.bor(band(c,d),band(bnot(c),e)); k=0x5a827999
+      elseif i<40 then fn=bxor(c,d,e); k=0x6ed9eba1
+      elseif i<60 then fn=b.bor(b.bor(band(c,d),band(c,e)),band(d,e)); k=0x8f1bbcdc
+      else fn=bxor(c,d,e); k=0xca62c1d6 end
+      local t=(ror(a,27)+fn+f+k+w[i])%4294967296
+      f,e,d,c,a=e,d,ror(c,2),a,t
+    end
+    for i,v in ipairs({a,c,d,e,f}) do h[i]=(h[i]+v)%4294967296 end
+  end
+  local out={}; for i=1,5 do out[i]=word(h[i]) end; return table.concat(out)
 end
 return M
 ]]
@@ -1565,7 +1727,7 @@ local M={}
 function M.run(cfg,service)
   local hw,err=hardware.check(cfg)
   if not hw then service.running=false; service.error=err; logger.log("ERROR",err); return nil,err end
-  local net,view,updates
+  local net,view,updates,web
   local oldW,oldH=hw.gpu.getResolution()
   local oldFg,oldBg=hw.gpu.getForeground(),hw.gpu.getBackground()
   local oldDepth=hw.gpu.getDepth()
@@ -1578,7 +1740,18 @@ function M.run(cfg,service)
     if server then server.clients=net.clients end
     updates=require("core.updates").new(cfg,net,clock,service,{log=log,isIdle=server and function() return server:canUpdate() end or nil})
     if server then server.updates=updates end
-    local state=cfg.role=="main" and require("client.main_display").new(net,clock) or require("client.side_display").new()
+    if server then web=require("server.web").new(cfg,server,clock,log); server.web=web end
+    local function webCanApply()
+      if updates.busy or updates.readyManifest then return nil,"Guncelleme suruyor; sonra deneyin" end
+      return true
+    end
+    local function applyWeb(candidate)
+      if web then web:close() end
+      for _,key in ipairs({"webEnabled","webControl","webUrl","webToken","webInterval"}) do cfg[key]=candidate[key] end
+      web=require("server.web").new(cfg,server,clock,log); server.web=web
+    end
+    local state=cfg.role=="server" and require("client.server_console").new(cfg,clock,applyWeb,webCanApply) or
+      cfg.role=="main" and require("client.main_display").new(net,clock) or require("client.side_display").new()
     state.context={modem=hw.modem.address,screen=hw.screen.address,port=cfg.port,serverAddress=cfg.serverAddress,poll=cfg.poll}
     view=renderer.new(hw.gpu,hw.screen,cfg.role)
     local lastDraw=-math.huge
@@ -1588,6 +1761,7 @@ function M.run(cfg,service)
       net:tick()
       if server then server:tick(); state.serverStatus=server:status() else state:tick() end
       updates:tick(); state.update=updates:public()
+      if web then web:tick(); state.webStatus=web:public() end
       if updates.readyManifest and not updates.busy and updates.phase=="ready" then service.applyUpdate=updates.readyManifest; service.stop=true end
       if clock()-lastDraw>=1 then
         screens.draw(view,cfg.role,net,state,clock)
@@ -1603,7 +1777,8 @@ function M.run(cfg,service)
         if id and id:match("^update:") then updates:touch(id) else state:touch(id) end
         lastDraw=-math.huge
       elseif e[1]=="key_down" then
-        if not state.editing and not state.craft and not state.ruleEditor and e[4]==63 then updates:touch("update:check")
+        if cfg.role=="server" and not state.editing and e[4]==62 then state:touch("web:open")
+        elseif not state.editing and not state.craft and not state.ruleEditor and e[4]==63 then updates:touch("update:check")
         elseif not state.editing and not state.craft and not state.ruleEditor and e[4]==64 then updates:touch("update:apply")
         elseif state.key then state:key(e[3],e[4]) end
         lastDraw=-math.huge
@@ -1612,6 +1787,7 @@ function M.run(cfg,service)
     end
   end,debug.traceback)
   if updates then updates:close() end
+  if web then web:close() end
   if net then pcall(net.close,net) end
   pcall(function()
     hw.gpu.setDepth(oldDepth); hw.gpu.setResolution(oldW,oldH)
@@ -2281,6 +2457,119 @@ end
 return M
 ]]
 payload[ [[
+src/network/websocket.lua]] ]=[[
+-- Bounded, nonblocking RFC 6455 client over OC's plain TCP Internet Card API.
+-- wss requires TLS, which this legacy TCP API does not expose. Use the HTTPS
+-- uplink in server.web for public deployments, or a trusted-network ws relay.
+local crypto=require("core.crypto")
+local uuid=require("uuid")
+local M={}
+local alphabet="ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789+/"
+function M.base64(s)
+  local out={}
+  for i=1,#s,3 do
+    local a,b,c=s:byte(i,i+2); local n=a*65536+(b or 0)*256+(c or 0)
+    out[#out+1]=alphabet:sub(math.floor(n/262144)%64+1,math.floor(n/262144)%64+1)..alphabet:sub(math.floor(n/4096)%64+1,math.floor(n/4096)%64+1)..
+      (b and alphabet:sub(math.floor(n/64)%64+1,math.floor(n/64)%64+1) or "=")..(c and alphabet:sub(n%64+1,n%64+1) or "=")
+  end
+  return table.concat(out)
+end
+function M.parse(url)
+  if type(url)~="string" or #url>512 or url:find("[%s%c]") then return nil,"Gecersiz WebSocket adresi" end
+  local authority,path=url:match("^ws://([^/]+)(/.*)$")
+  if not authority then authority=url:match("^ws://([^/]+)$"); path="/" end
+  if not authority then return nil,"TCP WebSocket icin ws://; TLS icin HTTPS uplink kullanin" end
+  local host,port=authority:match("^([%w%.%-]+):(%d+)$")
+  host=host or authority:match("^([%w%.%-]+)$"); port=tonumber(port) or 80
+  if not host or port<1 or port>65535 then return nil,"Gecersiz WebSocket host/port" end
+  return {host=host,port=port,path=path,authority=authority}
+end
+local function bytes()
+  local hex=uuid.next():gsub("%-","")
+  return (hex:gsub("..",function(v) return string.char(tonumber(v,16) or 0) end))
+end
+local function xor(a,b)
+  local out,p=0,1
+  for _=1,8 do if a%2~=b%2 then out=out+p end; a=math.floor(a/2); b=math.floor(b/2); p=p*2 end
+  return out
+end
+function M.frame(payload,opcode,mask)
+  assert(#payload<=65536,"WebSocket payload limit")
+  mask=mask or bytes():sub(1,4); assert(#mask==4)
+  local n=#payload; local head
+  if n<126 then head=string.char(128+(opcode or 2),128+n)
+  elseif n<65536 then head=string.char(128+(opcode or 2),254,math.floor(n/256),n%256)
+  else head=string.char(128+(opcode or 2),255,0,0,0,0,0,1,0,0) end
+  local out={}; for i=1,n do out[i]=string.char(xor(payload:byte(i),mask:byte((i-1)%4+1))) end
+  return head..mask..table.concat(out)
+end
+function M.new(internet,url,token,clock)
+  local target,err=M.parse(url); if not target then return nil,err end
+  if token:find("[%c]") then return nil,"Gecersiz bridge anahtari" end
+  local sock,why=internet.connect(target.host,target.port); if not sock then return nil,why end
+  local key=M.base64(bytes()); local accepted=M.base64(crypto.sha1(key.."258EAFA5-E914-47DA-95CA-C5AB0DC85B11"))
+  local self={socket=sock,phase="connecting",input="",output="",started=clock(),lastRead=clock()}
+  function self:close() pcall(sock.close); self.phase="closed"; self.input=""; self.output="" end
+  function self:send(data,opcode)
+    if self.phase~="open" or #self.output>0 then return nil,"BUSY" end
+    self.output=M.frame(data,opcode); self.pendingAt=clock(); return true
+  end
+  function self:tick(onMessage)
+    if self.phase=="closed" then return nil,"CLOSED" end
+    local ok,failure=pcall(function()
+      if self.phase~="open" and clock()-self.started>15 then error("WebSocket handshake timeout") end
+      if self.phase=="connecting" then
+        if not sock.finishConnect() then return end
+        self.output="GET "..target.path.." HTTP/1.1\r\nHost: "..target.authority.."\r\nUpgrade: websocket\r\nConnection: Upgrade\r\nSec-WebSocket-Key: "..key..
+          "\r\nSec-WebSocket-Version: 13\r\nAuthorization: Bearer "..token.."\r\n\r\n"
+        self.phase="handshake"
+      end
+      if #self.output>0 then
+        assert(not self.pendingAt or clock()-self.pendingAt<=15,"WebSocket write timeout")
+        local n,reason=sock.write(self.output:sub(1,4096))
+        if not n then error(reason or "WebSocket write failed") end
+        self.output=self.output:sub(n+1)
+        if #self.output==0 then self.pendingAt=nil end
+      end
+      local data,reason=sock.read(4096)
+      if data==nil then error(reason or "WebSocket disconnected") end
+      if #data>0 then self.input=self.input..data; self.lastRead=clock() end
+      if #self.input>73728 then error("WebSocket input limit") end
+      if clock()-self.lastRead>70 then error("WebSocket idle timeout") end
+      if self.phase=="handshake" then
+        local endAt=self.input:find("\r\n\r\n",1,true)
+        if not endAt then assert(#self.input<=8192,"WebSocket header limit"); return end
+        local header=self.input:sub(1,endAt+1); self.input=self.input:sub(endAt+4)
+        assert(header:match("^HTTP/1%.[01] 101 "),"WebSocket upgrade rejected")
+        local headers={}
+        for name,value in header:gmatch("\r\n([^:%s]+):%s*([^\r\n]*)") do headers[name:lower()]=value end
+        assert(headers["sec-websocket-accept"]==accepted and (headers.upgrade or ""):lower()=="websocket" and
+          (headers.connection or ""):lower():find("upgrade",1,true),"WebSocket handshake invalid")
+        self.phase="open"
+      end
+      local frames=0
+      while self.phase=="open" and #self.input>=2 and frames<4 do
+        local a,b=self.input:byte(1,2); local opcode=a%16; local n=b%128; local at=3
+        assert(a>=128 and a<144 and b<128,"Fragmented/masked server frame unsupported")
+        if n==126 then if #self.input<4 then return end; local x,y=self.input:byte(3,4); n=x*256+y; at=5
+        elseif n==127 then error("WebSocket frame too large") end
+        assert(n<=65535 and (opcode<8 or n<=125),"WebSocket frame limit")
+        if #self.input<at+n-1 then return end
+        local payload=self.input:sub(at,at+n-1); self.input=self.input:sub(at+n); frames=frames+1
+        if opcode==8 then error("WebSocket closed by relay")
+        elseif opcode==9 then assert(#self.output<66000,"WebSocket output limit"); self.output=self.output..M.frame(payload,10); self.pendingAt=self.pendingAt or clock()
+        elseif opcode==1 or opcode==2 then onMessage(payload)
+        elseif opcode~=10 then error("Unsupported WebSocket opcode") end
+      end
+    end)
+    if not ok then self:close(); return nil,tostring(failure) end
+    return true
+  end
+  return self
+end
+return M
+]]
+payload[ [[
 src/server/ae2.lua]] ]=[[
 local component=require("component")
 local identity=require("core.items")
@@ -2676,7 +2965,7 @@ function M.new(cfg,clock,log)
   function self:status()
     local clients={}
     for address,c in pairs(self.clients) do clients[#clients+1]={address=address,role=c.role,age=math.floor(clock()-c.lastSeen)} end
-    return {version="0.5.0",uptime=math.floor(clock()-self.started),ae2=self.ae2:summary(),clients=clients,
+    return {version="0.6.1",uptime=math.floor(clock()-self.started),ae2=self.ae2:summary(),clients=clients,
       power=energy.status(self.ae2),automation=self.stock:enabled(),crafting=self.crafting.blocked and "blocked" or "manual",reactors="read_only_unsupported",
       update=self.updates and self.updates:public() or nil}
   end
@@ -2917,6 +3206,110 @@ function M.new(craft,ae,clock)
         end
       end
     end
+  end
+  return self
+end
+return M
+]]
+payload[ [[
+src/server/web.lua]] ]=[[
+local codec=require("core.codec")
+local hardware=require("core.hardware")
+local websocket=require("network.websocket")
+local uuid=require("uuid")
+local M={owner="@factoryos-web"}
+local reads={GET_CRAFT_OPTIONS=true,GET_STOCK_RULES=true,GET_AE2_STOCKS=true,GET_CRAFTING_JOBS=true}
+local writes={START_CRAFT=true,CANCEL_CRAFT=true,ARCHIVE_CRAFT=true,SET_STOCK_RULE=true}
+function M.new(cfg,server,clock,log)
+  local self={phase=cfg.webEnabled and "waiting" or "disabled",lastSend=-math.huge,nextTry=0,backoff=2,queue={},seen={},boot=uuid.next()}
+  local http,ws
+  local function close()
+    if ws then ws:close(); ws=nil end
+    if http then pcall(http.handle.close); http=nil end
+  end
+  local function fail(reason)
+    close(); self.phase="offline"; self.error=reason; self.nextTry=clock()+self.backoff; self.backoff=math.min(60,self.backoff*2)
+    log("WARN","Web bridge offline; yeniden denenecek") -- Never log URL credentials/payloads.
+  end
+  local function enqueue(message)
+    if #self.queue>=8 then return nil,"Web response queue full" end
+    self.queue[#self.queue+1]=codec.encode(message); return true
+  end
+  local function receive(raw)
+    local message=codec.decode(raw)
+    if type(message)~="table" or message.kind~="command" or type(message.id)~="string" or #message.id>64 or
+      type(message.args)~="table" or not (reads[message.command] or writes[message.command]) then return end
+    -- RPCs are never replayed automatically after a link loss. START_CRAFT's
+    -- durable sequence is still authoritative across relay/process reboots.
+    if self.seen[message.id] then return end
+    if #self.queue>=8 then return end
+    local count=0; for _ in pairs(self.seen) do count=count+1 end
+    if count>=128 then enqueue({kind="reply",id=message.id,ok=false,error="BUSY",data={}}); return end
+    local ok,result,err
+    if writes[message.command] and not cfg.webControl then ok=true; err="WEB_CONTROL_DISABLED"
+    else ok,result,err=pcall(server.dispatch,server,message.command,message.args,{role="main",address=M.owner}) end
+    local reply={kind="reply",id=message.id,ok=ok and err==nil,data=ok and result or {},error=ok and (err or "") or "INTERNAL_ERROR"}
+    self.seen[message.id]=clock(); enqueue(reply)
+  end
+  local function telemetry()
+    local rules={}
+    for page=1,4 do
+      local result=server.stock:list({page=page})
+      for _,r in ipairs(result.rules) do
+        rules[#rules+1]={id=r.id,label=r.label,minimum=r.minimum,target=r.target,enabled=r.enabled,stock=r.stock,inFlight=r.inFlight,state=r.state,error=r.error,retryIn=r.retryIn}
+      end
+      if page>=result.pages then break end
+    end
+    return codec.encode({kind="telemetry",boot=self.boot,controlEnabled=cfg.webControl,status=server:status(),
+      jobs=server.crafting:jobs(),rules=rules,rulesRevision=server.crafting.journal.automation.revision,
+      paused=server.crafting.journal.automation.paused})
+  end
+  function self:public()
+    local reason=(self.error or ""):gsub("^.-:%d+: ","")
+    local code=reason:match("HTTP uplink rejected: (%d+)")
+    if code=="401" then reason="401: Token ve panel ayarlarini kontrol edin"
+    elseif code then reason="Panel HTTP hatasi: "..code end
+    return {enabled=cfg.webEnabled,control=cfg.webControl,phase=self.phase,error=reason}
+  end
+  function self:close() close(); self.phase="closed"; self.queue={} end
+  function self:tick()
+    if not cfg.webEnabled or clock()<self.nextTry then return end
+    for id,at in pairs(self.seen) do if clock()-at>120 then self.seen[id]=nil end end
+    local ok,err=pcall(function()
+      if http then
+        if clock()-http.started>15 then error("HTTP uplink timeout") end
+        if not http.connected then
+          if not http.handle.finishConnect() then return end
+          local code=http.handle.response(); assert(code==200,"HTTP uplink rejected: "..tostring(code)); http.connected=true
+        end
+        local chunk,reason=http.handle.read(4096)
+        if chunk==nil then
+          assert(not reason,reason); local raw=table.concat(http.chunks); http.handle.close(); http=nil
+          self.phase="online"; self.error=nil; self.backoff=2; receive(raw)
+        elseif #chunk>0 then http.bytes=http.bytes+#chunk; assert(http.bytes<=16384,"HTTP response limit"); http.chunks[#http.chunks+1]=chunk end
+        return
+      end
+      if cfg.webUrl:match("^ws://") then
+        if not ws then
+          local internet=assert(hardware.select("internet","")); assert(internet.isTcpEnabled(),"TCP disabled")
+          ws=assert(websocket.new(internet,cfg.webUrl,cfg.webToken,clock)); self.phase="connecting"
+        end
+        local alive,why=ws:tick(receive); assert(alive,why)
+        if ws.phase~="open" then return end
+        self.phase="online"; self.error=nil; self.backoff=2
+        if #ws.output>0 then return end
+      end
+      if #self.queue==0 and clock()-self.lastSend>=cfg.webInterval then self.queue[1]=telemetry(); self.lastSend=clock() end
+      if #self.queue==0 then return end
+      local data=table.remove(self.queue,1)
+      if ws then assert(ws:send(data))
+      else
+        local internet=assert(hardware.select("internet","")); assert(internet.isHttpEnabled(),"HTTP disabled")
+        local handle=assert(internet.request(cfg.webUrl,data,{["Content-Type"]="application/x-factoryos",["Authorization"]="Bearer "..cfg.webToken}))
+        http={handle=handle,started=clock(),chunks={},bytes=0}; self.phase="sending"
+      end
+    end)
+    if not ok then fail(tostring(err):sub(1,240)) end
   end
   return self
 end
@@ -3373,7 +3766,7 @@ function M.draw(r,net,state,clock)
   rail(r,l,net,state,now,alerts)
   r:fill(1,r.h,r.w,1,C.raised)
   local notice=state.message and now-state.message.at<6 and state.message
-  W.text(r,2,r.h,r.w-2,notice and notice.text or state.editing and "Arama: dokun / yaz | Enter: ara | Esc: iptal" or "DISPLAY 01 / v0.5.0 | "..((state.update or {}).available and "GUNCELLEME VAR" or net.online and "CANLI IZLEME" or "YENIDEN BAGLANIYOR"),notice and notice.kind=="warn" and C.warn or C.muted,C.raised)
+  W.text(r,2,r.h,r.w-2,notice and notice.text or state.editing and "Arama: dokun / yaz | Enter: ara | Esc: iptal" or "DISPLAY 01 / v0.6.1 | "..((state.update or {}).available and "GUNCELLEME VAR" or net.online and "CANLI IZLEME" or "YENIDEN BAGLANIYOR"),notice and notice.kind=="warn" and C.warn or C.muted,C.raised)
   keyboard(r,l,state)
   require("ui.crafting").modal(r,state)
   require("ui.stock").modal(r,state)
@@ -3468,6 +3861,7 @@ local M={}
 local function num(n) return type(n)=="number" and string.format("%.0f",n) or "unknown" end
 function M.draw(r,role,net,state,clock)
   if role=="main" then return require("ui.main_screen").draw(r,net,state,clock) end
+  if role=="server" then return require("ui.server_console").draw(r,net,state,clock) end
   r:begin()
   local online=role=="server" or net.online
   local status=(role=="server" and state.serverStatus or net.status) or {}
@@ -3475,7 +3869,7 @@ function M.draw(r,role,net,state,clock)
   r:fill(1,1,r.w,3,C.panel)
   r:text(3,2,"FACTORY OS / "..(role=="side" and "TELEMETRY" or "SERVER"),C.accent,C.panel)
   r:text(math.max(3,r.w-10),2,online and "ONLINE" or "OFFLINE",online and C.good or C.bad,C.panel)
-  r:text(2,r.h,"v0.5.0 | F5: check / F6: update",C.muted)
+  r:text(2,r.h,"v0.6.1 | F5: check / F6: update",C.muted)
   if role=="server" then
     r:panel(2,5,r.w-2,r.h-6,"SYSTEM CONSOLE")
     r:text(3,7,"Clients: "..#(status.clients or {}),nil,C.panel)
@@ -3503,6 +3897,65 @@ function M.draw(r,role,net,state,clock)
     end
     if r.h>=24 then r:text(3,r.h-4,require("ui.updates").label(state.update):sub(1,r.w-4),C.muted,C.panel) end
     require("ui.updates").action(r,3,r.h-2,r.w-4,state.update)
+  end
+  r:flush()
+end
+return M
+]]
+payload[ [[
+src/ui/server_console.lua]] ]=[[
+local C=require("ui.renderer").colors
+local W=require("ui.widgets")
+local M={}
+local phases={disabled="KAPALI",waiting="BEKLENIYOR",connecting="BAGLANIYOR",online="BAGLI",sending="VERI GONDERILIYOR",offline="BAGLANTI HATASI",closed="KAPALI"}
+function M.draw(r,net,state,clock)
+  r:begin(); local w,h=r.w,r.h; local info=state.webStatus or {phase="disabled"}
+  if state.keyboard and state.draft then
+    W.panel(r,2,2,w-2,h-3,state.field=="token" and "TOKEN / GIZLI GIRIS" or "PANEL ADRESI / GIRIS")
+    local value=state.draft[state.field] or ""
+    W.text(r,3,3,w-4,state.field=="token" and (string.rep("*",math.min(#value,w-8)).."_") or (value.."_"):sub(-(w-4)),C.accent)
+    local step=h>=16 and 2 or 1; local cell=math.floor((w-4)/10)
+    for row,letters in ipairs({"1234567890","qwertyuiop","asdfghjkl:","zxcvbnm._/"}) do
+      for i=1,#letters do
+        local char=letters:sub(i,i)
+        r:button(3+(i-1)*cell,4+(row-1)*step,cell-1,state.shift and char:upper() or char,"webkey:char:"..char,false,step)
+      end
+    end
+    local y=4+4*step
+    r:button(3,y,5,"-","webkey:char:-")
+    r:button(9,y,9,"BUYUK","webkey:shift",state.shift)
+    r:button(19,y,6,"SIL","webkey:back")
+    r:button(26,y,w-28,"TEMIZLE","webkey:clear")
+    r:button(3,h-2,w-4,"ALANA UYGULA / GERI","webkey:done",true)
+    W.text(r,2,h,w-2,"Tab: alan | Enter: geri | Esc: geri",C.muted,C.bg)
+  elseif state.webMenu and state.draft then
+    W.panel(r,2,2,w-2,h-2,"WEB PANELI / BAGLANTI AYARLARI")
+    W.text(r,3,3,w-4,"PANEL ADRESI",C.muted)
+    local url=state.draft.url~="" and state.draft.url or "https://panel.alanadi.com"
+    r:button(3,4,w-4,url:sub(-(w-6)),"web:url",state.field=="url")
+    W.text(r,3,5,w-4,"TOKEN (bos: kayitli tokeni kullan)",C.muted)
+    local token=state.draft.token~="" and string.rep("*",math.min(#state.draft.token,w-8)) or state.tokenConfigured and "[kayitli token / degistir]" or "[yeni token icin dokun]"
+    r:button(3,6,w-4,token,"web:token",state.field=="token")
+    r:button(3,7,w-4,"UZAKTAN KONTROL: "..(state.draft.control and "ACIK" or "KAPALI"),"web:control",state.draft.control)
+    W.text(r,3,8,w-4,"WEB: "..(phases[info.phase] or "BEKLENIYOR"),info.phase=="online" and C.good or info.phase=="offline" and C.warn or C.muted)
+    local connectionError=info.error and info.error~="" and info.error or nil
+    W.wrap(r,3,9,w-4,math.max(1,h-11),state.error or connectionError or state.message or "",(state.error or connectionError) and C.warn or C.muted)
+    local half=math.floor((w-5)/2)
+    r:button(3,h-2,half,"KAYDET / BAGLAN","web:save",true)
+    r:button(4+half,h-2,w-half-5,"KAPAT","web:close")
+    r:button(3,h-1,w-4,"BAGLANTIYI KES","web:disconnect")
+    W.text(r,2,h,w-2,"Tab: alan | Enter: baglan | Esc: kapat",C.muted,C.bg)
+  else
+    r:fill(1,1,w,3,C.panel); W.text(r,3,2,w-4,"FACTORY OS / SERVER",C.accent)
+    W.panel(r,2,5,w-2,h-6,"SYSTEM CONSOLE")
+    local status=state.serverStatus or {}; local ae=status.ae2 or {}
+    W.text(r,3,6,w-4,"Ekranlar: "..#(status.clients or {}),C.muted)
+    W.text(r,3,7,w-4,"AE2: "..(ae.online and "ONLINE" or "OFFLINE"),ae.online and C.good or C.warn)
+    if h>=14 then W.text(r,3,9,w-4,"WEB: "..(phases[info.phase] or "KAPALI"),info.phase=="online" and C.good or C.muted) end
+    if h>=16 then W.text(r,3,10,w-4,require("ui.updates").label(state.update),C.muted) end
+    r:button(3,h-4,w-4,"WEB PANELI / BAGLANTI","web:open",true)
+    require("ui.updates").action(r,3,h-2,w-4,state.update)
+    W.text(r,2,h,w-2,"v0.6.1 | F4: WEB | F5/F6: Update",C.muted,C.bg)
   end
   r:flush()
 end

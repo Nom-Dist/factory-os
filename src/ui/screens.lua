@@ -3,6 +3,7 @@ local M={}
 local function num(n) return type(n)=="number" and string.format("%.0f",n) or "unknown" end
 function M.draw(r,role,net,state,clock)
   if role=="main" then return require("ui.main_screen").draw(r,net,state,clock) end
+  if role=="server" then return require("ui.server_console").draw(r,net,state,clock) end
   r:begin()
   local online=role=="server" or net.online
   local status=(role=="server" and state.serverStatus or net.status) or {}
@@ -10,7 +11,7 @@ function M.draw(r,role,net,state,clock)
   r:fill(1,1,r.w,3,C.panel)
   r:text(3,2,"FACTORY OS / "..(role=="side" and "TELEMETRY" or "SERVER"),C.accent,C.panel)
   r:text(math.max(3,r.w-10),2,online and "ONLINE" or "OFFLINE",online and C.good or C.bad,C.panel)
-  r:text(2,r.h,"v0.5.0 | F5: check / F6: update",C.muted)
+  r:text(2,r.h,"v0.6.1 | F5: check / F6: update",C.muted)
   if role=="server" then
     r:panel(2,5,r.w-2,r.h-6,"SYSTEM CONSOLE")
     r:text(3,7,"Clients: "..#(status.clients or {}),nil,C.panel)
