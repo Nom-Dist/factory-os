@@ -2,6 +2,8 @@
 
 ## Gerçekte çalıştırılanlar
 
+12 Kasım 2026'da kullanıcı paneli VPS'e kurduğunu, Factory Server bağlantısının kurulduğunu ve webden verdiği üretim emrinin çalıştığını bildirdi. Bu, temel web bağlantısı ve uzaktan emir için kullanıcı doğrulamasıdır; eksik malzeme, iptal, reboot/tekrar ve ME Terminal stok karşılaştırması gibi ayrıntılı kabul senaryolarının tamamlandığı anlamına gelmez.
+
 12 Kasım 2026'da Lupa 2.8'in **gerçek Lua 5.2 ve Lua 5.3 yorumlayıcılarında** 84 senaryo ve ayrı sınırlı bellek regresyonu çalıştırıldı: her yorumlayıcıda hepsi geçti. Bütün Lua dosyaları, üretilen online/offline installer ve oyun içi prob dahil sözdizimsel olarak derlendi.
 
 v0.6.0 `tests/web.lua`: SHA-1/RFC6455 accept/masking vektörleri, parçalı yazmalı nonblocking handshake/ping, bozuk frame reddi, eski config göçü, URL/rol/token doğrulama ve HTTP uplink komut allowlist'i/kontrol kilidi/aynı kimliği tekrarlamama. `web-panel/` içinde TypeScript kontrolü, Next.js production build ve 9 Node testi geçti: codec, şifreli oturum/origin, HTTP uplink, gerçek WS komut/yanıt kaybında tekrar olmaması, eski veri/oturum süresi, salt/yanlış şifre/bozuk hash, çıkışta oturum ve socket iptali, eksik şifrede eski token girişinin reddi. Eski `/bridge` cookie'sinin silinmesi de doğrulanır. `npm run test:flow` gerçek Lua 5.2 ve 5.3 web modüllerini gerçek localhost TCP/WebSocket üzerinden Node relay'e bağlayarak şifreli oturum → stok → quote → iki aynı START → **tek native çağrı ve çağrıdan önce journal** akışını doğruladı. Component/AE2/disk mock'tur; gerçek Minecraft, HTTPS/Java sertifika uyumu veya Docker dağıtımı kabulü değildir.
