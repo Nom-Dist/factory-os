@@ -46,6 +46,7 @@ function M.new(net,clock)
       if token~=self.jobToken then return end
       self.loadingJobs=false; self.jobs=data; self.jobsError=err
       if data then self.jobsReceivedAt=clock() else self.jobsReceivedAt=nil end
+      if self.syncCraft then self:syncCraft() end
     end)
     if not id then self.loadingJobs=false; self.jobsError=reason end
   end
@@ -129,6 +130,8 @@ function M.new(net,clock)
     local ruleAction=id:match("^rule:(.+)$")
     if ruleAction then self:ruleTouch(ruleAction); return end
     if id=="craft:open" then self:beginCraft(); return end
+    local detail=id:match("^craftdetail:(.+)$")
+    if detail then self:craftDetails(detail); return end
     local cancel=id:match("^cancelcraft:(.+)$")
     if cancel then self:cancelCraft(cancel); return end
     local archive=id:match("^archivecraft:(.+)$")
@@ -174,6 +177,7 @@ function M.new(net,clock)
   end
   function self:tick()
     if not net.online then
+      self:craftDisconnected()
       if self.wasOnline then
         self:clearStocks(); self.jobToken={}; self.jobs=nil; self.jobsReceivedAt=nil; self.loadingJobs=false
         self.ruleToken={}; self.rules=nil; self.loadingRules=false
@@ -181,7 +185,7 @@ function M.new(net,clock)
       self.wasOnline=false; return
     end
     if not self.wasOnline then self.wasOnline=true; self:refresh(true) end
-    if clock()-self.lastJobsPoll>=(self.tab==4 and 2 or 10) then self:refreshJobs() end
+    if clock()-self.lastJobsPoll>=((self.tab==4 or self.craft and self.craft.pending) and 2 or 10) then self:refreshJobs() end
     if self.tab==2 and clock()-self.lastStockPoll>=10 then self:refreshStocks(false) end
     if self.tab==3 and clock()-self.lastRulePoll>=5 then self:refreshRules() end
   end

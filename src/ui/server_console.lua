@@ -49,7 +49,7 @@ function M.draw(r,net,state,clock)
     if h>=16 then W.text(r,3,10,w-4,require("ui.updates").label(state.update),C.muted) end
     r:button(3,h-4,w-4,"WEB PANELI / BAGLANTI","web:open",true)
     require("ui.updates").action(r,3,h-2,w-4,state.update)
-    W.text(r,2,h,w-2,"v0.6.1 | F4: WEB | F5/F6: Update",C.muted,C.bg)
+    W.text(r,2,h,w-2,"v0.6.2 | F4: WEB | F5/F6: Update",C.muted,C.bg)
   end
   r:flush()
 end

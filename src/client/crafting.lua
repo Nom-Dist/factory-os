@@ -1,6 +1,43 @@
 local identity=require("core.items")
+local errors=require("core.craft_errors")
 local M={}
 function M.attach(self,net)
+  function self:craftResult(c,data)
+    if self.craft~=c then return end
+    c.orderId=data.id; c.jobState=data.state; c.detailPage=1
+    if data.state=="computing" or data.state=="submitting" then
+      c.pending=true; c.error=nil; c.rawError=nil
+    elseif data.state=="running" or data.state=="done" then
+      self.craft=nil; self.tab=4
+      self:notice((data.state=="done" and "Uretim tamamlandi: " or "AE2 uretimi baslatti: ")..c.label)
+      self:refreshJobs()
+    else
+      c.pending=false; c.finished=true; c.uncertain=data.state=="unknown"
+      local _,message=errors.explain(data.error)
+      c.error=(data.errorMessage and data.errorMessage~="" and data.errorMessage) or (message~="" and message) or (data.state=="canceled" and "Uretim iptal edildi" or "Emir sonucu dogrulanamadi; isleri kontrol edin")
+      c.rawError=data.error and data.error~="" and data.error~=c.error and data.error or nil
+    end
+  end
+  function self:syncCraft()
+    local c=self.craft; if not c or not c.pending then return end
+    for _,job in ipairs((self.jobs or {}).trackedJobs or {}) do
+      if job.id==c.orderId then self:craftResult(c,job); return end
+    end
+  end
+  function self:craftDisconnected()
+    local c=self.craft; if not c or not c.pending then return end
+    c.pending=false; c.uncertain=true; c.error="Baglanti koptu; sonuc dogrulanamadi. Emir tekrar gonderilmedi; isleri kontrol edin."
+  end
+  function self:craftDetails(id)
+    for _,job in ipairs((self.jobs or {}).trackedJobs or {}) do
+      if job.id==id then
+        local _,message=errors.explain(job.error)
+        self.craft={label=job.label,amount=tostring(job.amount),cpu=job.cpu or "",submitted=true,finished=true,orderId=id,jobState=job.state,
+          error=job.errorMessage or message,rawError=job.error~=(job.errorMessage or message) and job.error or nil}
+        return
+      end
+    end
+  end
   function self:beginCraft()
     local item=self.selected
     if not net.online or not ((net.status or {}).ae2 or {}).online or not item or not item.isCraftable or not identity.key(item) then
@@ -28,18 +65,22 @@ function M.attach(self,net)
       if action=="jobs" then self.tab=4; self:refreshJobs() end
       return
     end
+    if action=="detailprev" or action=="detailnext" then
+      c.detailPage=math.max(1,math.min(c.detailPages or 1,(c.detailPage or 1)+(action=="detailnext" and 1 or -1))); return
+    end
     if c.submitted then return end
     if action=="submit" then
       local n=tonumber(c.amount)
       if c.loading or not c.preview or not n or n%1~=0 or n<1 or n>1000000 then c.error="Miktar 1..1000000 arasi tam sayi olmali"; return end
-      c.submitted=true; c.submitting=true; c.error=nil
+      c.submitted=true; c.submitting=true; c.error=nil; c.rawError=nil
       local id,why=net:request("START_CRAFT",{token=c.preview.token,sequence=c.preview.sequence,amount=n,cpu=c.cpu},function(data,err)
         if self.craft~=c then return end
         c.submitting=false
         if data then
-          self.craft=nil; self.tab=4; self:notice("Emir kaydedildi: "..c.label.." x"..n); self:refreshJobs()
+          self:craftResult(c,data); if c.pending then self:refreshJobs() end
         else
-          c.error=err or "Emir sonucu alinamadi"
+          local _,message=errors.explain(err)
+          c.error=message~="" and message or "Emir sonucu alinamadi"; c.rawError=err~=c.error and err or nil
           if err=="TIMEOUT" or err=="OFFLINE" or err=="INTERNAL_ERROR" then
             c.uncertain=true; c.error="Yanit yok. Emir tekrar gonderilmedi; isleri kontrol edin."
           else c.submitted=false end

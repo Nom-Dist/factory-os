@@ -171,7 +171,35 @@ test("Craft main display amount, CPU, modal and double-submit behavior",function
   state:touch("craft:submit"); state:touch("craft:submit")
   local request=take("START_CRAFT"); eq(request.args.amount,64); eq(request.args.cpu,"A")
   state:key(13,28); request.callback({id="order",state="computing"})
-  eq(state.craft,nil); eq(state.tab,4); take("GET_CRAFTING_JOBS")
+  assert(state.craft.pending); assert(state.craft.submitted); eq(state.craft.orderId,"order")
+  local poll=take("GET_CRAFTING_JOBS")
+  poll.callback({trackedJobs={{id="order",state="running"}}})
+  eq(state.craft,nil); eq(state.tab,4)
+end)
+
+test("Craft immediately checks AE2 status, preserves raw planning failure and never replays the failed order",function()
+  local f=fixture(); f.phase="failed"
+  local r,args=f:start(); eq(r.state,"failed"); eq(r.error,"request failed (missing resources?)")
+  eq(r.errorCode,"AE2_REJECTED"); assert(r.errorMessage:find("olabilir",1,true))
+  eq(assert(storage.load(f.path)).orders[1].state,"failed"); eq(f.system:busy(),false)
+  f.system=Craft.new(f.ae,f.clock,nil,f.path)
+  eq(assert(f.system:start(owner,args)).state,"failed"); eq(f.calls,1)
+end)
+
+test("Craft planning errors stay in the main display window with safe duplicate and offline handling",function()
+  local net,state,_,take=T.displayFixture(); state.selected=T.stockPage(1).items[1]
+  state:beginCraft(); take("GET_CRAFT_OPTIONS").callback({token="q",sequence=1,cpus={}})
+  state:craftTouch("submit"); take("START_CRAFT").callback(nil,"Uygun bos crafting CPU yok")
+  assert(not state.craft.submitted); eq(state.craft.error,"Uygun bos crafting CPU yok")
+  state:craftTouch("submit"); take("START_CRAFT").callback({id="checking",state="computing"})
+  assert(state.craft.pending)
+  take("GET_CRAFTING_JOBS").callback({trackedJobs={{id="other",state="failed",error="wrong job"},{id="checking",state="computing"}}})
+  assert(state.craft.pending); eq(state.craft.error,nil)
+  state.jobs={trackedJobs={{id="checking",state="failed",error="request failed (missing resources?)"}}}; state:syncCraft()
+  assert(not state.craft.pending); assert(state.craft.finished); assert(state.craft.error:find("olabilir",1,true))
+  eq(state.craft.rawError,"request failed (missing resources?)"); state:key(13,28); assert(state.craft.finished)
+  state.craft.pending=true; state:craftDisconnected(); assert(state.craft.uncertain); state:key(13,28)
+  assert(state.craft.submitted); assert(state.craft.error:find("tekrar gonderilmedi",1,true))
 end)
 test("Craft main display lost response, stale preview and invalid clipboard never resubmit",function()
   local net,state,_,take=T.displayFixture(); state.selected=T.stockPage(1).items[1]
@@ -195,6 +223,18 @@ test("Craft UI fits all display sizes and the modal exposes no background touch 
     state.craft={label="Alloy",amount="64",cpu="A",preview={token="x"},cpus={"","A"}}
     require("ui.screens").draw(r,"main",net,state,function() return 100 end)
     for _,b in ipairs(r.buttons) do assert(b.id:match("^craft:")); assert(b.y+b.h-1<=r.h) end
+    local raw="request failed (missing resources?) "..string.rep("driver-detail ",15).."END42"
+    state.craft={label="Alloy",amount="64",cpu="",submitted=true,finished=true,jobState="failed",error="Kaynak veya CPU sorunu olabilir",rawError=raw}
+    local all=""
+    require("ui.screens").draw(r,"main",net,state,function() return 100 end)
+    local pages=state.craft.detailPages
+    for page=1,pages do
+      state.craft.detailPage=page; require("ui.screens").draw(r,"main",net,state,function() return 100 end)
+      for _,row in ipairs(r.front) do all=all..table.concat(row.chars) end
+      for _,b in ipairs(r.buttons) do assert(b.id:match("^craft:")); assert(b.y+b.h-1<=r.h) end
+    end
+    assert(all:find("END42",1,true),"Missing final detail at "..dim[1].."x"..dim[2])
+    assert(all:find("missing",1,true) and all:find("resources?",1,true),"Missing native reason at "..dim[1].."x"..dim[2])
     state.craft=nil
   end
 end)

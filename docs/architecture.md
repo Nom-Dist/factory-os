@@ -62,4 +62,6 @@ v0.6.0 `network.websocket` Internet Card TCP nesnesi üzerinde sınırlı RFC645
 
 v0.6.1 `client.server_console` bağlantı formunu yönetir, `ui.server_console` küçük server ekranına çizer. Ayarlar `config.save` ile atomik kaydedildikten sonra runtime mevcut bridge'i kapatıp yenisini kurar; disk hatasında eski bağlantı korunur. Güncelleme sırasında bu değişiklik reddedilir. Token yeniden gösterilmez; boş giriş mevcut tokeni korur. Web panelinde ortak operatör şifresi scrypt özetiyle doğrulanır; `PANEL_TOKEN` yalnızca oturum imzalar. Dashboard ve canlı uçlar oturum gerektirir; oturumlar relay belleğinde tutulur ve yeniden başlatmada iptal edilir.
 
+v0.6.2 `core.craft_errors` gerçek hata yanıtlarını kod/açıklamayla sunar; ham yanıt journal'da korunur. `server.crafting` tek native istekten hemen sonra ve iki saniyelik tick'lerde job durumunu okur. Yeni istemciler `computing` yanıtını başarı saymaz; aynı kayıt kimliğinin sonucunu izler. Oyun ekranı jobs RPC'sini, web paneli mevcut telemetriyi kullanır. Hata kaydının görüntülenmesi ve planlama takibi yeni bir native istek oluşturmaz.
+
 Reaktör sürücülerinin başlangıcı salt okunur olmalı. Gerçek kontrol eklenirken yerel bağımsız kapama/interlock düzeni zorunlu tasarım girdisidir; merkezî heartbeat kaybı bir güvenlik sistemi yerine geçmez.

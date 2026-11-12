@@ -46,7 +46,7 @@ package.loaded["filesystem"]={exists=function(p) return disk[p]~=nil end}
 package.loaded["core.storage"]={load=function(p) return disk[p] and codec.decode(disk[p]) end,
   save=function(p,v) disk[p]=codec.encode(v); return true end}
 package.loaded["uuid"]={next=PY_UUID}
-testTime=0; nativeRequests=0; startRpcs=0; durable=false
+testTime=0; nativeRequests=0; startRpcs=0; durable=false; requestedAt=0
 local item={name="test:interop_alloy",label="Interop Alloy (mock device)",damage=0,size=8,hasTag=false,tag="",isCraftable=true,identityComplete=true}
 local internet={type="internet",address="interop-internet",connect=PY_CONNECT,isTcpEnabled=function() return true end}
 local cpus={{name="Test CPU",busy=false,storage=8192}}
@@ -55,7 +55,12 @@ local recipe={getItemStack=function() return item end,request=function(amount,po
   local j=assert(codec.decode(disk["/var/lib/factoryos/crafting.dat"]))
   assert(j.orders[1].state=="submitting" and j.orders[1].owner=="@factoryos-web")
   nativeRequests=nativeRequests+1; durable=true
-  return {isDone=function() return nil,"computing" end,isCanceled=function() return nil,"computing" end}
+  requestedAt=testTime
+  local function status()
+    if os.getenv("TEST_PLAN_FAILURE")=="1" and testTime-requestedAt>=0.25 then return false,"request failed (missing resources?)" end
+    return nil,"computing"
+  end
+  return {isDone=status,isCanceled=status}
 end}
 local me={type="me_interface",address="interop-me",isNetworkPowered=function() return true end,
   getCraftables=function() return {recipe} end,getCpus=function() return cpus end,getItemsInNetwork=function()
@@ -84,7 +89,7 @@ try:
     while time.monotonic() - start < 15:
         lua.globals().step(time.monotonic() - start)
         if lua.globals().startRpcs >= 2 and done_at is None: done_at = time.monotonic()
-        if done_at and time.monotonic() - done_at > .8: break
+        if done_at and time.monotonic() - done_at > (3 if os.environ.get("TEST_PLAN_FAILURE") == "1" else .8): break
         time.sleep(.01)
     report = {"nativeRequests": lua.globals().nativeRequests, "startRpcs": lua.globals().startRpcs, "durable": bool(lua.globals().durable), "lua": engine.LUA_VERSION}
     print(json.dumps(report), flush=True)

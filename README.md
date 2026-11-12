@@ -1,4 +1,6 @@
-# FactoryOS v0.6.1
+# FactoryOS v0.6.2
+
+v0.6.2 üretim isteğinin kaynak/plan denetimi bitene kadar pencereyi açık tutar. AE2 işi başlatamazsa hata açıklaması ve ham sürücü yanıtı hem oyun içinde hem web panelinde görünür. İş kaydı başarı veya tamamlanma diye sunulmaz; [API sınırları ve kullanım](docs/crafting.md) açıklanır.
 
 v0.6.1, Factory Server'a **F4 → WEB PANELI** menüsünü ekler. Panel adresini ve gizli bağlantı tokenini buradan kaydedip yeniden başlatmadan bağlanabilirsiniz; uzaktan kontrol de bu menüden açılır. Ayrı [Next.js web paneli](https://github.com/Nom-Dist/factory-os-web-panel) artık şifreli giriş kullanır. Canlı stok/enerji/iş takibi, uzaktan üretim, iptal/arşivleme ve stok kuralı yönetimi bulunur. Oyun sunucusunda güvenilen ağ için WebSocket, public yayın için HTTPS uplink kullanılır; dış bağlantı ve uzaktan yazma varsayılan kapalıdır. [Minimum/hedef stok otomasyonu](docs/stock-automation.md) ve [kalıcı üretim kaydı](docs/crafting.md) korunur. Kullanıcı VPS bağlantısının ve webden üretim emrinin çalıştığını doğruladı; ayrıntılı oyun kabulü bekleniyor.
 

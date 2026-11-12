@@ -31,8 +31,8 @@ state.rules={page=1,pages=2,total=6,revision=8,paused=false,error="",rules={
   {id=2,item=data[5],label="Basic Control Circuit",minimum=1024,target=2048,stock=840,inFlight=0,enabled=true,state="TEKRAR BEKLENIYOR",retryIn=57,error="request failed (missing resources?)"},
   {id=3,item=data[3],label="Fluix Crystal",minimum=1024,target=4096,stock=2840,inFlight=0,enabled=true,state="STOK YETERLI",retryIn=0,error=""},
   {id=4,item=data[7],label="Copper Ingot",minimum=8192,target=16384,stock=28400,inFlight=0,enabled=false,state="KAPALI",retryIn=0,error=""}}}
-state.update={phase="available",message="Sunucuda yeni surum hazir",currentRelease="0.6.1-ornek",version="0.6.2",release="0.6.2-ornek",available=true,busy=false,autoStart=true,automatic=true,interval=900,role="main",canApply=true}
-net={online=true,lastSeen=9998,server="33333333-3333-4333-8333-333333333333",status={version="0.6.1",crafting="manual",automation=true,uptime=12587,
+state.update={phase="available",message="Sunucuda yeni surum hazir",currentRelease="0.6.2-ornek",version="0.6.3",release="0.6.3-ornek",available=true,busy=false,autoStart=true,automatic=true,interval=900,role="main",canApply=true}
+net={online=true,lastSeen=9998,server="33333333-3333-4333-8333-333333333333",status={version="0.6.2",crafting="manual",automation=true,uptime=12587,
   ae2={online=true,itemTypes=1834,revision=45},power={ae2={supported=true,unit="AE",stored=782000,capacity=1000000,injection=129,usage=121}},
   clients={{role="main",address=state.context.modem,age=2},{role="side",address="44444444-4444-4444-8444-444444444444",age=1}}}}
 '''
@@ -98,6 +98,12 @@ if __name__ == "__main__":
     render("main-craft-compact", 80, 25, modal)
     render("main-craft-small", 40, 12, modal)
     render("main-craft-uncertain", 160, 50, modal+'; state.craft.submitted=true; state.craft.uncertain=true; state.craft.error="Yanit yok. Emir tekrar gonderilmedi; isleri kontrol edin."')
+    checking = modal+'; state.craft.submitted=true; state.craft.pending=true; state.craft.jobState="computing"'
+    failure = modal+'; state.craft.submitted=true; state.craft.finished=true; state.craft.jobState="failed"; state.craft.error="AE2 isi baslatamadi. Kaynak eksigi veya uygun CPU/bellek sorunu olabilir. ME Terminal\\\'de kontrol edin."; state.craft.rawError="request failed (missing resources?)"'
+    render("main-craft-checking", 160, 50, checking)
+    render("main-craft-failed", 160, 50, failure)
+    render("main-craft-failed-small", 40, 12, failure)
+    render("main-craft-failed-small-details", 40, 12, failure+'; state.craft.detailPage=2')
     for name, width, height in (("main-stock-rules", 160, 50), ("main-stock-rules-compact", 80, 25), ("main-stock-rules-small", 40, 12), ("main-stock-rules-medium", 50, 16)):
         render(name, width, height, "state.tab=3")
     rule_modal = 'state.tab=3; state.ruleEditor={id=1,label="Infused Alloy / Meta: 0",minimum="2048",target="4096",field="minimum"}'

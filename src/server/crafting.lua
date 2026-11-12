@@ -2,6 +2,7 @@ local storage=require("core.storage")
 local fs=require("filesystem")
 local identity=require("core.items")
 local uuid=require("uuid")
+local errors=require("core.craft_errors")
 local M={path="/var/lib/factoryos/crafting.dat"}
 local active={submitting=true,computing=true,running=true,cancel_requested=true,unknown=true}
 local terminal={done=true,canceled=true,failed=true,reviewed=true}
@@ -63,7 +64,22 @@ function M.new(ae,clock,log,path)
     return true
   end
   local function public(r)
-    return {id=r.owner..":"..r.sequence,label=r.label,amount=r.amount,cpu=r.cpu,state=r.state,error=r.error or "",owner=r.owner,automatic=r.ruleId~=nil,ruleId=r.ruleId}
+    local code,message=errors.explain(r.error)
+    return {id=r.owner..":"..r.sequence,label=r.label,amount=r.amount,cpu=r.cpu,state=r.state,error=r.error or "",errorCode=code,errorMessage=message,owner=r.owner,automatic=r.ruleId~=nil,ruleId=r.ruleId}
+  end
+  local function observe(r,handle)
+    local done,de=call(handle,"isDone"); local canceled,ce=call(handle,"isCanceled")
+    local state,err
+    if done==true then state="done"
+    elseif canceled==true then state="canceled"
+    elseif de=="computing" or ce=="computing" then state="computing"
+    elseif done==false and canceled==false and not de and not ce then state=r.state=="cancel_requested" and "cancel_requested" or "running"
+    elseif done==false and de or canceled==false and ce then state="failed"; err=de or ce
+    else state="unknown"; err=de or ce or "Is durumu okunamadi" end
+    local changed=r.state~=state or r.error~=(err or "")
+    r.state=state; r.error=text(err)
+    if terminal[state] then self.handles[r]=nil end
+    return changed
   end
   self.save=save
   local function find(owner,sequence)
@@ -168,6 +184,7 @@ function M.new(ae,clock,log,path)
     else handle,failure=call(craft,"request",r.amount,true,cpu) end
     if (type(handle)=="table" or type(handle)=="userdata") and handle.isDone~=nil and handle.isCanceled~=nil then
       self.handles[r]=handle; r.state="computing"
+      observe(r,handle)
     else r.state="unknown"; r.error=text(failure or "Emir sonucu alinamadi; ME Terminal'den kontrol edin") end
     save(); log("INFO","Craft "..r.owner..":"..r.sequence.." "..r.label.." x"..r.amount.." "..r.state)
     return public(r)
@@ -178,19 +195,10 @@ function M.new(ae,clock,log,path)
     for owner,q in pairs(self.quotes) do if clock()-q.at>60 then self.quotes[owner]=nil end end
     local changed=false
     for r,handle in pairs(self.handles) do
-      local done,de=call(handle,"isDone"); local canceled,ce=call(handle,"isCanceled")
-      local state,err
-      if done==true then state="done"
-      elseif canceled==true then state="canceled"
-      elseif de=="computing" or ce=="computing" then state="computing"
-      elseif done==false and canceled==false and not de and not ce then state=r.state=="cancel_requested" and "cancel_requested" or "running"
-      elseif done==false and de or canceled==false and ce then state="failed"; err=de or ce
-      else state="unknown"; err=de or ce or "Is durumu okunamadi" end
-      if r.state~=state or r.error~=(err or "") then
-        r.state=state; r.error=text(err); changed=true
-        log((state=="failed" or state=="unknown") and "WARN" or "INFO","Craft "..r.owner..":"..r.sequence.." "..state..(r.error~="" and (": "..r.error) or ""))
+      if observe(r,handle) then
+        changed=true
+        log((r.state=="failed" or r.state=="unknown") and "WARN" or "INFO","Craft "..r.owner..":"..r.sequence.." "..r.state..(r.error~="" and (": "..r.error) or ""))
       end
-      if terminal[state] then self.handles[r]=nil end
     end
     if changed then save() end
   end

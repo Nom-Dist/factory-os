@@ -29,14 +29,15 @@ function M.jobs(r,l,state,net)
     local cancelable=job.state=="running" or job.state=="computing"
     local owned=job.automatic or job.owner==((state.context or {}).modem)
     local status=labels[job.state] or "BILINMIYOR"
-    if compact and job.state=="failed" and job.error and job.error~="" then status=status.." / "..job.error end
+    if compact and job.state=="failed" and job.error and job.error~="" then status=status.." / "..(job.errorMessage or job.error) end
     W.text(r,l.x+2,y+1,l.w-((cancelable and owned) and 15 or 4),status,color)
     if cancelable and owned then r:button(l.x+l.w-12,y+1,10,"IPTAL ET","cancelcraft:"..job.id,false,1,not (state.canceling or {})[job.id]) end
     if job.state=="unknown" and owned then r:button(l.x+l.w-19,y+1,17,"ME'DE BAKTIM","archivecraft:"..job.id,false,1,not (state.canceling or {})[job.id]) end
     if not compact then
       W.text(r,l.x+2,y+2,l.w-4,(job.automatic and "STOK KURALI | " or "").."CPU: "..(job.cpu~="" and job.cpu or "Otomatik / AE2 secimi"),C.muted)
-      W.text(r,l.x+2,y+3,l.w-4,job.error~="" and job.error or job.id,C.muted)
+      W.text(r,l.x+2,y+3,l.w-4,job.error~="" and (job.errorMessage or job.error) or job.id,C.muted)
     end
+    if job.error and job.error~="" then r:button(l.x+l.w-12,y+(compact and 2 or 3),10,"HATA DETAY","craftdetail:"..job.id,false,1) end
   end
   local y=tiny and l.bottom or l.bottom-1
   if not tiny and jobs.craftingError and jobs.craftingError~="" then W.text(r,l.x+1,l.bottom,l.w-2,jobs.craftingError,C.warn) end
@@ -46,9 +47,41 @@ function M.jobs(r,l,state,net)
     r:button(l.x+l.w-9,y,8,"SONRA","jobsnext",false,1,state.jobsPage<pages)
   end
 end
+local function result(r,c)
+  local width=math.min(92,r.w-2); local height=math.min(22,r.h-2)
+  local x=math.floor((r.w-width)/2)+1; local y=math.max(2,math.floor((r.h-height)/2))
+  r:fill(1,2,r.w,r.h-2,C.bg); W.panel(r,x,y,width,height,"AE2 / KAYNAK KONTROLU VE SONUC")
+  W.text(r,x+2,y+1,width-4,c.label,C.text)
+  W.text(r,x+2,y+2,width-4,c.amount.." adet | CPU: "..(c.cpu~="" and c.cpu or "OTOMATIK"),C.muted)
+  W.text(r,x+2,y+3,width-4,c.submitting and "EMIR GONDERILIYOR" or c.pending and "KAYNAKLAR / URETIM PLANI DENETLENIYOR" or (labels[c.jobState] or "SONUC / HATA"),c.pending and C.accent or C.warn)
+  local message=c.error or (c.submitting and "Emir diske kaydediliyor; yanit bekleniyor." or "AE2 kaynaklari ve plani denetliyor. Uretimin basladigi henuz dogrulanmadi. Isleri izleyebilirsiniz.")
+  if c.rawError and c.rawError~="" then message=message.." | SURUCU: "..c.rawError end
+  local lines={}; local size=width-4
+  for word in F.clean(message):gmatch("%S+") do
+    if #lines==0 then lines[1]="" end
+    while #word>size do
+      if lines[#lines]~="" then lines[#lines+1]="" end
+      lines[#lines]=word:sub(1,size); lines[#lines+1]=""; word=word:sub(size+1)
+    end
+    local last=lines[#lines]
+    if #last>0 and #last+1+#word>size then lines[#lines+1]=word else lines[#lines]=last..(#last>0 and " " or "")..word end
+  end
+  local count=math.max(1,height-7); c.detailPages=math.max(1,math.ceil(#lines/count)); c.detailPage=math.min(c.detailPage or 1,c.detailPages)
+  for i=1,count do W.text(r,x+2,y+3+i,size,lines[(c.detailPage-1)*count+i] or "",c.error and C.warn or C.muted) end
+  local p=y+height-3
+  if c.detailPages>1 then
+    r:button(x+2,p,7,"ONCE","craft:detailprev",false,1,c.detailPage>1)
+    W.text(r,x+10,p,size-18,c.detailPage.." / "..c.detailPages,C.muted)
+    r:button(x+width-9,p,7,"SONRA","craft:detailnext",false,1,c.detailPage<c.detailPages)
+  end
+  local half=math.floor((width-5)/2)
+  r:button(x+2,y+height-2,half,"KAPAT","craft:close",false,1,not c.submitting)
+  r:button(x+3+half,y+height-2,half,"ISLERI GOR","craft:jobs",true,1,not c.submitting)
+end
 function M.modal(r,state)
   local c=state.craft; if not c then return end
   r.buttons={}
+  if c.submitted then result(r,c); return end
   local tall=r.h>=24; local step=tall and 2 or 1
   local width=math.min(76,r.w-2); local height=tall and 18 or 10
   local x=math.floor((r.w-width)/2)+1; local y=math.max(2,math.floor((r.h-height)/2))
